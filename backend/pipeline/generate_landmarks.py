@@ -1,0 +1,242 @@
+"""
+Generates backend/data/landmarks.json for keyless geocoding across Pune.
+Schema strictly conforms to docs/contracts/data.md.
+"""
+import json
+import os
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+OUTPUT_FILE = DATA_DIR / "landmarks.json"
+
+LANDMARKS = {
+    "PCCOE, Pune": {
+        "lat": 18.6517,
+        "lon": 73.7615,
+        "category": "education",
+        "ward": "Pimpri Chinchwad",
+        "aliases": ["PCCOE", "Pimpri Chinchwad College of Engineering", "Akurdi College", "PCCOE Akurdi"]
+    },
+    "Hinjewadi Phase 1": {
+        "lat": 18.5913,
+        "lon": 73.7389,
+        "category": "tech_park",
+        "ward": "Hinjewadi",
+        "aliases": ["Hinjawadi Ph 1", "Rajiv Gandhi Infotech Park Phase 1", "Wipro Circle Hinjewadi"]
+    },
+    "Shivajinagar Station": {
+        "lat": 18.5314,
+        "lon": 73.8446,
+        "category": "transit",
+        "ward": "Shivajinagar - Ghole Road",
+        "aliases": ["Shivajinagar", "Shivaji Nagar Railway Station", "Shimla Office Chowk", "Shivajinagar Bus Stand"]
+    },
+    "Kothrud (Chandani Chowk)": {
+        "lat": 18.5074,
+        "lon": 73.7925,
+        "category": "transit",
+        "ward": "Kothrud - Bavdhan",
+        "aliases": ["Chandani Chowk", "Kothrud Depot", "Bavdhan Chowk", "Chandani Chowk Flyover"]
+    },
+    "Katraj (Katraj Chowk)": {
+        "lat": 18.4529,
+        "lon": 73.8553,
+        "category": "transit",
+        "ward": "Dhankawadi - Sahakarnagar",
+        "aliases": ["Katraj Chowk", "Katraj", "Katraj Bus Stand", "Katraj Snake Park"]
+    },
+    "Navale Bridge, Vadgaon": {
+        "lat": 18.4580,
+        "lon": 73.8280,
+        "category": "transit",
+        "ward": "Sinhagad Road",
+        "aliases": ["Navale Bridge", "Navale Pul", "Vadgaon Bridge", "NH48 Navale Bridge"]
+    },
+    "Aundh (Bremen Chowk)": {
+        "lat": 18.5602,
+        "lon": 73.8078,
+        "category": "transit",
+        "ward": "Aundh - Baner",
+        "aliases": ["Bremen Chowk", "Aundh Chowk", "Bremen Circle", "Aundh Center"]
+    },
+    "Hadapsar (Gadital)": {
+        "lat": 18.5020,
+        "lon": 73.9280,
+        "category": "transit",
+        "ward": "Hadapsar - Mundhwa",
+        "aliases": ["Gadital", "Hadapsar Gadital", "Hadapsar Bus Depot", "Hadapsar Chowk"]
+    },
+    "Magarpatta City": {
+        "lat": 18.5144,
+        "lon": 73.9272,
+        "category": "tech_park",
+        "ward": "Hadapsar - Mundhwa",
+        "aliases": ["Magarpatta", "Cybercity Magarpatta", "Magarpatta South Gate"]
+    },
+    "Swargate Bus Station": {
+        "lat": 18.5018,
+        "lon": 73.8586,
+        "category": "transit",
+        "ward": "Kasba - Vishrambaugwada",
+        "aliases": ["Swargate", "Swargate ST Stand", "Swargate Chowk", "Jedhe Chowk Swargate"]
+    },
+    "Pune Junction Railway Station": {
+        "lat": 18.5284,
+        "lon": 73.8744,
+        "category": "transit",
+        "ward": "Bhavani Peth",
+        "aliases": ["Pune Station", "Pune Railway Station", "Pune Rly Stn", "Pune Junction"]
+    },
+    "Deccan Gymkhana": {
+        "lat": 18.5167,
+        "lon": 73.8417,
+        "category": "transit",
+        "ward": "Shivajinagar - Ghole Road",
+        "aliases": ["Deccan", "Goodluck Chowk", "Deccan Bus Stand", "Fergusson College Road Deccan"]
+    },
+    "Fergusson College (FC Road)": {
+        "lat": 18.5236,
+        "lon": 73.8415,
+        "category": "education",
+        "ward": "Shivajinagar - Ghole Road",
+        "aliases": ["FC Road", "Fergusson College", "FC Campus", "Fergusson Road"]
+    },
+    "COEP Technological University": {
+        "lat": 18.5293,
+        "lon": 73.8565,
+        "category": "education",
+        "ward": "Shivajinagar - Ghole Road",
+        "aliases": ["COEP", "College of Engineering Pune", "COEP Hostel", "Sancheti COEP"]
+    },
+    "Savitribai Phule Pune University": {
+        "lat": 18.5529,
+        "lon": 73.8246,
+        "category": "education",
+        "ward": "Aundh - Baner",
+        "aliases": ["SPPU", "Pune University", "University Circle", "Ganeshkhind"]
+    },
+    "Khadki Railway Station": {
+        "lat": 18.5620,
+        "lon": 73.8510,
+        "category": "transit",
+        "ward": "Aundh - Baner",
+        "aliases": ["Khadki", "Kirkee Station", "Khadki Bazar", "Khadki Cantonment"]
+    },
+    "Warje Flyover": {
+        "lat": 18.4800,
+        "lon": 73.8050,
+        "category": "transit",
+        "ward": "Warje - Karvenagar",
+        "aliases": ["Warje Bridge", "Warje Chowk", "Warje Malwadi", "Mai Mangeshkar Hospital Chowk"]
+    },
+    "Baner (High Street)": {
+        "lat": 18.5714,
+        "lon": 73.7745,
+        "category": "commercial",
+        "ward": "Aundh - Baner",
+        "aliases": ["Balewadi High Street", "Baner Road", "Balewadi Phata", "Baner High Street"]
+    },
+    "Karve Nagar (Cummins College)": {
+        "lat": 18.4900,
+        "lon": 73.8180,
+        "category": "education",
+        "ward": "Warje - Karvenagar",
+        "aliases": ["Karve Nagar", "Cummins College", "MKSSS", "Karve Road Kothrud"]
+    },
+    "Kalyani Nagar (Joggers Park)": {
+        "lat": 18.5470,
+        "lon": 73.9020,
+        "category": "civic",
+        "ward": "Nagar Road - Vadgaonsheri",
+        "aliases": ["Kalyani Nagar", "Joggers Park Kalyani Nagar", "Adlabs Chowk"]
+    },
+    "Viman Nagar (Phoenix Marketcity)": {
+        "lat": 18.5620,
+        "lon": 73.9168,
+        "category": "commercial",
+        "ward": "Nagar Road - Vadgaonsheri",
+        "aliases": ["Phoenix Mall", "Phoenix Marketcity", "Viman Nagar", "Symbiosis Viman Nagar"]
+    },
+    "Yerwada (Gunjan Chowk)": {
+        "lat": 18.5520,
+        "lon": 73.8820,
+        "category": "transit",
+        "ward": "Yerwada - Kalas - Dhanori",
+        "aliases": ["Gunjan Chowk", "Yerawada", "Yerwada Chowk", "Golf Club Chowk"]
+    },
+    "Sancheti Hospital": {
+        "lat": 18.5285,
+        "lon": 73.8520,
+        "category": "hospital",
+        "ward": "Shivajinagar - Ghole Road",
+        "aliases": ["Sancheti Hospital Chowk", "Sancheti Orthopedic", "Sancheti Pul"]
+    },
+    "Jehangir Hospital": {
+        "lat": 18.5300,
+        "lon": 73.8770,
+        "category": "hospital",
+        "ward": "Bhavani Peth",
+        "aliases": ["Jehangir", "Jehangir Hospital Pune Station", "Sasoon Jehangir"]
+    },
+    "Deenanath Mangeshkar Hospital": {
+        "lat": 18.5030,
+        "lon": 73.8320,
+        "category": "hospital",
+        "ward": "Kothrud - Bavdhan",
+        "aliases": ["Deenanath Hospital", "DMH Erandwane", "Mangeshkar Hospital"]
+    },
+    "Ruby Hall Clinic": {
+        "lat": 18.5330,
+        "lon": 73.8780,
+        "category": "hospital",
+        "ward": "Bhavani Peth",
+        "aliases": ["Ruby Hall", "Ruby Hall Sassoon", "Ruby Hall Clinic Pune"]
+    },
+    "Shaniwar Wada": {
+        "lat": 18.5195,
+        "lon": 73.8553,
+        "category": "landmark",
+        "ward": "Kasba - Vishrambaugwada",
+        "aliases": ["Shaniwarwada", "Shanivar Wada", "Kasba Peth Fort"]
+    },
+    "Sarasbaug": {
+        "lat": 18.5008,
+        "lon": 73.8530,
+        "category": "landmark",
+        "ward": "Kasba - Vishrambaugwada",
+        "aliases": ["Saras Baug", "Sarasbaug Ganpati", "Swargate Sarasbaug"]
+    },
+    "Nal Stop, Karve Road": {
+        "lat": 18.5080,
+        "lon": 73.8320,
+        "category": "transit",
+        "ward": "Kothrud - Bavdhan",
+        "aliases": ["Nal Stop", "Nal Stop Flyover", "Karve Road Nal Stop"]
+    },
+    "Paud Phata Flyover": {
+        "lat": 18.5100,
+        "lon": 73.8220,
+        "category": "transit",
+        "ward": "Kothrud - Bavdhan",
+        "aliases": ["Paud Phata", "Paud Road", "More Vidyalaya Chowk"]
+    }
+}
+
+
+def generate():
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        json.dump(LANDMARKS, f, indent=2, ensure_ascii=False)
+
+    size_bytes = os.path.getsize(OUTPUT_FILE)
+    lats = [v["lat"] for v in LANDMARKS.values()]
+    lons = [v["lon"] for v in LANDMARKS.values()]
+    
+    print(f"[landmarks.json] Rows: {len(LANDMARKS)}")
+    print(f"[landmarks.json] File Size: {size_bytes / 1024:.2f} KB ({size_bytes} bytes)")
+    print(f"[landmarks.json] Geographic Bounds: Lat [{min(lats):.4f}, {max(lats):.4f}], Lon [{min(lons):.4f}, {max(lons):.4f}]")
+    return OUTPUT_FILE
+
+
+if __name__ == "__main__":
+    generate()

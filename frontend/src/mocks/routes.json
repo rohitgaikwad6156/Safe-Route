@@ -1,0 +1,491 @@
+{
+  "origin": {
+    "name": "Shivajinagar Station, Pune",
+    "lat": 18.5314,
+    "lon": 73.8446
+  },
+  "destination": {
+    "name": "Katraj (Katraj Chowk), Pune",
+    "lat": 18.4529,
+    "lon": 73.8553
+  },
+  "departure_time": "21:30",
+  "is_weekend": false,
+  "routes": [
+    {
+      "id": "route-fastest",
+      "name": "Fastest Route (Via Swargate)",
+      "type": "fastest",
+      "color": "#3b82f6",
+      "distance_meters": 11200,
+      "duration_seconds": 1440,
+      "raw_rss": 62.4,
+      "rss": 52.4,
+      "risk_level": "Elevated Risk",
+      "reasons": [
+        "Direct arterial corridor spanning 11.2 km with composite safety score of 52.4 RSS. Accident safety: 42.0/100, Lighting score: 78.0/100.",
+        "RSS Attribution: Accident safety contributes 12.6 pts (sub-score: 42.0), Emergency access contributes 14.8 pts (sub-score: 74.0), Street lighting contributes 15.6 pts (sub-score: 78.0), Pedestrian paths contribute 7.2 pts (sub-score: 48.0), and Traffic flow contributes 9.0 pts (sub-score: 60.0) to the 62.4 base RSS. Temporal modifier of -10.0 pts results in a final 52.4 RSS.",
+        "Temporal Causation: At 12:00 PM (Noon), Fastest Route ranked competitively at 67.4 RSS with +5.0 daytime modifier. By 21:30, late-evening modifier (-10.0 pts) dropped it to 52.4 RSS due to high truck volume along the Swargate corridor.",
+        "Data Provenance & Confidence: Estimated (38.5% ground-truth verified). Lighting is estimated (42.0% verified via OSM tags; 58.0% [6.5 km] inferred from PMC Ward density records for Shivajinagar & Bhavani Peth). Pedestrian infrastructure is estimated (35.0% verified; 65.0% inferred from highway classification).",
+        "Safe Haven Position-Band Coverage: Continuous emergency access verified across 4 journey bands. Nearest trauma facility never exceeds 650 m (accessible: Sancheti Hospital at 240 m; Sasoon General Hospital at 580 m; Bharati Hospital Katraj at 620 m). Police chowki proximity is maintained within 350 m."
+      ],
+      "subscores": {
+        "accident": 42.0,
+        "emergency": 74.0,
+        "lighting": 78.0,
+        "pedestrian": 48.0,
+        "traffic": 60.0
+      },
+      "attribution": {
+        "contributions": {
+          "accident": 12.6,
+          "emergency": 14.8,
+          "lighting": 15.6,
+          "pedestrian": 7.2,
+          "traffic": 9.0
+        },
+        "subscore_means": {
+          "accident": 42.0,
+          "emergency": 74.0,
+          "lighting": 78.0,
+          "pedestrian": 48.0,
+          "traffic": 60.0
+        },
+        "raw_rss": 62.4,
+        "temporal_adjustment": -10.0,
+        "final_rss": 52.4,
+        "explanation": "RSS Attribution: Accident safety contributes 12.6 pts, Emergency access contributes 14.8 pts, Street lighting contributes 15.6 pts, Pedestrian paths contribute 7.2 pts, and Traffic flow contributes 9.0 pts."
+      },
+      "uncertainty": {
+        "overall_confidence": "estimated",
+        "overall_verified_percentage": 38.5,
+        "lighting": {
+          "confidence": "estimated",
+          "verified_percentage": 42.0,
+          "verified_km": 4.7,
+          "estimated_km": 6.5,
+          "fallback_source": "PMC Environment Status Report Ward Lighting Density"
+        },
+        "pedestrian": {
+          "confidence": "estimated",
+          "verified_percentage": 35.0,
+          "fallback_source": "OSM Highway Hierarchy Classifier"
+        },
+        "accident": {
+          "confidence": "verified",
+          "source": "iRAD / Pune Traffic Police Blackspot Spatial Grid (WSI)"
+        },
+        "explanation": "Confidence: Estimated (38.5% ground truth). 58.0% of lighting relies on PMC Ward density records."
+      },
+      "safe_havens": {
+        "bands": [
+          {
+            "band_name": "Band 1 (0% - 25% Corridor Start)",
+            "sample_coordinates": [18.5285, 73.8505],
+            "hospital": {"name": "Sancheti Hospital", "distance_meters": 240},
+            "police": {"name": "Shivajinagar Police Station", "distance_meters": 310},
+            "ecb": {"name": "Smart City ECB - Shimla Office", "distance_meters": 180}
+          },
+          {
+            "band_name": "Band 2 (25% - 50% Mid-Route North)",
+            "sample_coordinates": [18.5060, 73.8615],
+            "hospital": {"name": "Sasoon General Hospital", "distance_meters": 580},
+            "police": {"name": "Swargate Police Chowki", "distance_meters": 220},
+            "ecb": {"name": "Smart City ECB - Swargate Bus Stand", "distance_meters": 150}
+          },
+          {
+            "band_name": "Band 3 (50% - 75% Mid-Route South)",
+            "sample_coordinates": [18.4790, 73.8555],
+            "hospital": {"name": "Chintamani Hospital Bibvewadi", "distance_meters": 450},
+            "police": {"name": "Sahakarnagar Police Chowki", "distance_meters": 380},
+            "ecb": {"name": "Smart City ECB - Padmavati Chowk", "distance_meters": 290}
+          },
+          {
+            "band_name": "Band 4 (75% - 100% Approach Terminus)",
+            "sample_coordinates": [18.4570, 73.8540],
+            "hospital": {"name": "Bharati Hospital Katraj", "distance_meters": 210},
+            "police": {"name": "Katraj Traffic Chowki", "distance_meters": 190},
+            "ecb": {"name": "Smart City ECB - Katraj Dairy", "distance_meters": 160}
+          }
+        ],
+        "max_hospital_distance_meters": 580,
+        "max_police_distance_meters": 380,
+        "explanation": "Safe Haven Position-Band Coverage: Emergency facilities reachable within 580 m across all 4 journey bands."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [73.8446, 18.5314],
+          [73.8465, 18.5298],
+          [73.8505, 18.5285],
+          [73.8540, 18.5275],
+          [73.8580, 18.5270],
+          [73.8610, 18.5240],
+          [73.8640, 18.5190],
+          [73.8635, 18.5120],
+          [73.8615, 18.5060],
+          [73.8590, 18.5015],
+          [73.8580, 18.4975],
+          [73.8575, 18.4940],
+          [73.8568, 18.4890],
+          [73.8560, 18.4850],
+          [73.8555, 18.4790],
+          [73.8550, 18.4730],
+          [73.8548, 18.4680],
+          [73.8545, 18.4630],
+          [73.8540, 18.4570],
+          [73.8553, 18.4529]
+        ]
+      },
+      "steps": [
+        {
+          "instruction": "Head southeast from Shivajinagar Station toward Shimla Office Chowk",
+          "distance_meters": 450,
+          "street": "Old Mumbai-Pune Highway"
+        },
+        {
+          "instruction": "Turn slight left onto Dengle Bridge road toward Nana Peth",
+          "distance_meters": 1800,
+          "street": "Dengle Bridge Rd"
+        },
+        {
+          "instruction": "Continue straight through Swargate Chowk onto Pune-Satara Road",
+          "distance_meters": 3200,
+          "street": "Pune - Satara Rd"
+        },
+        {
+          "instruction": "Proceed south past Balaji Nagar & Bharati Vidyapeeth",
+          "distance_meters": 4200,
+          "street": "Pune - Satara Rd"
+        },
+        {
+          "instruction": "Arrive at Katraj Chowk terminus",
+          "distance_meters": 1550,
+          "street": "Katraj Chowk"
+        }
+      ]
+    },
+    {
+      "id": "route-safest",
+      "name": "Safest Route (Via Karve Rd & Sinhagad Bypass)",
+      "type": "safest",
+      "color": "#2dd4bf",
+      "distance_meters": 13400,
+      "duration_seconds": 1860,
+      "raw_rss": 91.5,
+      "rss": 81.5,
+      "risk_level": "Safe Corridor",
+      "reasons": [
+        "Avoided a 4,500 m stretch of Pune - Satara Road — 34.0 cumulative WSI (11 recorded serious/fatal crashes), no continuous footpath, 78% unlit flyovers. Bypass adds 2,200 m (+4.4 min). Primary avoidance factor: severe accident crash history (WSI 34.0).",
+        "RSS Attribution: Accident safety contributes 27.6 pts (sub-score: 92.0), Emergency access contributes 18.8 pts (sub-score: 94.0), Street lighting contributes 19.0 pts (sub-score: 95.0), Pedestrian paths contribute 13.2 pts (sub-score: 88.0), and Traffic flow contributes 12.9 pts (sub-score: 86.0) to the 91.5 base RSS. Temporal modifier of -10.0 pts results in a final 81.5 RSS.",
+        "Temporal Causation: At 12:00 PM, Safest Route was strong at 96.5 RSS (+5.0 daytime modifier). By 21:30, it won decisively at 81.5 RSS because its 98% LED lighting and continuous sidewalks buffered against the -10.0 late-evening drop.",
+        "Data Provenance & Confidence: Estimated (31.4% ground-truth verified). Lighting is estimated (28.5% verified via OSM tags; 71.5% [9.6 km] inferred from PMC Ward density records for Kothrud-Bavdhan & Sinhagad Road). Pedestrian infrastructure is estimated (34.2% verified; 65.8% inferred from highway classification).",
+        "Safe Haven Position-Band Coverage: Continuous emergency access verified across 4 journey bands. Nearest trauma facility never exceeds 410 m (accessible: Sancheti Hospital at 240 m; Deenanath Mangeshkar Hospital at 320 m; Bharati Hospital Katraj at 410 m). Police chowki proximity is maintained within 280 m."
+      ],
+      "subscores": {
+        "accident": 92.0,
+        "emergency": 94.0,
+        "lighting": 95.0,
+        "pedestrian": 88.0,
+        "traffic": 86.0
+      },
+      "attribution": {
+        "contributions": {
+          "accident": 27.6,
+          "emergency": 18.8,
+          "lighting": 19.0,
+          "pedestrian": 13.2,
+          "traffic": 12.9
+        },
+        "subscore_means": {
+          "accident": 92.0,
+          "emergency": 94.0,
+          "lighting": 95.0,
+          "pedestrian": 88.0,
+          "traffic": 86.0
+        },
+        "raw_rss": 91.5,
+        "temporal_adjustment": -10.0,
+        "final_rss": 81.5,
+        "explanation": "RSS Attribution: Accident safety contributes 27.6 pts, Emergency access contributes 18.8 pts, Street lighting contributes 19.0 pts, Pedestrian paths contribute 13.2 pts, and Traffic flow contributes 12.9 pts."
+      },
+      "counterfactual_detours": [
+        {
+          "block_index": 1,
+          "avoided_length_meters": 4500,
+          "street_name": "Pune - Satara Road",
+          "wsi_sum": 34.0,
+          "estimated_fatalities": 11,
+          "unlit_percentage": 78.0,
+          "no_sidewalk_percentage": 82.0,
+          "dominant_hazard": "severe accident crash history (WSI 34.0)",
+          "extra_distance_meters": 2200,
+          "extra_time_minutes": 4.4,
+          "explanation": "Avoided a 4,500 m stretch of Pune - Satara Road — 34.0 cumulative WSI (11 recorded serious/fatal crashes), no continuous footpath, 78% unlit flyovers. Bypass adds 2,200 m (+4.4 min). Primary avoidance factor: severe accident crash history (WSI 34.0)."
+        }
+      ],
+      "uncertainty": {
+        "overall_confidence": "estimated",
+        "overall_verified_percentage": 31.4,
+        "lighting": {
+          "confidence": "estimated",
+          "verified_percentage": 28.5,
+          "verified_km": 3.8,
+          "estimated_km": 9.6,
+          "fallback_source": "PMC Environment Status Report Ward Lighting Density"
+        },
+        "pedestrian": {
+          "confidence": "estimated",
+          "verified_percentage": 34.2,
+          "fallback_source": "OSM Highway Hierarchy Classifier"
+        },
+        "accident": {
+          "confidence": "verified",
+          "source": "iRAD / Pune Traffic Police Blackspot Spatial Grid (WSI)"
+        },
+        "explanation": "Confidence: Estimated (31.4% ground truth). 71.5% of lighting relies on PMC Ward density records."
+      },
+      "safe_havens": {
+        "bands": [
+          {
+            "band_name": "Band 1 (0% - 25% Corridor Start)",
+            "sample_coordinates": [18.5240, 73.8430],
+            "hospital": {"name": "Sancheti Hospital", "distance_meters": 240},
+            "police": {"name": "Deccan Police Station", "distance_meters": 210},
+            "ecb": {"name": "Smart City ECB - Balgandharva", "distance_meters": 140}
+          },
+          {
+            "band_name": "Band 2 (25% - 50% Mid-Route North)",
+            "sample_coordinates": [18.5080, 73.8290],
+            "hospital": {"name": "Deenanath Mangeshkar Hospital", "distance_meters": 320},
+            "police": {"name": "Kothrud Police Station", "distance_meters": 280},
+            "ecb": {"name": "Smart City ECB - Nal Stop Chowk", "distance_meters": 110}
+          },
+          {
+            "band_name": "Band 3 (50% - 75% Mid-Route South)",
+            "sample_coordinates": [18.4810, 73.8345],
+            "hospital": {"name": "Navale General Hospital", "distance_meters": 390},
+            "police": {"name": "Sinhagad Road Police Chowki", "distance_meters": 250},
+            "ecb": {"name": "Smart City ECB - Pu La Deshpande", "distance_meters": 170}
+          },
+          {
+            "band_name": "Band 4 (75% - 100% Approach Terminus)",
+            "sample_coordinates": [18.4560, 73.8480],
+            "hospital": {"name": "Bharati Hospital Katraj", "distance_meters": 410},
+            "police": {"name": "Katraj Traffic Chowki", "distance_meters": 240},
+            "ecb": {"name": "Smart City ECB - Katraj Bypass", "distance_meters": 180}
+          }
+        ],
+        "max_hospital_distance_meters": 410,
+        "max_police_distance_meters": 280,
+        "explanation": "Safe Haven Position-Band Coverage: Emergency facilities reachable within 410 m across all 4 journey bands."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [73.8446, 18.5314],
+          [73.8420, 18.5280],
+          [73.8430, 18.5240],
+          [73.8440, 18.5210],
+          [73.8425, 18.5185],
+          [73.8405, 18.5170],
+          [73.8370, 18.5145],
+          [73.8340, 18.5120],
+          [73.8310, 18.5095],
+          [73.8290, 18.5080],
+          [73.8320, 18.5020],
+          [73.8310, 18.4950],
+          [73.8330, 18.4870],
+          [73.8345, 18.4810],
+          [73.8360, 18.4730],
+          [73.8385, 18.4650],
+          [73.8440, 18.4580],
+          [73.8480, 18.4560],
+          [73.8510, 18.4545],
+          [73.8553, 18.4529]
+        ]
+      },
+      "steps": [
+        {
+          "instruction": "Head southwest on JM Road toward Balgandharva Chowk",
+          "distance_meters": 1200,
+          "street": "Jangali Maharaj Rd"
+        },
+        {
+          "instruction": "Turn right toward Deccan Gymkhana onto Karve Road",
+          "distance_meters": 1900,
+          "street": "Karve Rd"
+        },
+        {
+          "instruction": "Turn left at Nal Stop onto Erandwane DP Road toward Rajaram Bridge",
+          "distance_meters": 2400,
+          "street": "DP Road"
+        },
+        {
+          "instruction": "Merge onto illuminated Sinhagad Road along Pu La Deshpande Garden",
+          "distance_meters": 3800,
+          "street": "Sinhagad Rd"
+        },
+        {
+          "instruction": "Take Ambegaon bypass connector with dedicated bike/pedestrian lanes",
+          "distance_meters": 2600,
+          "street": "Ambegaon Link Rd"
+        },
+        {
+          "instruction": "Reach Katraj Chowk safely",
+          "distance_meters": 1500,
+          "street": "Katraj Chowk"
+        }
+      ]
+    },
+    {
+      "id": "route-balanced",
+      "name": "Balanced Route (Via Sarasbaug & Bibvewadi)",
+      "type": "balanced",
+      "color": "#f59e0b",
+      "distance_meters": 11900,
+      "duration_seconds": 1560,
+      "raw_rss": 83.8,
+      "rss": 73.8,
+      "risk_level": "Moderate Safety",
+      "reasons": [
+        "Avoided a 2,100 m bottleneck at Swargate main junction — 19.0 cumulative WSI, dense mixed traffic. Adds 700 m (+2.0 min) via Bajirao Road arterial corridor.",
+        "RSS Attribution: Accident safety contributes 24.3 pts (sub-score: 81.0), Emergency access contributes 17.0 pts (sub-score: 85.0), Street lighting contributes 17.6 pts (sub-score: 88.0), Pedestrian paths contribute 12.3 pts (sub-score: 82.0), and Traffic flow contributes 12.6 pts (sub-score: 84.0) to the 83.8 base RSS. Temporal modifier of -10.0 pts results in a final 73.8 RSS.",
+        "Temporal Causation: At 12:00 PM, Balanced Route achieved 88.8 RSS (+5.0 daytime modifier). By 21:30, it sustained a solid 73.8 RSS, capturing 88% of Safest Route safety with only +2 min travel time over Fastest.",
+        "Data Provenance & Confidence: Estimated (34.0% ground-truth verified). Lighting is estimated (32.0% verified via OSM tags; 68.0% [8.1 km] inferred from PMC Ward density records for Kasba-Vishrambaugwada & Bibwewadi). Pedestrian infrastructure is estimated (36.0% verified; 64.0% inferred from highway classification).",
+        "Safe Haven Position-Band Coverage: Continuous emergency access verified across 4 journey bands. Nearest trauma facility never exceeds 490 m (accessible: Poona Hospital at 290 m; Chintamani Hospital at 440 m; Bharati Hospital Katraj at 490 m). Police chowki proximity is maintained within 310 m."
+      ],
+      "subscores": {
+        "accident": 81.0,
+        "emergency": 85.0,
+        "lighting": 88.0,
+        "pedestrian": 82.0,
+        "traffic": 84.0
+      },
+      "attribution": {
+        "contributions": {
+          "accident": 24.3,
+          "emergency": 17.0,
+          "lighting": 17.6,
+          "pedestrian": 12.3,
+          "traffic": 12.6
+        },
+        "subscore_means": {
+          "accident": 81.0,
+          "emergency": 85.0,
+          "lighting": 88.0,
+          "pedestrian": 82.0,
+          "traffic": 84.0
+        },
+        "raw_rss": 83.8,
+        "temporal_adjustment": -10.0,
+        "final_rss": 73.8,
+        "explanation": "RSS Attribution: Accident safety contributes 24.3 pts, Emergency access contributes 17.0 pts, Street lighting contributes 17.6 pts, Pedestrian paths contribute 12.3 pts, and Traffic flow contributes 12.6 pts."
+      },
+      "uncertainty": {
+        "overall_confidence": "estimated",
+        "overall_verified_percentage": 34.0,
+        "lighting": {
+          "confidence": "estimated",
+          "verified_percentage": 32.0,
+          "verified_km": 3.8,
+          "estimated_km": 8.1,
+          "fallback_source": "PMC Environment Status Report Ward Lighting Density"
+        },
+        "pedestrian": {
+          "confidence": "estimated",
+          "verified_percentage": 36.0,
+          "fallback_source": "OSM Highway Hierarchy Classifier"
+        },
+        "accident": {
+          "confidence": "verified",
+          "source": "iRAD / Pune Traffic Police Blackspot Spatial Grid (WSI)"
+        },
+        "explanation": "Confidence: Estimated (34.0% ground truth). 68.0% of lighting relies on PMC Ward density records."
+      },
+      "safe_havens": {
+        "bands": [
+          {
+            "band_name": "Band 1 (0% - 25% Corridor Start)",
+            "sample_coordinates": [18.5195, 73.8553],
+            "hospital": {"name": "Poona Hospital", "distance_meters": 290},
+            "police": {"name": "Faraskhana Police Station", "distance_meters": 180},
+            "ecb": {"name": "Smart City ECB - Shaniwar Wada", "distance_meters": 120}
+          },
+          {
+            "band_name": "Band 2 (25% - 50% Mid-Route North)",
+            "sample_coordinates": [18.5010, 73.8525],
+            "hospital": {"name": "Sarasbaug Polyclinic", "distance_meters": 340},
+            "police": {"name": "Swargate Traffic Chowki", "distance_meters": 290},
+            "ecb": {"name": "Smart City ECB - Sarasbaug", "distance_meters": 140}
+          },
+          {
+            "band_name": "Band 3 (50% - 75% Mid-Route South)",
+            "sample_coordinates": [18.4780, 73.8520],
+            "hospital": {"name": "Chintamani Hospital Bibvewadi", "distance_meters": 440},
+            "police": {"name": "Bibvewadi Police Chowki", "distance_meters": 310},
+            "ecb": {"name": "Smart City ECB - Padmavati", "distance_meters": 220}
+          },
+          {
+            "band_name": "Band 4 (75% - 100% Approach Terminus)",
+            "sample_coordinates": [18.4600, 73.8580],
+            "hospital": {"name": "Bharati Hospital Katraj", "distance_meters": 490},
+            "police": {"name": "Katraj Traffic Chowki", "distance_meters": 260},
+            "ecb": {"name": "Smart City ECB - Katraj Kondhwa Rd", "distance_meters": 190}
+          }
+        ],
+        "max_hospital_distance_meters": 490,
+        "max_police_distance_meters": 310,
+        "explanation": "Safe Haven Position-Band Coverage: Emergency facilities reachable within 490 m across all 4 journey bands."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [73.8446, 18.5314],
+          [73.8480, 18.5300],
+          [73.8490, 18.5250],
+          [73.8520, 18.5220],
+          [73.8550, 18.5195],
+          [73.8535, 18.5140],
+          [73.8530, 18.5100],
+          [73.8525, 18.5010],
+          [73.8510, 18.4950],
+          [73.8500, 18.4870],
+          [73.8520, 18.4780],
+          [73.8550, 18.4700],
+          [73.8570, 18.4640],
+          [73.8580, 18.4600],
+          [73.8565, 18.4560],
+          [73.8553, 18.4529]
+        ]
+      },
+      "steps": [
+        {
+          "instruction": "Depart Shivajinagar south through Congress Bhavan toward Shaniwar Wada",
+          "distance_meters": 1400,
+          "street": "Shivaji Rd"
+        },
+        {
+          "instruction": "Take Bajirao Road past Appa Balwant Chowk toward Sarasbaug",
+          "distance_meters": 2200,
+          "street": "Bajirao Rd"
+        },
+        {
+          "instruction": "Continue through Sahakar Nagar along residential avenue",
+          "distance_meters": 2800,
+          "street": "Sahakar Nagar Rd"
+        },
+        {
+          "instruction": "Follow Bibvewadi Kondhwa road toward upper Katraj connector",
+          "distance_meters": 3600,
+          "street": "Bibvewadi Main Rd"
+        },
+        {
+          "instruction": "Turn right onto Katraj Chowk approach",
+          "distance_meters": 1900,
+          "street": "Katraj Chowk"
+        }
+      ]
+    }
+  ]
+}
