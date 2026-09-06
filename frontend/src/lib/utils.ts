@@ -31,27 +31,27 @@ export function getScoreColor(score: number): {
 } {
   if (score >= 80) {
     return {
-      bg: 'bg-emerald-500/10',
-      text: 'text-emerald-400',
-      border: 'border-emerald-500/30',
-      badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-      glow: 'shadow-[0_0_15px_rgba(16,185,129,0.35)]',
+      bg: 'bg-emerald-50',
+      text: 'text-emerald-700',
+      border: 'border-emerald-200',
+      badge: 'bg-emerald-50 text-emerald-800 border-emerald-300',
+      glow: 'shadow-sm',
     };
   } else if (score >= 65) {
     return {
-      bg: 'bg-amber-500/10',
-      text: 'text-amber-400',
-      border: 'border-amber-500/30',
-      badge: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-      glow: 'shadow-[0_0_15px_rgba(245,158,11,0.35)]',
+      bg: 'bg-amber-50',
+      text: 'text-amber-800',
+      border: 'border-amber-200',
+      badge: 'bg-amber-50 text-amber-800 border-amber-300',
+      glow: 'shadow-sm',
     };
   } else {
     return {
-      bg: 'bg-rose-500/10',
-      text: 'text-rose-400',
-      border: 'border-rose-500/30',
-      badge: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
-      glow: 'shadow-[0_0_15px_rgba(244,63,94,0.35)]',
+      bg: 'bg-rose-50',
+      text: 'text-rose-700',
+      border: 'border-rose-200',
+      badge: 'bg-rose-50 text-rose-800 border-rose-300',
+      glow: 'shadow-sm',
     };
   }
 }

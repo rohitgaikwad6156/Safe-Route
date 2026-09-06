@@ -31,28 +31,28 @@ export const RadialGauge: React.FC<RadialGaugeProps> = ({
   const getScoreTheme = (val: number) => {
     if (val >= 80) {
       return {
-        color: '#2dd4bf', // Teal (high contrast for colorblindness)
-        bgTrack: 'rgba(45, 212, 191, 0.12)',
-        textClass: 'text-teal-300',
-        badgeBg: 'bg-teal-950/90 text-teal-300 border-teal-500/50 shadow-md',
-        icon: <ShieldCheck className="w-5 h-5 text-teal-400" />,
+        color: '#059669', // Emerald
+        bgTrack: '#e2e8f0',
+        textClass: 'text-emerald-700',
+        badgeBg: 'bg-emerald-50 text-emerald-800 border-emerald-200 shadow-sm',
+        icon: <ShieldCheck className="w-5 h-5 text-emerald-600" />,
       };
     }
     if (val >= 65) {
       return {
-        color: '#f59e0b', // Warm Amber/Gold
-        bgTrack: 'rgba(245, 158, 11, 0.12)',
-        textClass: 'text-amber-300',
-        badgeBg: 'bg-amber-950/90 text-amber-300 border-amber-500/50 shadow-md',
-        icon: <ShieldAlert className="w-5 h-5 text-amber-400" />,
+        color: '#d97706', // Warm Amber
+        bgTrack: '#e2e8f0',
+        textClass: 'text-amber-700',
+        badgeBg: 'bg-amber-50 text-amber-800 border-amber-200 shadow-sm',
+        icon: <ShieldAlert className="w-5 h-5 text-amber-600" />,
       };
     }
     return {
-      color: '#f43f5e', // Rose/Crimson
-      bgTrack: 'rgba(244, 63, 94, 0.12)',
-      textClass: 'text-rose-400',
-      badgeBg: 'bg-rose-950/90 text-rose-300 border-rose-500/50 shadow-md',
-      icon: <AlertTriangle className="w-5 h-5 text-rose-400" />,
+      color: '#e11d48', // Rose
+      bgTrack: '#e2e8f0',
+      textClass: 'text-rose-700',
+      badgeBg: 'bg-rose-50 text-rose-800 border-rose-200 shadow-sm',
+      icon: <AlertTriangle className="w-5 h-5 text-rose-600" />,
     };
   };
 
@@ -73,20 +73,20 @@ export const RadialGauge: React.FC<RadialGaugeProps> = ({
   const pctTraffic = (contribTraffic / totalContrib) * 100;
 
   return (
-    <div className="bg-slate-900/95 rounded-2xl border border-slate-800 p-5 shadow-2xl backdrop-blur-md">
+    <div className="bg-white/95 rounded-2xl border border-slate-200/90 p-5 shadow-xl backdrop-blur-md">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
           {theme.icon}
-          <span className="text-xs font-display font-bold uppercase tracking-wider text-slate-200">{label}</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-800">{label}</span>
         </div>
-        <span className={`px-3 py-1 text-xs font-display font-bold uppercase tracking-wider rounded-lg border ${theme.badgeBg}`}>
+        <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-lg border ${theme.badgeBg}`}>
           {riskLevel}
         </span>
       </div>
 
       {/* Main Radial Display - Sized & Tuned for 3-Meter Legibility */}
-      <div className="flex flex-col sm:flex-row items-center justify-around gap-6 pb-4 border-b border-slate-800/80">
+      <div className="flex flex-col sm:flex-row items-center justify-around gap-6 pb-4 border-b border-slate-100">
         <div className="relative flex items-center justify-center">
           <svg className="w-48 h-48 sm:w-52 sm:h-52 transform -rotate-135" viewBox="0 0 200 200">
             {/* Background Track Arc */}
@@ -95,7 +95,7 @@ export const RadialGauge: React.FC<RadialGaugeProps> = ({
               cy="100"
               r={radius}
               fill="none"
-              stroke="#172033"
+              stroke="#e2e8f0"
               strokeWidth={strokeWidth}
               strokeDasharray={`${arcLength} ${circumference}`}
               strokeLinecap="round"
@@ -112,17 +112,17 @@ export const RadialGauge: React.FC<RadialGaugeProps> = ({
               strokeDashoffset={strokeDashoffset}
               strokeLinecap="round"
               style={{
-                filter: `drop-shadow(0 0 8px ${theme.color}60)`,
+                filter: `drop-shadow(0 0 6px ${theme.color}40)`,
               }}
             />
           </svg>
 
           {/* Centered Score Readout (Hero Tabular Digits) */}
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center pt-2 pointer-events-none">
-            <span className={`text-6xl sm:text-7xl font-display font-extrabold tracking-tighter tabular-nums ${theme.textClass}`}>
+            <span className={`text-6xl sm:text-7xl font-extrabold tracking-tighter tabular-nums ${theme.textClass}`}>
               {Math.round(score)}
             </span>
-            <span className="text-xs font-mono font-bold text-slate-300 uppercase tracking-widest mt-1">
+            <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest mt-1">
               / 100 RSS
             </span>
           </div>
@@ -130,36 +130,36 @@ export const RadialGauge: React.FC<RadialGaugeProps> = ({
 
         {/* Temporal Modifiers Breakdown */}
         <div className="flex flex-col gap-2 min-w-[150px] text-xs">
-          <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-            <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Temporal Modifiers</span>
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Temporal Modifiers</span>
             <div className="mt-1.5 flex items-center justify-between font-mono">
-              <span className="text-slate-300">Departure Time:</span>
-              <span className={`font-bold ${timeModifier > 0 ? 'text-teal-300' : timeModifier < 0 ? 'text-rose-400' : 'text-slate-400'}`}>
+              <span className="text-slate-600">Departure Time:</span>
+              <span className={`font-bold ${timeModifier > 0 ? 'text-emerald-600' : timeModifier < 0 ? 'text-rose-600' : 'text-slate-500'}`}>
                 {timeModifier > 0 ? `+${timeModifier}` : timeModifier}
               </span>
             </div>
             <div className="mt-1.5 flex items-center justify-between font-mono">
-              <span className="text-slate-300">Weekend Surge:</span>
-              <span className={`font-bold ${weekendModifier < 0 ? 'text-rose-400' : 'text-slate-400'}`}>
+              <span className="text-slate-600">Weekend Surge:</span>
+              <span className={`font-bold ${weekendModifier < 0 ? 'text-rose-600' : 'text-slate-500'}`}>
                 {weekendModifier < 0 ? `${weekendModifier}` : '0.0'}
               </span>
             </div>
           </div>
-          <p className="text-[11px] text-slate-400 leading-tight">
-            Multi-criteria SSS weighted by segment length and environmental modifiers.
+          <p className="text-[11px] text-slate-500 leading-tight">
+            Multi-criteria SSS weighted by road geometry and PMC urban telemetry.
           </p>
         </div>
       </div>
 
       {/* Subscores Breakdown: Single Compact Horizontal Visual */}
       <div className="mt-4 space-y-2.5">
-        <div className="flex items-center justify-between text-xs font-display font-bold uppercase tracking-wider text-slate-300">
+        <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-700">
           <span>Safety Criteria Composition</span>
-          <span className="text-[10px] font-mono text-slate-400 font-normal">5 Weighted Factors</span>
+          <span className="text-[10px] font-mono text-slate-500 font-normal">5 Weighted Factors</span>
         </div>
 
         {/* Single Segmented Bar */}
-        <div className="w-full h-3 rounded-full overflow-hidden flex bg-slate-950 border border-slate-800 p-0.5 gap-0.5">
+        <div className="w-full h-3 rounded-full overflow-hidden flex bg-slate-100 border border-slate-200 p-0.5 gap-0.5">
           <div
             style={{ width: `${pctAccident}%` }}
             className="h-full bg-rose-500 rounded-l-full"
@@ -177,37 +177,37 @@ export const RadialGauge: React.FC<RadialGaugeProps> = ({
           />
           <div
             style={{ width: `${pctPedestrian}%` }}
-            className="h-full bg-teal-400"
+            className="h-full bg-emerald-500"
             title={`Pedestrian Infrastructure (15%): ${Math.round(subscores.pedestrian)}`}
           />
           <div
             style={{ width: `${pctTraffic}%` }}
-            className="h-full bg-sky-400 rounded-r-full"
+            className="h-full bg-blue-500 rounded-r-full"
             title={`Traffic Telemetry (15%): ${Math.round(subscores.traffic)}`}
           />
         </div>
 
         {/* Compact Horizontal Legend Chips */}
         <div className="grid grid-cols-5 gap-1.5 text-center text-[10px]">
-          <div className="bg-slate-950/80 p-1.5 rounded-lg border border-slate-800">
-            <span className="text-rose-400 block font-mono font-bold text-xs">{Math.round(subscores.accident)}</span>
-            <span className="text-slate-400 font-medium block truncate">Crash (30%)</span>
+          <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+            <span className="text-rose-600 block font-mono font-bold text-xs">{Math.round(subscores.accident)}</span>
+            <span className="text-slate-600 font-medium block truncate">Crash (30%)</span>
           </div>
-          <div className="bg-slate-950/80 p-1.5 rounded-lg border border-slate-800">
-            <span className="text-pink-400 block font-mono font-bold text-xs">{Math.round(subscores.emergency)}</span>
-            <span className="text-slate-400 font-medium block truncate">Emerg (20%)</span>
+          <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+            <span className="text-pink-600 block font-mono font-bold text-xs">{Math.round(subscores.emergency)}</span>
+            <span className="text-slate-600 font-medium block truncate">Emerg (20%)</span>
           </div>
-          <div className="bg-slate-950/80 p-1.5 rounded-lg border border-slate-800">
-            <span className="text-amber-400 block font-mono font-bold text-xs">{Math.round(subscores.lighting)}</span>
-            <span className="text-slate-400 font-medium block truncate">Light (20%)</span>
+          <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+            <span className="text-amber-600 block font-mono font-bold text-xs">{Math.round(subscores.lighting)}</span>
+            <span className="text-slate-600 font-medium block truncate">Light (20%)</span>
           </div>
-          <div className="bg-slate-950/80 p-1.5 rounded-lg border border-slate-800">
-            <span className="text-teal-400 block font-mono font-bold text-xs">{Math.round(subscores.pedestrian)}</span>
-            <span className="text-slate-400 font-medium block truncate">Ped (15%)</span>
+          <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+            <span className="text-emerald-600 block font-mono font-bold text-xs">{Math.round(subscores.pedestrian)}</span>
+            <span className="text-slate-600 font-medium block truncate">Ped (15%)</span>
           </div>
-          <div className="bg-slate-950/80 p-1.5 rounded-lg border border-slate-800">
-            <span className="text-sky-400 block font-mono font-bold text-xs">{Math.round(subscores.traffic)}</span>
-            <span className="text-slate-400 font-medium block truncate">Traf (15%)</span>
+          <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+            <span className="text-blue-600 block font-mono font-bold text-xs">{Math.round(subscores.traffic)}</span>
+            <span className="text-slate-600 font-medium block truncate">Traf (15%)</span>
           </div>
         </div>
       </div>

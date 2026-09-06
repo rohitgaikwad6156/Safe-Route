@@ -103,6 +103,103 @@ export const Map: React.FC<MapProps> = ({
     animationFrameRef.current = requestAnimationFrame(step);
   };
 
+  const buildOriginHtml = (name: string) => {
+    const cleanName = (name || 'Origin').split(',')[0].trim();
+    return `
+      <div class="relative flex flex-col items-center group cursor-pointer select-none" style="z-index: 50;">
+        <div class="mb-1.5 px-3 py-1 rounded-full bg-white border-2 border-emerald-600 shadow-xl flex items-center gap-1.5 text-xs font-bold text-slate-800 pointer-events-none whitespace-nowrap">
+          <span class="bg-emerald-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shadow-sm">Start</span>
+          <span class="text-slate-800 font-semibold">${cleanName}</span>
+        </div>
+        <div class="relative flex items-center justify-center transition-transform duration-200 group-hover:scale-110 drop-shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="34" height="44">
+            <defs>
+              <linearGradient id="src-pin-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#10b981" />
+                <stop offset="100%" stop-color="#059669" />
+              </linearGradient>
+            </defs>
+            <path d="M16 2 C8.27 2 2 8.27 2 16 C2 24.5 13 38.5 15.1 41.1 C15.55 41.65 16.45 41.65 16.9 41.1 C19 38.5 30 24.5 30 16 C30 8.27 23.73 2 16 2 Z" fill="url(#src-pin-grad)" stroke="#ffffff" stroke-width="2" />
+            <circle cx="16" cy="16" r="8" fill="#ffffff" stroke="#059669" stroke-width="1.5" />
+            <circle cx="16" cy="16" r="4.5" fill="#059669" />
+          </svg>
+        </div>
+        <div class="w-3 h-1.5 rounded-full bg-emerald-500/80 blur-[0.5px] animate-ping -mt-0.5"></div>
+      </div>
+    `;
+  };
+
+  const buildDestHtml = (name: string) => {
+    const cleanName = (name || 'Destination').split(',')[0].trim();
+    return `
+      <div class="relative flex flex-col items-center group cursor-pointer select-none" style="z-index: 50;">
+        <div class="mb-1.5 px-3 py-1 rounded-full bg-white border-2 border-rose-600 shadow-xl flex items-center gap-1.5 text-xs font-bold text-slate-800 pointer-events-none whitespace-nowrap">
+          <span class="bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shadow-sm">End</span>
+          <span class="text-slate-800 font-semibold">${cleanName}</span>
+        </div>
+        <div class="relative flex items-center justify-center transition-transform duration-200 group-hover:scale-110 drop-shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="34" height="44">
+            <defs>
+              <linearGradient id="dest-pin-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#f43f5e" />
+                <stop offset="100%" stop-color="#e11d48" />
+              </linearGradient>
+            </defs>
+            <path d="M16 2 C8.27 2 2 8.27 2 16 C2 24.5 13 38.5 15.1 41.1 C15.55 41.65 16.45 41.65 16.9 41.1 C19 38.5 30 24.5 30 16 C30 8.27 23.73 2 16 2 Z" fill="url(#dest-pin-grad)" stroke="#ffffff" stroke-width="2" />
+            <circle cx="16" cy="16" r="8" fill="#ffffff" stroke="#e11d48" stroke-width="1.5" />
+            <path d="M13 12 L19 12 L16.5 14.5 L19 17 L13 17 Z" fill="#e11d48" />
+            <line x1="13" y1="12" x2="13" y2="20" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="w-3 h-1.5 rounded-full bg-rose-500/80 blur-[0.5px] animate-ping -mt-0.5"></div>
+      </div>
+    `;
+  };
+
+  const syncMarkers = (map: maplibregl.Map) => {
+    if (!map) return;
+
+    let sLng = originCoords[0];
+    let sLat = originCoords[1];
+    let dLng = destCoords[0];
+    let dLat = destCoords[1];
+
+    if (routes && routes.length > 0) {
+      const activeRoute = routes.find((r) => r.id === selectedRouteId) || routes[0];
+      const coords = activeRoute?.geometry?.coordinates;
+      if (coords && coords.length >= 2) {
+        sLng = coords[0][0];
+        sLat = coords[0][1];
+        dLng = coords[coords.length - 1][0];
+        dLat = coords[coords.length - 1][1];
+      }
+    }
+
+    if (originMarkerRef.current) {
+      originMarkerRef.current.remove();
+      originMarkerRef.current = null;
+    }
+    const oEl = document.createElement('div');
+    oEl.className = 'origin-marker cursor-pointer select-none';
+    oEl.innerHTML = buildOriginHtml(originName);
+    originMarkerRef.current = new maplibregl.Marker({ element: oEl, anchor: 'bottom' })
+      .setLngLat([sLng, sLat])
+      .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<div class="font-bold text-xs text-emerald-700">🟢 Start: ${originName}</div>`))
+      .addTo(map);
+
+    if (destMarkerRef.current) {
+      destMarkerRef.current.remove();
+      destMarkerRef.current = null;
+    }
+    const dEl = document.createElement('div');
+    dEl.className = 'dest-marker cursor-pointer select-none';
+    dEl.innerHTML = buildDestHtml(destName);
+    destMarkerRef.current = new maplibregl.Marker({ element: dEl, anchor: 'bottom' })
+      .setLngLat([dLng, dLat])
+      .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<div class="font-bold text-xs text-rose-700">🔴 End: ${destName}</div>`))
+      .addTo(map);
+  };
+
   const setupMapContent = (map: maplibregl.Map) => {
     if (map.getSource('risk-heatmap-src')) return;
 
@@ -139,15 +236,17 @@ export const Map: React.FC<MapProps> = ({
       },
     });
 
-    // Initial route sync
+    // Initial route sync and markers
     syncRoutesOnMap(map, routes, selectedRouteId);
+    syncMarkers(map);
   };
 
   const syncRoutesOnMap = (map: maplibregl.Map, routeList: RouteData[], currentSelId: string) => {
-    if (!map.isStyleLoaded()) return;
+    if (!map.getStyle()) return;
 
     const currentLayerIds = new Set<string>();
 
+    // 1. Ensure all sources and layers exist
     routeList.forEach((route) => {
       const sourceId = `route-source-${route.id}`;
       const casingId = `route-casing-${route.id}`;
@@ -160,10 +259,10 @@ export const Map: React.FC<MapProps> = ({
       const isBalanced = route.type === 'balanced';
       const isFastest = route.type === 'fastest';
 
-      const baseWidth = isSafest ? 6.0 : (isBalanced ? 4.5 : 3.0);
-      const selWidth = isSafest ? 8.0 : (isBalanced ? 6.2 : 4.5);
+      const baseWidth = isSafest ? 5.5 : isBalanced ? 5.0 : 4.5;
+      const selWidth = isSafest ? 8.0 : isBalanced ? 7.0 : 6.5;
       const currentWidth = isSelected ? selWidth : baseWidth;
-      const casingWidth = currentWidth + (isSelected ? 5.5 : 4.0);
+      const casingWidth = currentWidth + (isSelected ? 5.0 : 2.5);
 
       const geoData: any = {
         type: 'Feature',
@@ -185,7 +284,7 @@ export const Map: React.FC<MapProps> = ({
           data: geoData,
         });
 
-        // Dark High-Contrast Casing Halo
+        // Casing Halo (rendered underneath lines for crisp contrast on light streets)
         map.addLayer({
           id: casingId,
           type: 'line',
@@ -195,24 +294,21 @@ export const Map: React.FC<MapProps> = ({
             'line-cap': 'round',
           },
           paint: {
-            'line-color': '#030712',
+            'line-color': '#ffffff',
             'line-width': casingWidth,
-            'line-opacity': 0.95,
+            'line-opacity': isSelected ? 1.0 : 0.70,
           },
         });
 
-        // Primary polyline
-        const linePaint: Record<string, any> = {
-          'line-color': route.color,
-          'line-width': currentWidth,
-          'line-opacity': isSelected ? 1.0 : 0.65,
-        };
+        // Primary polyline: Safest (Emerald #059669), Fastest (Google Blue #1a73e8), Balanced (Amber #d97706)
+        const primaryColor =
+          isSafest ? '#059669' : isFastest ? '#1a73e8' : isBalanced ? '#d97706' : route.color;
 
-        if (isBalanced) {
-          linePaint['line-dasharray'] = [4, 2.5];
-        } else if (isFastest) {
-          linePaint['line-dasharray'] = [1.5, 2];
-        }
+        const linePaint: Record<string, any> = {
+          'line-color': primaryColor,
+          'line-width': currentWidth,
+          'line-opacity': isSelected ? 1.0 : 0.85,
+        };
 
         map.addLayer({
           id: lineId,
@@ -241,34 +337,64 @@ export const Map: React.FC<MapProps> = ({
         });
       }
 
-      // Update line styles and bring selected layer to top
+      // Update line styles
       if (map.getLayer(casingId)) {
+        map.setPaintProperty(casingId, 'line-color', '#ffffff');
         map.setPaintProperty(casingId, 'line-width', casingWidth);
-        if (isSelected) map.moveLayer(casingId);
+        map.setPaintProperty(casingId, 'line-opacity', isSelected ? 1.0 : 0.70);
       }
       if (map.getLayer(lineId)) {
+        const primaryColor =
+          isSafest ? '#059669' : isFastest ? '#1a73e8' : isBalanced ? '#d97706' : route.color;
+        map.setPaintProperty(lineId, 'line-color', primaryColor);
         map.setPaintProperty(lineId, 'line-width', currentWidth);
-        map.setPaintProperty(lineId, 'line-opacity', isSelected ? 1.0 : 0.65);
-        if (isSelected) map.moveLayer(lineId);
+        map.setPaintProperty(lineId, 'line-opacity', isSelected ? 1.0 : 0.75);
       }
     });
+
+    // 2. Controlled layer z-stacking:
+    // ALL casings go to the bottom of the route stack so NO casing ever covers ANY colored line.
+    routeList.forEach((r) => {
+      const cId = `route-casing-${r.id}`;
+      if (map.getLayer(cId)) map.moveLayer(cId);
+    });
+
+    // Unselected lines go next
+    routeList.forEach((r) => {
+      if (r.id !== currentSelId) {
+        const lId = `route-line-${r.id}`;
+        if (map.getLayer(lId)) map.moveLayer(lId);
+      }
+    });
+
+    // Selected route line goes on the very top of all route lines
+    const selLineId = `route-line-${currentSelId}`;
+    if (map.getLayer(selLineId)) map.moveLayer(selLineId);
 
     activeRouteLayerIdsRef.current = Array.from(currentLayerIds);
 
     // Fit bounds to cover all newly synced routes
     fitRouteBounds(map, routeList);
 
-    // Progressive line draw for the Safest Route
-    const safest = routeList.find((r) => r.type === 'safest');
-    if (safest && currentSelId === safest.id) {
-      animateSafestRoute(map, safest);
-    }
+    // Sync Start and End markers at route endpoints
+    syncMarkers(map);
   };
 
   const fitRouteBounds = (map: maplibregl.Map, rList: RouteData[]) => {
     if (!rList || rList.length === 0) return;
     const bounds = new maplibregl.LngLatBounds();
     let hasCoords = false;
+
+    // Extend bounds with origin pin coordinate
+    if (originCoords && Array.isArray(originCoords) && originCoords.length >= 2) {
+      bounds.extend(originCoords);
+      hasCoords = true;
+    }
+    // Extend bounds with destination pin coordinate
+    if (destCoords && Array.isArray(destCoords) && destCoords.length >= 2) {
+      bounds.extend(destCoords);
+      hasCoords = true;
+    }
 
     rList.forEach((r) => {
       r.geometry?.coordinates?.forEach((coord) => {
@@ -282,9 +408,9 @@ export const Map: React.FC<MapProps> = ({
     if (hasCoords && !bounds.isEmpty()) {
       const isMobile = window.innerWidth < 768;
       map.fitBounds(bounds, {
-        padding: { top: 70, bottom: 70, left: isMobile ? 30 : 490, right: 70 },
-        maxZoom: 15,
-        duration: 1200,
+        padding: { top: 75, bottom: 65, left: isMobile ? 30 : 470, right: 60 },
+        maxZoom: 14,
+        duration: 800,
       });
     }
   };
@@ -297,11 +423,11 @@ export const Map: React.FC<MapProps> = ({
 
     const map = new maplibregl.Map({
       container: mapContainer.current,
-      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
       center: puneCenter,
       zoom: 12.2,
-      pitch: 25,
-      bearing: -5,
+      pitch: 0,
+      bearing: 0,
       attributionControl: false,
     });
 
@@ -331,6 +457,14 @@ export const Map: React.FC<MapProps> = ({
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      if (originMarkerRef.current) {
+        originMarkerRef.current.remove();
+        originMarkerRef.current = null;
+      }
+      if (destMarkerRef.current) {
+        destMarkerRef.current.remove();
+        destMarkerRef.current = null;
+      }
       map.remove();
       mapInstance.current = null;
     };
@@ -359,49 +493,12 @@ export const Map: React.FC<MapProps> = ({
     }
   }, [showHeatmap]);
 
-  // Update Origin and Destination custom markers
+  // Reactive marker synchronization whenever coordinates, names, or routes change
   useEffect(() => {
     const map = mapInstance.current;
     if (!map) return;
-
-    if (!originMarkerRef.current) {
-      const el = document.createElement('div');
-      el.className = 'origin-marker';
-      el.innerHTML = `
-        <div class="relative flex items-center justify-center">
-          <div class="w-8 h-8 rounded-full bg-teal-400 border-2 border-slate-950 shadow-2xl flex items-center justify-center text-slate-950 font-display font-extrabold text-xs">
-            A
-          </div>
-        </div>
-      `;
-      originMarkerRef.current = new maplibregl.Marker({ element: el })
-        .setLngLat(originCoords)
-        .setPopup(new maplibregl.Popup({ offset: 15 }).setHTML(`<div class="font-bold text-xs text-teal-300">Origin: ${originName}</div>`))
-        .addTo(map);
-    } else {
-      originMarkerRef.current.setLngLat(originCoords);
-      originMarkerRef.current.setPopup(new maplibregl.Popup({ offset: 15 }).setHTML(`<div class="font-bold text-xs text-teal-300">Origin: ${originName}</div>`));
-    }
-
-    if (!destMarkerRef.current) {
-      const el = document.createElement('div');
-      el.className = 'dest-marker';
-      el.innerHTML = `
-        <div class="relative flex items-center justify-center">
-          <div class="w-8 h-8 rounded-full bg-rose-500 border-2 border-slate-950 shadow-2xl flex items-center justify-center text-white font-display font-extrabold text-xs">
-            B
-          </div>
-        </div>
-      `;
-      destMarkerRef.current = new maplibregl.Marker({ element: el })
-        .setLngLat(destCoords)
-        .setPopup(new maplibregl.Popup({ offset: 15 }).setHTML(`<div class="font-bold text-xs text-rose-300">Destination: ${destName}</div>`))
-        .addTo(map);
-    } else {
-      destMarkerRef.current.setLngLat(destCoords);
-      destMarkerRef.current.setPopup(new maplibregl.Popup({ offset: 15 }).setHTML(`<div class="font-bold text-xs text-rose-300">Destination: ${destName}</div>`));
-    }
-  }, [originCoords, destCoords, originName, destName]);
+    syncMarkers(map);
+  }, [originCoords, destCoords, originName, destName, routes, selectedRouteId]);
 
   // Update Safety Amenities Markers
   useEffect(() => {
@@ -417,10 +514,10 @@ export const Map: React.FC<MapProps> = ({
         const isHosp = item.type === 'hospital';
         el.className = 'amenity-marker';
         el.innerHTML = `
-          <div class="px-2 py-1 rounded-full text-[10px] font-bold border shadow-lg flex items-center gap-1 backdrop-blur-md ${
+          <div class="px-2.5 py-1 rounded-full text-[11px] font-bold border shadow-md flex items-center gap-1.5 bg-white/95 backdrop-blur-md ${
             isHosp
-              ? 'bg-pink-950/80 text-pink-300 border-pink-500/50'
-              : 'bg-cyan-950/80 text-cyan-300 border-cyan-500/50'
+              ? 'text-rose-700 border-rose-200'
+              : 'text-blue-700 border-blue-200'
           }">
             <span>${isHosp ? '🏥' : '🚓'}</span>
             <span>${item.name}</span>
@@ -447,8 +544,8 @@ export const Map: React.FC<MapProps> = ({
       el.className = 'incident-marker';
       el.innerHTML = `
         <div class="relative flex items-center justify-center cursor-pointer group">
-          <span class="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-amber-400 opacity-75"></span>
-          <div class="relative w-6 h-6 rounded-full bg-amber-500 border border-slate-900 shadow-xl flex items-center justify-center text-slate-950 font-extrabold text-[11px]">
+          <span class="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-rose-400 opacity-60"></span>
+          <div class="relative w-6 h-6 rounded-full bg-rose-500 border-2 border-white shadow-lg flex items-center justify-center text-white font-extrabold text-[11px]">
             ⚠️
           </div>
         </div>
@@ -457,11 +554,11 @@ export const Map: React.FC<MapProps> = ({
         .setLngLat([inc.lon, inc.lat])
         .setPopup(
           new maplibregl.Popup({ offset: 12 }).setHTML(`
-            <div class="space-y-1">
-              <div class="text-xs font-bold text-amber-400 uppercase tracking-wide">Reported Hazard</div>
-              <div class="text-xs font-medium text-slate-200">${inc.category.replace('_', ' ')} (Sev: ${inc.severity}/5)</div>
-              <div class="text-[11px] text-slate-400">${inc.description}</div>
-              <div class="text-[10px] text-slate-500 font-mono">Logged at ${inc.timestamp}</div>
+            <div class="space-y-1 p-0.5">
+              <div class="text-xs font-bold text-rose-600 uppercase tracking-wide">Reported Hazard</div>
+              <div class="text-xs font-bold text-slate-800">${inc.category.replace('_', ' ')} (Sev: ${inc.severity}/5)</div>
+              <div class="text-[11px] text-slate-600">${inc.description}</div>
+              <div class="text-[10px] text-slate-400 font-mono">Logged at ${inc.timestamp}</div>
             </div>
           `)
         )
@@ -477,14 +574,52 @@ export const Map: React.FC<MapProps> = ({
         ref={mapContainer}
         className="w-full h-full relative"
         style={{
-          backgroundColor: '#090d16',
-          backgroundImage: 'radial-gradient(rgba(51, 65, 85, 0.45) 1px, transparent 0)',
-          backgroundSize: '24px 24px',
+          backgroundColor: '#f8fafc',
         }}
       />
+      {/* Floating Interactive Route Selector Pill Bar on Map */}
+      {routes && routes.length > 1 && (
+        <div className="absolute top-4 left-4 md:left-[450px] z-20 flex items-center gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/90 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="text-[11px] uppercase font-bold text-slate-500 px-2 tracking-wider flex items-center gap-1 border-r border-slate-200 mr-0.5">
+            <span>Routes</span>
+            <span className="text-emerald-600 font-mono">({routes.length})</span>
+          </div>
+          {routes.map((r) => {
+            const isSel = r.id === selectedRouteId;
+            const rColor =
+              r.type === 'safest' ? '#059669' : r.type === 'fastest' ? '#1a73e8' : '#d97706';
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => onSelectRoute(r.id)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                  isSel
+                    ? 'bg-slate-900 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <span
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{ backgroundColor: rColor }}
+                />
+                <span className="capitalize">{r.type}</span>
+                <span
+                  className={`text-[11px] font-mono px-1.5 py-0.5 rounded font-semibold ${
+                    isSel ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'
+                  }`}
+                >
+                  {Math.round(r.rss)} RSS
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {isOfflineMode && (
-        <div className="absolute bottom-6 left-6 z-20 bg-slate-900/90 border border-teal-500/40 px-3 py-1.5 rounded-xl shadow-xl backdrop-blur-md flex items-center gap-2 text-xs text-teal-300 animate-in fade-in duration-300">
-          <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+        <div className="absolute bottom-6 left-6 z-20 bg-white/95 border border-amber-300 px-3 py-1.5 rounded-xl shadow-xl backdrop-blur-md flex items-center gap-2 text-xs text-slate-800 animate-in fade-in duration-300">
+          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
           <span>Offline Vector Canvas Active (Tile Server Offline — Routes & Safety Markers Visible)</span>
         </div>
       )}

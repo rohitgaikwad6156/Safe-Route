@@ -33,10 +33,12 @@ export interface GeocodeResult {
   name: string;
   lat: number;
   lon: number;
-  source: 'offline_landmark_registry' | 'nominatim_online' | 'backend_geocoder';
+  source: 'offline_landmark_registry' | 'nominatim_online' | 'backend_geocoder' | 'not_found';
   offlineFallback: boolean;
   isInsideBBox: boolean;
+  found: boolean; // false when geocoding failed to resolve the query to any real location
 }
+
 
 export function validateBBox(lat: number, lon: number): { isValid: boolean; message?: string } {
   if (lat < PUNE_BBOX.minLat || lat > PUNE_BBOX.maxLat || lon < PUNE_BBOX.minLon || lon > PUNE_BBOX.maxLon) {
@@ -48,28 +50,49 @@ export function validateBBox(lat: number, lon: number): { isValid: boolean; mess
   return { isValid: true };
 }
 
+export function normalizeLocationText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function searchPuneLandmarks(query: string, limit: number = 6): Landmark[] {
   if (!query || query.trim().length === 0) {
     return (landmarksData as Landmark[]).slice(0, limit);
   }
-  const q = query.trim().toLowerCase();
+  const qClean = query.trim();
+  const qNorm = normalizeLocationText(qClean);
+  const qWords = qNorm.split(' ').filter((w) => !['the', 'in', 'near', 'at'].includes(w));
   const landmarks = landmarksData as Landmark[];
   
   return landmarks.filter((item) => {
-    const matchName = item.name.toLowerCase().includes(q);
-    const matchWard = item.ward?.toLowerCase().includes(q);
-    const matchAliases = item.aliases?.some((a) => a.toLowerCase().includes(q));
-    return matchName || matchWard || matchAliases;
+    const nameNorm = normalizeLocationText(item.name);
+    const wardNorm = normalizeLocationText(item.ward || '');
+    const aliasesNorm = (item.aliases || []).map((a) => normalizeLocationText(a));
+
+    if (nameNorm.includes(qNorm) || wardNorm.includes(qNorm) || aliasesNorm.some((a) => a.includes(qNorm))) {
+      return true;
+    }
+    if (qWords.length > 0 && qWords.every((w) => nameNorm.includes(w) || wardNorm.includes(w) || aliasesNorm.some((a) => a.includes(w)))) {
+      return true;
+    }
+    return false;
   }).slice(0, limit);
 }
 
 export function geocodeOffline(query: string): GeocodeResult {
-  const q = query.trim().toLowerCase();
+  const qClean = query.trim();
+  const qNorm = normalizeLocationText(qClean);
+  const qWords = qNorm.split(' ').filter((w) => !['the', 'in', 'near', 'at'].includes(w));
   const landmarks = landmarksData as Landmark[];
 
-  // 1. Direct or alias match
+  // 1. Direct or alias normalized match
   for (const lm of landmarks) {
-    if (lm.name.toLowerCase().includes(q)) {
+    const nameNorm = normalizeLocationText(lm.name);
+    const aliasesNorm = (lm.aliases || []).map((a) => normalizeLocationText(a));
+    if (nameNorm === qNorm || nameNorm.includes(qNorm) || aliasesNorm.some((a) => a === qNorm || a.includes(qNorm))) {
       const bboxCheck = validateBBox(lm.lat, lm.lon);
       return {
         name: lm.name,
@@ -78,24 +101,35 @@ export function geocodeOffline(query: string): GeocodeResult {
         source: 'offline_landmark_registry',
         offlineFallback: true,
         isInsideBBox: bboxCheck.isValid,
-      };
-    }
-    if (lm.aliases?.some((a) => a.toLowerCase().includes(q))) {
-      const bboxCheck = validateBBox(lm.lat, lm.lon);
-      return {
-        name: lm.name,
-        lat: lm.lat,
-        lon: lm.lon,
-        source: 'offline_landmark_registry',
-        offlineFallback: true,
-        isInsideBBox: bboxCheck.isValid,
+        found: true,
       };
     }
   }
 
-  // 2. Ward or partial match
+  // 2. Token match (all query words exist in landmark name or aliases)
+  if (qWords.length > 0) {
+    for (const lm of landmarks) {
+      const nameNorm = normalizeLocationText(lm.name);
+      const aliasesNorm = (lm.aliases || []).map((a) => normalizeLocationText(a));
+      if (qWords.every((w) => nameNorm.includes(w) || aliasesNorm.some((a) => a.includes(w)))) {
+        const bboxCheck = validateBBox(lm.lat, lm.lon);
+        return {
+          name: lm.name,
+          lat: lm.lat,
+          lon: lm.lon,
+          source: 'offline_landmark_registry',
+          offlineFallback: true,
+          isInsideBBox: bboxCheck.isValid,
+          found: true,
+        };
+      }
+    }
+  }
+
+  // 3. Ward or partial match
   for (const lm of landmarks) {
-    if (lm.ward && lm.ward.toLowerCase().includes(q)) {
+    const wardNorm = normalizeLocationText(lm.ward || '');
+    if (wardNorm && (wardNorm.includes(qNorm) || qNorm.includes(wardNorm))) {
       const bboxCheck = validateBBox(lm.lat, lm.lon);
       return {
         name: lm.name,
@@ -104,19 +138,21 @@ export function geocodeOffline(query: string): GeocodeResult {
         source: 'offline_landmark_registry',
         offlineFallback: true,
         isInsideBBox: bboxCheck.isValid,
+        found: true,
       };
     }
   }
 
-  // 3. Fallback default (Shivajinagar Station)
-  const defaultLm = landmarks[2] || landmarks[0];
+  // Nothing matched — return a sentinel so callers can surface a proper "not found" error
+  // instead of silently routing to a wrong location.
   return {
-    name: defaultLm.name,
-    lat: defaultLm.lat,
-    lon: defaultLm.lon,
-    source: 'offline_landmark_registry',
-    offlineFallback: true,
-    isInsideBBox: true,
+    name: qClean || 'Unknown Location',
+    lat: 0,
+    lon: 0,
+    source: 'not_found',
+    offlineFallback: false,
+    isInsideBBox: false,
+    found: false,
   };
 }
 
@@ -149,17 +185,21 @@ export async function geocodeLocation(
       source: 'offline_landmark_registry',
       offlineFallback: false,
       isInsideBBox: bbox.isValid,
+      found: true,
     };
   }
 
-  // 1. Direct offline match
-  const qLower = qClean.toLowerCase();
+  // 1. Direct offline match with normalization
+  const qNorm = normalizeLocationText(qClean);
+  const qWords = qNorm.split(' ').filter((w) => !['the', 'in', 'near', 'at'].includes(w));
   const landmarks = landmarksData as Landmark[];
-  const directMatch = landmarks.find(
-    (lm) =>
-      lm.name.toLowerCase() === qLower ||
-      lm.aliases?.some((a) => a.toLowerCase() === qLower)
-  );
+  const directMatch = landmarks.find((lm) => {
+    const nameNorm = normalizeLocationText(lm.name);
+    const aliasesNorm = (lm.aliases || []).map((a) => normalizeLocationText(a));
+    if (nameNorm === qNorm || aliasesNorm.some((a) => a === qNorm)) return true;
+    if (qWords.length > 0 && qWords.every((w) => nameNorm.includes(w) || aliasesNorm.some((a) => a.includes(w)))) return true;
+    return false;
+  });
   if (directMatch) {
     return {
       name: directMatch.name,
@@ -168,30 +208,34 @@ export async function geocodeLocation(
       source: 'offline_landmark_registry',
       offlineFallback: true,
       isInsideBBox: true,
+      found: true,
     };
   }
 
-  // 2. Query backend geocoder endpoint if base URL is available
-  if (apiBaseUrl) {
-    try {
-      const url = `${apiBaseUrl.replace(/\/$/, '')}/api/geocode?q=${encodeURIComponent(qClean)}`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && typeof data.lat === 'number' && typeof data.lon === 'number') {
-          return {
-            name: data.name || qClean,
-            lat: data.lat,
-            lon: data.lon,
-            source: 'backend_geocoder',
-            offlineFallback: Boolean(data.offline_fallback),
-            isInsideBBox: validateBBox(data.lat, data.lon).isValid,
-          };
-        }
+  // 2. Query backend geocoder endpoint (always — backend uses Nominatim server-side)
+  try {
+    const backendBase = (typeof window !== 'undefined'
+      ? (import.meta as any).env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+      : apiBaseUrl || 'http://127.0.0.1:8000'
+    ).replace(/\/$/, '');
+    const url = `${backendBase}/api/geocode?q=${encodeURIComponent(qClean)}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && typeof data.lat === 'number' && typeof data.lon === 'number') {
+        return {
+          name: data.name || qClean,
+          lat: data.lat,
+          lon: data.lon,
+          source: 'backend_geocoder',
+          offlineFallback: Boolean(data.offline_fallback),
+          isInsideBBox: validateBBox(data.lat, data.lon).isValid,
+          found: true,
+        };
       }
-    } catch (e) {
-      // Backend request failed or timed out, fall through
     }
+  } catch (e) {
+    // Backend request failed or timed out, fall through to Nominatim
   }
 
   // 3. Query OpenStreetMap Nominatim directly
@@ -201,7 +245,7 @@ export async function geocodeLocation(
     )}&format=json&limit=1`;
     const res = await fetch(nominatimUrl, {
       headers: { 'Accept-Language': 'en' },
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(5000),
     });
     if (res.ok) {
       const items = await res.json();
@@ -215,6 +259,7 @@ export async function geocodeLocation(
           source: 'nominatim_online',
           offlineFallback: false,
           isInsideBBox: validateBBox(lat, lon).isValid,
+          found: true,
         };
       }
     }
@@ -222,6 +267,7 @@ export async function geocodeLocation(
     // Nominatim unreachable / offline
   }
 
-  // 4. Guaranteed offline fallback
-  return geocodeOffline(qClean);
+  // 4. Guaranteed offline fallback (partial/token match)
+  const offlineResult = geocodeOffline(qClean);
+  return offlineResult;
 }

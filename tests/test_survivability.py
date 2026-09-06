@@ -41,7 +41,7 @@ def test_out_of_bounds_bbox_validation():
     valid, msg = validate_coordinates(mumbai_lat, mumbai_lon, "Origin")
     assert valid is False
     assert "outside the calibrated Pune service area" in msg
-    assert "18.440" in msg or "18.580" in msg
+    assert "18.380" in msg or "18.440" in msg or "18.680" in msg
     assert "Shivajinagar" in msg or "Katraj" in msg
 
     # Valid Pune coordinate

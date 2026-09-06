@@ -4,66 +4,77 @@
 
 :root {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color-scheme: dark;
+  color-scheme: light;
   font-feature-settings: "cv05" 1, "tnum" 1;
+}
+
+body {
+  background-color: #f8fafc;
+  color: #0f172a;
+  overflow: hidden;
 }
 
 /* Accessible focus rings */
 :focus-visible {
-  outline: 2px solid #2dd4bf;
+  outline: 2px solid #059669;
   outline-offset: 2px;
 }
 
-/* Custom modern scrollbar */
+/* Custom Google Maps light scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0d1322;
+  background: #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #25334d;
+  background: #cbd5e1;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3b82f6;
+  background: #94a3b8;
 }
 
-/* MapLibre UI custom dark styling */
+/* MapLibre UI custom clean light styling */
 .maplibregl-popup-content {
-  background: #111827 !important;
-  color: #f3f4f6 !important;
-  border: 1px solid #374151 !important;
-  border-radius: 10px !important;
-  padding: 12px !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7) !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 12px 14px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
 }
 
 .maplibregl-popup-anchor-top .maplibregl-popup-tip {
-  border-bottom-color: #111827 !important;
+  border-bottom-color: #ffffff !important;
 }
 .maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
-  border-top-color: #111827 !important;
+  border-top-color: #ffffff !important;
 }
 .maplibregl-popup-anchor-left .maplibregl-popup-tip {
-  border-right-color: #111827 !important;
+  border-right-color: #ffffff !important;
 }
 .maplibregl-popup-anchor-right .maplibregl-popup-tip {
-  border-left-color: #111827 !important;
+  border-left-color: #ffffff !important;
 }
 
+/* Google Maps styled map controls */
 .maplibregl-ctrl-group {
-  background: rgba(17, 24, 39, 0.9) !important;
-  border: 1px solid #1f293d !important;
-  backdrop-filter: blur(8px) !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08) !important;
+  overflow: hidden;
 }
 
 .maplibregl-ctrl-group button {
-  border-bottom: 1px solid #1f293d !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  width: 34px !important;
+  height: 34px !important;
 }
 
 .maplibregl-ctrl-group button:last-child {
@@ -71,20 +82,25 @@
 }
 
 .maplibregl-ctrl-icon {
-  filter: invert(1) hue-rotate(180deg) !important;
+  filter: none !important;
+  opacity: 0.7;
 }
 
-/* Glassmorphism card utility */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.82);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.maplibregl-ctrl-group button:hover .maplibregl-ctrl-icon {
+  opacity: 1;
 }
 
-.glass-panel-subtle {
-  background: rgba(15, 23, 42, 0.65);
+/* Google Maps floating card utilities */
+.gmap-card {
+  background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+}
+
+.gmap-pill {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
 }

@@ -5,10 +5,18 @@ out-of-bounds coordinates, cold-start latency, and form spam.
 Runs on Flask (built-in, zero external dependencies).
 """
 import os
+import sys
 import time
 import threading
+from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Tuple, Any
+
+# Ensure project root is in sys.path
+_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 from flask import Flask, request, jsonify
 
 from backend.routing.validator import validate_coordinates, is_identical_location, build_zero_distance_route, PUNE_BBOX

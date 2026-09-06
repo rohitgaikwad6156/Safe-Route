@@ -153,49 +153,52 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/90 rounded-2xl border border-slate-800/80 p-4 shadow-xl backdrop-blur-md relative z-30">
+    <div className="bg-white/95 rounded-2xl border border-slate-200/90 p-4 shadow-xl backdrop-blur-md relative z-30">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-          <Navigation className="w-3.5 h-3.5 text-teal-400" />
-          <span>Pune Dynamic Routing</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+          <Navigation className="w-3.5 h-3.5 text-blue-600" />
+          <span>Pune Route Navigation</span>
         </span>
-        <span className="text-[11px] font-mono text-teal-400 bg-teal-950/60 px-2 py-0.5 rounded border border-teal-800/40 flex items-center gap-1">
-          <Database className="w-3 h-3 text-teal-400" />
+        <span className="text-[11px] font-medium text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 flex items-center gap-1">
+          <Database className="w-3 h-3 text-blue-600" />
           <span>Universal Pune Search</span>
         </span>
       </div>
 
       {isIdentical && (
-        <div className="mb-3 p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in duration-200">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+        <div className="mb-3 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 animate-in fade-in duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
           <span>Origin and destination are identical (0 meters). Zero road travel required.</span>
         </div>
       )}
 
       {bboxError && (
-        <div className="mb-3 p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2 animate-in fade-in duration-200">
-          <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+        <div className="mb-3 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2 animate-in fade-in duration-200">
+          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
           <span>{bboxError}</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="relative flex items-center gap-3">
-          {/* Visual Line connector */}
-          <div className="flex flex-col items-center justify-between h-20 py-2">
-            <div className="w-3 h-3 rounded-full border-2 border-emerald-400 bg-emerald-950 flex items-center justify-center">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          {/* Visual Line connector with Map Pin Symbols */}
+          <div className="flex flex-col items-center justify-between h-20 py-1">
+            <div className="w-5 h-5 rounded-full border-2 border-emerald-500 bg-emerald-50 shadow-sm flex items-center justify-center text-emerald-600" title="Source / Origin">
+              <MapPin className="w-3 h-3 text-emerald-600" />
             </div>
-            <div className="w-0.5 h-8 bg-gradient-to-b from-emerald-500 via-teal-500 to-rose-500" />
-            <div className="w-3 h-3 rounded-full border-2 border-rose-500 bg-rose-950 flex items-center justify-center">
-              <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            <div className="w-0.5 h-6 bg-gradient-to-b from-emerald-500 via-teal-400 to-rose-500" />
+            <div className="w-5 h-5 rounded-full border-2 border-rose-500 bg-rose-50 shadow-sm flex items-center justify-center text-rose-600" title="Destination">
+              <MapPin className="w-3 h-3 text-rose-600" />
             </div>
           </div>
 
           {/* Inputs */}
           <div className="flex-1 space-y-2">
-            {/* Origin Input */}
-            <div className="relative">
+            {/* Origin (Source) Input */}
+            <div className="relative flex items-center">
+              <span className="absolute left-3 text-emerald-600 pointer-events-none flex items-center">
+                <MapPin className="w-3.5 h-3.5" />
+              </span>
               <input
                 type="text"
                 value={originQuery}
@@ -209,8 +212,8 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
                     handleSubmit();
                   }
                 }}
-                placeholder="Type any Pune origin (e.g. Kothrud, Hadapsar, Baner)..."
-                className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500 transition-colors pr-8"
+                placeholder="Starting point (e.g. PCCOE, Kothrud, Baner)..."
+                className="w-full bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 focus:border-blue-500 rounded-xl pl-8 pr-8 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner focus:shadow-none"
               />
               {originQuery && (
                 <button
@@ -219,7 +222,7 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
                     setOriginQuery('');
                     onOriginChange('');
                   }}
-                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-200"
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -227,7 +230,10 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
             </div>
 
             {/* Destination Input */}
-            <div className="relative">
+            <div className="relative flex items-center">
+              <span className="absolute left-3 text-rose-600 pointer-events-none flex items-center">
+                <MapPin className="w-3.5 h-3.5" />
+              </span>
               <input
                 type="text"
                 value={destQuery}
@@ -241,8 +247,8 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
                     handleSubmit();
                   }
                 }}
-                placeholder="Type any Pune destination (e.g. Hinjawadi, Viman Nagar)..."
-                className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors pr-8"
+                placeholder="Destination (e.g. Shivajinagar, Hinjawadi)..."
+                className="w-full bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 focus:border-rose-500 rounded-xl pl-8 pr-8 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-rose-500/20 transition-all shadow-inner focus:shadow-none"
               />
               {destQuery && (
                 <button
@@ -251,7 +257,7 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
                     setDestQuery('');
                     onDestinationChange('');
                   }}
-                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-200"
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -263,8 +269,8 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
           <button
             type="button"
             onClick={onSwap}
-            title="Swap Origin & Destination"
-            className="p-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 rounded-xl border border-slate-700 transition-all flex items-center justify-center shadow-md hover:text-white"
+            title="Swap Starting Point & Destination"
+            className="p-2.5 bg-slate-50 hover:bg-slate-100 active:scale-95 text-slate-600 hover:text-slate-900 rounded-xl border border-slate-200 transition-all flex items-center justify-center shadow-sm"
           >
             <ArrowDownUp className="w-4 h-4" />
           </button>
@@ -275,16 +281,16 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
           <button
             type="submit"
             disabled={isLoading || !originQuery.trim() || !destQuery.trim()}
-            className="flex-1 py-2 px-3.5 rounded-xl font-bold text-xs bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-slate-950 shadow-lg shadow-teal-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+            className="flex-1 py-2.5 px-4 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white shadow-md shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-950" />
-                <span>Computing Calibrated Safe Corridor...</span>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                <span>Computing Safest Corridors...</span>
               </>
             ) : (
               <>
-                <Compass className="w-3.5 h-3.5 text-slate-950" />
+                <Compass className="w-3.5 h-3.5 text-white" />
                 <span>Calculate Safe Routes</span>
               </>
             )}
@@ -293,10 +299,10 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
       </form>
 
       {/* Quick Select Popular Pune Hubs */}
-      <div className="mt-3 pt-2.5 border-t border-slate-800/80">
-        <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-amber-400" />
-          <span>Quick Select Pune Corridors</span>
+      <div className="mt-3 pt-2.5 border-t border-slate-100">
+        <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-500 mb-1.5 flex items-center gap-1">
+          <Sparkles className="w-3 h-3 text-amber-500" />
+          <span>Popular Pune Corridors</span>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {POPULAR_HUBS.map((hub) => (
@@ -304,7 +310,7 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
               key={hub.name}
               type="button"
               onClick={() => handleQuickHubClick(hub.name)}
-              className="px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-teal-300 border border-slate-700/60 transition-all active:scale-95"
+              className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-100 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 border border-slate-200/80 transition-all active:scale-95"
             >
               {hub.label}
             </button>
@@ -314,17 +320,17 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
 
       {/* Coordinates feedback */}
       {(originCoords || destCoords) && (
-        <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] font-mono text-slate-400">
+        <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono text-slate-500">
           {originCoords && (
-            <div className="flex items-center gap-1 text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span>A: {originCoords[1].toFixed(3)}°, {originCoords[0].toFixed(3)}°</span>
+            <div className="flex items-center gap-1 text-emerald-700 font-medium">
+              <MapPin className="w-3 h-3 text-emerald-600" />
+              <span>Source (A): {originCoords[1].toFixed(3)}°, {originCoords[0].toFixed(3)}°</span>
             </div>
           )}
           {destCoords && (
-            <div className="flex items-center gap-1 text-rose-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-              <span>B: {destCoords[1].toFixed(3)}°, {destCoords[0].toFixed(3)}°</span>
+            <div className="flex items-center gap-1 text-rose-700 font-medium">
+              <MapPin className="w-3 h-3 text-rose-600" />
+              <span>Dest (B): {destCoords[1].toFixed(3)}°, {destCoords[0].toFixed(3)}°</span>
             </div>
           )}
         </div>
@@ -334,13 +340,13 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
       {activeField && (
         <div
           ref={dropdownRef}
-          className="absolute left-0 right-0 top-full mt-2 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl overflow-hidden z-50 backdrop-blur-xl animate-in fade-in slide-in-from-top-1 duration-150"
+          className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150"
         >
-          <div className="p-2 bg-slate-950/70 border-b border-slate-800 text-[10px] font-semibold uppercase text-slate-400 tracking-wider flex items-center justify-between">
+          <div className="p-2.5 bg-slate-50/80 border-b border-slate-100 text-[10px] font-semibold uppercase text-slate-500 tracking-wider flex items-center justify-between">
             <span>Verified Pune Landmarks & Areas</span>
             <span>{currentSuggestions.length} suggestions</span>
           </div>
-          <div className="max-h-60 overflow-y-auto divide-y divide-slate-800/60">
+          <div className="max-h-60 overflow-y-auto divide-y divide-slate-100">
             {currentSuggestions.map((item) => (
               <button
                 key={item.name}
@@ -358,14 +364,14 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
                   }
                   setActiveField(null);
                 }}
-                className="w-full text-left px-3 py-2.5 hover:bg-slate-800/80 transition-colors flex items-center justify-between group"
+                className="w-full text-left px-3.5 py-2.5 hover:bg-slate-50/90 transition-colors flex items-center justify-between group"
               >
                 <div className="flex items-center space-x-2.5">
-                  <div className="p-1.5 rounded-lg bg-slate-800 group-hover:bg-slate-700">
+                  <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-slate-200">
                     {getCategoryIcon(item.category)}
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-slate-200 group-hover:text-teal-300">
+                    <div className="text-xs font-semibold text-slate-800 group-hover:text-blue-600">
                       {item.name}
                     </div>
                     {item.ward && (
@@ -375,7 +381,7 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
                     )}
                   </div>
                 </div>
-                <span className="text-[10px] font-mono text-slate-500 group-hover:text-slate-300">
+                <span className="text-[10px] font-mono text-slate-400 group-hover:text-slate-600">
                   {item.lat.toFixed(3)}, {item.lon.toFixed(3)}
                 </span>
               </button>
@@ -389,11 +395,11 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
                   e.preventDefault();
                   handleSubmit();
                 }}
-                className="w-full text-left px-3 py-2.5 bg-teal-950/40 hover:bg-teal-900/50 text-teal-300 transition-colors flex items-center gap-2 text-xs font-medium"
+                className="w-full text-left px-3.5 py-2.5 bg-blue-50/70 hover:bg-blue-100/70 text-blue-700 transition-colors flex items-center gap-2 text-xs font-medium"
               >
-                <Search className="w-3.5 h-3.5 text-teal-400 flex-shrink-0" />
+                <Search className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
                 <span>
-                  Search custom location: "{activeField === 'origin' ? originQuery : destQuery}"
+                  Search location: "{activeField === 'origin' ? originQuery : destQuery}"
                 </span>
               </button>
             )}

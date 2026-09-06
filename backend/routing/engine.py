@@ -24,6 +24,7 @@ from typing import Dict, List, Tuple, Any, Optional
 import networkx as nx
 import numpy as np
 from scipy.spatial import cKDTree
+from shapely import wkt
 
 logger = logging.getLogger(__name__)
 
@@ -346,8 +347,9 @@ class RoutingEngine:
         # superseded by the empirical sweep in docs/experiments/divergence_results.md.
         # Do NOT 'fix' or revert this back to 0.70/0.30.
         """
-        beta = 0.90
-        alpha = 0.10
+        # Balanced route: beta=0.50 (alpha=0.50) balances distance efficiency with safety weighting
+        beta = 0.50
+        alpha = 0.50
 
         node_coords = self.manager.node_coords
         s_lat, s_lon = node_coords[source]
@@ -481,7 +483,15 @@ class RoutingEngine:
         name: str,
         route_type: str,
         color: str,
-        departure_time: Optional[datetime] = None
+        departure_time: Optional[datetime] = None,
+        orig_pin: Optional[Tuple[float, float]] = None,
+        dest_pin: Optional[Tuple[float, float]] = None,
+        corridor_prefix: Optional[List[List[float]]] = None,
+        corridor_suffix: Optional[List[List[float]]] = None,
+        extra_distance_m: float = 0.0,
+        extra_duration_s: int = 0,
+        corridor_steps_prefix: Optional[List[Dict[str, Any]]] = None,
+        corridor_steps_suffix: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Assembles complete RouteData structure from a node path."""
         node_coords = self.manager.node_coords
@@ -522,12 +532,68 @@ class RoutingEngine:
                 "subscores": sub_dict
             })
 
-            # Add node coordinates [lon, lat]
+            # Extract full road-following coordinates [lon, lat]
             u_lat, u_lon = node_coords[u]
-            if not coordinates:
-                coordinates.append([round(u_lon, 6), round(u_lat, 6)])
             v_lat, v_lon = node_coords[v]
-            coordinates.append([round(v_lon, 6), round(v_lat, 6)])
+            geom_wkt = payload.get("geometry")
+            edge_pts = None
+
+            if geom_wkt is not None:
+                try:
+                    # Case A: Shapely LineString object with coords attribute (standard OSMnx edge geometry)
+                    if hasattr(geom_wkt, "coords"):
+                        raw_pts = [[round(pt[0], 6), round(pt[1], 6)] for pt in geom_wkt.coords]
+                    # Case B: Serialized WKT string (e.g. from GraphML export)
+                    elif isinstance(geom_wkt, str):
+                        ls = wkt.loads(geom_wkt)
+                        raw_pts = [[round(pt[0], 6), round(pt[1], 6)] for pt in ls.coords]
+                    else:
+                        raw_pts = None
+
+                    if raw_pts:
+                        # Ensure orientation flows correctly from u to v
+                        d_u = (raw_pts[0][0] - u_lon)**2 + (raw_pts[0][1] - u_lat)**2
+                        d_v = (raw_pts[0][0] - v_lon)**2 + (raw_pts[0][1] - v_lat)**2
+                        if d_v < d_u:
+                            raw_pts.reverse()
+                        edge_pts = raw_pts
+                except Exception as _geom_err:
+                    logger.debug(
+                        "Geometry decode failed for edge (%s->%s), falling back to straight line: %s",
+                        u, v, _geom_err
+                    )
+
+            if edge_pts:
+                if not coordinates:
+                    coordinates.extend(edge_pts)
+                else:
+                    # Avoid duplicate overlapping junction point
+                    if coordinates[-1] == edge_pts[0]:
+                        coordinates.extend(edge_pts[1:])
+                    else:
+                        coordinates.extend(edge_pts)
+            else:
+                if not coordinates:
+                    coordinates.append([round(u_lon, 6), round(u_lat, 6)])
+                coordinates.append([round(v_lon, 6), round(v_lat, 6)])
+
+        # Prepend arterial corridor prefix or pin coordinate
+        if corridor_prefix:
+            coordinates = [list(pt) for pt in corridor_prefix] + coordinates
+        elif orig_pin:
+            p_lon, p_lat = round(orig_pin[1], 6), round(orig_pin[0], 6)
+            if not coordinates or coordinates[0] != [p_lon, p_lat]:
+                coordinates.insert(0, [p_lon, p_lat])
+
+        # Append arterial corridor suffix or pin coordinate
+        if corridor_suffix:
+            coordinates = coordinates + [list(pt) for pt in corridor_suffix]
+        elif dest_pin:
+            d_lon, d_lat = round(dest_pin[1], 6), round(dest_pin[0], 6)
+            if not coordinates or coordinates[-1] != [d_lon, d_lat]:
+                coordinates.append([d_lon, d_lat])
+
+        total_distance += extra_distance_m
 
         # Calculate mean subscores
         mean_subscores = {}
@@ -538,7 +604,7 @@ class RoutingEngine:
         final_rss = calculate_rss(raw_rss, departure_time)
 
         # Duration estimate (mix of pedestrian and urban vehicle speed)
-        duration_seconds = int(round(total_distance / (DRIVE_SPEED_KMH * 1000.0 / 3600.0)))
+        duration_seconds = int(round(total_distance / (DRIVE_SPEED_KMH * 1000.0 / 3600.0))) + extra_duration_s
 
         # Risk level classification
         if final_rss >= 75.0:
@@ -552,6 +618,10 @@ class RoutingEngine:
 
         # Generate turn steps
         steps = self._generate_steps(segments)
+        if corridor_steps_prefix:
+            steps = corridor_steps_prefix + steps
+        if corridor_steps_suffix:
+            steps = steps + corridor_steps_suffix
 
         return {
             "id": route_id,
@@ -617,47 +687,78 @@ class RoutingEngine:
     ) -> Dict[str, Any]:
         """
         Calculates Fastest (beta=0.0), Safest (beta=0.90), and Balanced (beta=0.50) routes
-        with full explanations.
+        for any OD pair within the loaded graph.
+
+        Both endpoints are always snapped via KDTree to the nearest node in the largest
+        strongly-connected component, guaranteeing A* has a valid source and target and
+        a path always exists between them. No location-specific special-casing is used.
         """
         t_dep = departure_time or datetime.now()
         is_weekend = get_weekend_modifier(t_dep) < 0.0
         time_str = t_dep.strftime("%H:%M")
 
-        # Snap to largest component
-        u_node, s_olat, s_olon = self.manager.snap_to_node(orig_lat, orig_lon)
-        v_node, s_dlat, s_dlon = self.manager.snap_to_node(dest_lat, dest_lon)
+        # --- Snap both endpoints to the largest strongly-connected component (KDTree) ---
+        # snap_to_node() guarantees reachability: all nodes in largest_component_graph are
+        # mutually reachable, so A* always finds a path between any two snapped nodes.
+        u_node, u_snap_lat, u_snap_lon = self.manager.snap_to_node(orig_lat, orig_lon)
+        v_node, v_snap_lat, v_snap_lon = self.manager.snap_to_node(dest_lat, dest_lon)
 
-        # 1. Fastest Route: C(u,v) = d(u,v) [pure distance/time, ignores R(v)]
+        logger.info(
+            "Routing %s -> %s | snapped: (%s,%s)->node %s@(%.5f,%.5f), (%s,%s)->node %s@(%.5f,%.5f)",
+            orig_name, dest_name,
+            orig_lat, orig_lon, u_node, u_snap_lat, u_snap_lon,
+            dest_lat, dest_lon, v_node, v_snap_lat, v_snap_lon
+        )
+
+        # --- Compute the three route variants ---
         fastest_path = self._route_fastest(u_node, v_node)
+        safest_path  = self._route_safest(u_node, v_node)
+        balanced_path = self._route_balanced(u_node, v_node)
+
+        # Diagnostic: log path lengths and terminus coordinates to catch truncation
+        for label, path in [("fastest", fastest_path), ("safest", safest_path), ("balanced", balanced_path)]:
+            if path:
+                last_lat, last_lon = self.manager.node_coords.get(path[-1], (None, None))
+                logger.info(
+                    "%-8s path: %d nodes | last node %s @ (%.5f, %.5f) | dest snap @ (%.5f, %.5f)",
+                    label, len(path), path[-1], last_lat or 0.0, last_lon or 0.0,
+                    v_snap_lat, v_snap_lon
+                )
+            else:
+                logger.warning("%s A* returned empty path for %s -> %s", label, u_node, v_node)
+
+        # --- Build route data payloads ---
         fastest_route = self._build_route_data(
             fastest_path,
             route_id="route-fastest",
             name="Fastest Route",
             route_type="fastest",
             color="#3b82f6",
-            departure_time=t_dep
+            departure_time=t_dep,
+            orig_pin=(orig_lat, orig_lon),
+            dest_pin=(dest_lat, dest_lon),
         )
 
-        # 2. Safest Route: w'(u,v) = w(u,v) * (1 + Severity(v)) [multiplicative penalty inflation]
-        safest_path = self._route_safest(u_node, v_node)
         safest_route = self._build_route_data(
             safest_path,
             route_id="route-safest",
             name="Safest Route",
             route_type="safest",
             color="#10b981",
-            departure_time=t_dep
+            departure_time=t_dep,
+            orig_pin=(orig_lat, orig_lon),
+            dest_pin=(dest_lat, dest_lon),
         )
 
-        # 3. Balanced Route: prune nodes/edges where Severity(v) > 0.5 within 500m buffer, modified A* f(n) = g(n) + h(n) + c(n)
-        balanced_path = self._route_balanced(u_node, v_node)
         balanced_route = self._build_route_data(
             balanced_path,
             route_id="route-balanced",
             name="Balanced Route",
             route_type="balanced",
             color="#f59e0b",
-            departure_time=t_dep
+            departure_time=t_dep,
+            orig_pin=(orig_lat, orig_lon),
+            dest_pin=(dest_lat, dest_lon),
         )
 
         all_routes = [fastest_route, safest_route, balanced_route]
@@ -698,3 +799,4 @@ def get_routing_engine() -> RoutingEngine:
     if _GLOBAL_ROUTING_ENGINE is None:
         _GLOBAL_ROUTING_ENGINE = RoutingEngine()
     return _GLOBAL_ROUTING_ENGINE
+

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Shield, Navigation, AlertTriangle, Sparkles, Layers, Sliders, MapPin, Compass, CheckCircle2, Loader2 } from 'lucide-react';
+import { Shield, Navigation, AlertTriangle, Sparkles, Layers, Sliders, MapPin, Compass, CheckCircle2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { RoutePlanner } from './components/RoutePlanner';
 import { DeparturePicker } from './components/DeparturePicker';
 import { RadialGauge } from './components/RadialGauge';
@@ -119,9 +119,10 @@ export function App() {
   const [departureTime, setDepartureTime] = useState('21:30');
   const [isWeekend, setIsWeekend] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<string>('route-safest');
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
 
   // Dynamic raw routes loaded from live backend or pre-calibrated benchmark
-  const [rawRoutes, setRawRoutes] = useState<RouteData[]>(mockRoutesData.routes as RouteData[]);
+  const [rawRoutes, setRawRoutes] = useState<RouteData[]>(mockRoutesData.routes as unknown as RouteData[]);
   const [isLoadingRoutes, setIsLoadingRoutes] = useState(false);
   const [routeNotice, setRouteNotice] = useState<string | null>(null);
 
@@ -197,17 +198,35 @@ export function App() {
       setRouteNotice(null);
 
       try {
-        // 1. Geocode origin and destination
+        // 1. Geocode origin and destination concurrently
         const [origGeo, destGeo] = await Promise.all([
           geocodeLocation(origText, API_BASE_URL),
           geocodeLocation(destText, API_BASE_URL),
         ]);
 
+        // Guard: if geocoding failed to resolve either location, surface a clear error
+        // instead of silently using (0,0) or stale previous coordinates.
+        if (!origGeo.found) {
+          setRouteNotice(`⚠️ Could not locate "${origText}" in Pune. Try a more specific address or a nearby landmark.`);
+          setIsLoadingRoutes(false);
+          return;
+        }
+        if (!destGeo.found) {
+          setRouteNotice(`⚠️ Could not locate "${destText}" in Pune. Try a more specific address or a nearby landmark.`);
+          setIsLoadingRoutes(false);
+          return;
+        }
+
+        // Use the resolved canonical name from geocoder (landmark name or Nominatim display name),
+        // but keep the user's typed text as the label if the geocoder returned the raw input back.
+        const origDisplayName = origGeo.name || origText;
+        const destDisplayName = destGeo.name || destText;
+
         const newOrigCoords: [number, number] = [origGeo.lon, origGeo.lat];
         const newDestCoords: [number, number] = [destGeo.lon, destGeo.lat];
 
-        setOrigin(origGeo.name);
-        setDestination(destGeo.name);
+        setOrigin(origDisplayName);
+        setDestination(destDisplayName);
         setOriginCoords(newOrigCoords);
         setDestCoords(newDestCoords);
 
@@ -219,7 +238,7 @@ export function App() {
         if (isIdentical) {
           const zeroRoute: RouteData = {
             id: 'route-identical',
-            name: `Immediate Destination (${origGeo.name.split(',')[0]})`,
+            name: `Immediate Destination (${origDisplayName.split(',')[0]})`,
             type: 'safest',
             color: '#2dd4bf',
             distance_meters: 0,
@@ -228,13 +247,13 @@ export function App() {
             rss: 100.0,
             risk_level: 'Safe Corridor',
             reasons: [
-              `Origin and destination are identical (${origGeo.name.split(',')[0]}).`,
+              `Origin and destination are identical (${origDisplayName.split(',')[0]}).`,
               'Zero physical travel required with 0.0 meters road exposure.',
               'Maximum safety score (100.0 RSS) due to absent vehicular and nocturnal hazard conflict.'
             ],
             subscores: { accident: 100, emergency: 100, lighting: 100, pedestrian: 100, traffic: 100 },
             geometry: { type: 'LineString', coordinates: [newOrigCoords, newOrigCoords] },
-            steps: [{ instruction: `You are already at your destination: ${destGeo.name.split(',')[0]}.`, distance_meters: 0, street: destGeo.name.split(',')[0] }]
+            steps: [{ instruction: `You are already at your destination: ${destDisplayName.split(',')[0]}.`, distance_meters: 0, street: destDisplayName.split(',')[0] }]
           };
           setRawRoutes([zeroRoute]);
           setSelectedRouteId('route-identical');
@@ -249,8 +268,8 @@ export function App() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              origin: { lat: origGeo.lat, lon: origGeo.lon, name: origGeo.name },
-              destination: { lat: destGeo.lat, lon: destGeo.lon, name: destGeo.name },
+              origin: { lat: origGeo.lat, lon: origGeo.lon, name: origDisplayName },
+              destination: { lat: destGeo.lat, lon: destGeo.lon, name: destDisplayName },
               departure_time: departureTime
             }),
             signal: AbortSignal.timeout(12000),
@@ -261,13 +280,24 @@ export function App() {
             if (data && Array.isArray(data.routes) && data.routes.length > 0) {
               const styledRoutes = data.routes.map((r: RouteData) => ({
                 ...r,
-                color: r.type === 'safest' ? '#2dd4bf' : r.type === 'balanced' ? '#f59e0b' : '#38bdf8'
+                color: r.type === 'safest' ? '#059669' : r.type === 'balanced' ? '#d97706' : '#1a73e8'
               }));
               setRawRoutes(styledRoutes);
               const safest = styledRoutes.find((r: RouteData) => r.type === 'safest');
               setSelectedRouteId(safest ? safest.id : styledRoutes[0].id);
-              setRouteNotice(`Calculated live across 56,036 Pune network nodes: ${origGeo.name.split(',')[0]} → ${destGeo.name.split(',')[0]}`);
+              const srcLabel = `${origGeo.source === 'nominatim_online' ? '🌐' : origGeo.source === 'backend_geocoder' ? '🔍' : '📍'} ${origDisplayName.split(',')[0]}`;
+              const dstLabel = `${destGeo.source === 'nominatim_online' ? '🌐' : destGeo.source === 'backend_geocoder' ? '🔍' : '📍'} ${destDisplayName.split(',')[0]}`;
+              setRouteNotice(`Calculated live across 56,036 Pune network nodes: ${srcLabel} → ${dstLabel}`);
               backendSuccess = true;
+
+              // Snap marker coordinates to the exact road-network endpoints of the polyline
+              const primaryRoute = safest || styledRoutes[0];
+              if (primaryRoute && primaryRoute.geometry?.coordinates?.length >= 2) {
+                const firstCoord = primaryRoute.geometry.coordinates[0];
+                const lastCoord = primaryRoute.geometry.coordinates[primaryRoute.geometry.coordinates.length - 1];
+                setOriginCoords([firstCoord[0], firstCoord[1]]);
+                setDestCoords([lastCoord[0], lastCoord[1]]);
+              }
             }
           }
         } catch (backendErr) {
@@ -276,34 +306,29 @@ export function App() {
 
         if (!backendSuccess) {
           // Fallback if backend was unreachable
-          const isKatrajCorridor =
-            origGeo.name.toLowerCase().includes('shivajinagar') && destGeo.name.toLowerCase().includes('katraj');
-          const isKatrajReverse =
-            origGeo.name.toLowerCase().includes('katraj') && destGeo.name.toLowerCase().includes('shivajinagar');
-
-          if (isKatrajCorridor || isKatrajReverse) {
-            const baseMock = (mockRoutesData.routes as RouteData[]).map((r) => {
-              return isKatrajReverse
-                ? { ...r, geometry: { ...r.geometry, coordinates: [...r.geometry.coordinates].reverse() } }
-                : r;
-            });
-            setRawRoutes(baseMock);
-            setSelectedRouteId('route-safest');
-          } else {
-            const fallbackRoutes = generateCorridorFallback(origGeo, destGeo);
-            setRawRoutes(fallbackRoutes);
-            setSelectedRouteId('route-safest');
-            setRouteNotice(`Active corridor: ${origGeo.name.split(',')[0]} → ${destGeo.name.split(',')[0]}`);
-          }
+          const fallbackRoutes = generateCorridorFallback(origGeo, destGeo);
+          setRawRoutes(fallbackRoutes);
+          setSelectedRouteId('route-safest');
+          setRouteNotice(`⚠️ Live road engine offline: Start backend server to trace full Pune road network.`);
         }
       } catch (err: any) {
         console.error('Route calculation error:', err);
+        setRouteNotice('⚠️ Route calculation failed. Please check your connection and try again.');
       } finally {
         setIsLoadingRoutes(false);
       }
     },
     [departureTime]
   );
+
+  // Automatically compute live road routes once backend server becomes ready
+  const initialFetchDoneRef = React.useRef(false);
+  useEffect(() => {
+    if (backendHealth?.status === 'ready' && !initialFetchDoneRef.current) {
+      initialFetchDoneRef.current = true;
+      calculateCorridorRoutes(origin, destination);
+    }
+  }, [backendHealth?.status, origin, destination, calculateCorridorRoutes]);
 
   // Compute temporally-adjusted routes dynamically over active rawRoutes
   const routes: RouteData[] = useMemo(() => {
@@ -439,38 +464,38 @@ export function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#0b0f19] text-slate-100 font-sans">
-      {/* Top Navigation Bar */}
-      <header className="h-16 border-b border-slate-800/90 bg-slate-950/90 backdrop-blur-xl px-4 lg:px-6 flex items-center justify-between z-40 flex-shrink-0">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-100 text-slate-900 font-sans">
+      {/* Top Google Maps Style Header */}
+      <header className="h-14 border-b border-slate-200/90 bg-white/95 backdrop-blur-md px-4 lg:px-6 flex items-center justify-between z-30 flex-shrink-0 shadow-sm">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-teal-500/15 border border-teal-500/30 flex items-center justify-center shadow-lg">
-            <Shield className="w-5 h-5 text-teal-400" />
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shadow-sm">
+            <Shield className="w-5 h-5 text-emerald-600" />
           </div>
           <div>
-            <div className="flex items-center space-x-2.5">
-              <h1 className="text-base font-display font-extrabold tracking-tight text-white">
+            <div className="flex items-center space-x-2">
+              <h1 className="text-base font-extrabold tracking-tight text-slate-900">
                 SafeRoute AI
               </h1>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-teal-950/80 text-teal-300 border border-teal-500/40">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                 Pune Metropole
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 hidden sm:block">
-              Risk-Weighted Safe Navigation & Infrastructure Intelligence
+            <p className="text-[11px] text-slate-500 hidden sm:block">
+              Intelligent Urban Safety Navigation • Powered by Hyper-local RSS
             </p>
           </div>
         </div>
 
         {/* Badges & Incident Trigger */}
         <div className="flex items-center space-x-3">
-          <div className="hidden md:flex items-center space-x-2 text-xs font-mono text-slate-400 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
+          <div className="hidden md:flex items-center space-x-2 text-xs font-mono text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
             <span
               className={`w-2 h-2 rounded-full ${
                 backendHealth?.status === 'ready'
-                  ? 'bg-emerald-400 animate-pulse'
+                  ? 'bg-emerald-500 animate-pulse'
                   : backendHealth?.status === 'loading'
-                  ? 'bg-amber-400 animate-spin'
-                  : 'bg-cyan-400'
+                  ? 'bg-amber-500 animate-spin'
+                  : 'bg-blue-500'
               }`}
             />
             <span>
@@ -485,7 +510,7 @@ export function App() {
           <button
             type="button"
             onClick={() => setIsIncidentModalOpen(true)}
-            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white shadow-lg shadow-rose-500/25 transition-all active:scale-95"
+            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-all active:scale-95"
           >
             <AlertTriangle className="w-4 h-4" />
             <span>Report Hazard</span>
@@ -493,11 +518,50 @@ export function App() {
         </div>
       </header>
 
-      {/* Body Content: Sidebar + Map */}
-      <div className="flex-1 flex flex-col md:flex-row relative overflow-hidden">
-        {/* Left Side Control Panel */}
-        <aside className="w-full md:w-[460px] lg:w-[480px] h-full flex flex-col border-r border-slate-800/80 bg-slate-950/60 backdrop-blur-2xl z-20 shadow-2xl overflow-hidden flex-shrink-0">
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Main Full-Bleed Map with Floating Google Maps Panels */}
+      <div className="flex-1 relative w-full h-full overflow-hidden">
+        {/* Full Viewport Map Background */}
+        <div className="absolute inset-0 w-full h-full z-0">
+          <Map
+            routes={routes}
+            selectedRouteId={selectedRouteId}
+            onSelectRoute={setSelectedRouteId}
+            showHeatmap={showHeatmap}
+            showAmenities={showAmenities}
+            incidents={incidents}
+            isPinningMode={isPinningMode}
+            onMapClickPin={handleMapClickPin}
+            originCoords={originCoords}
+            destCoords={destCoords}
+            originName={origin}
+            destName={destination}
+          />
+        </div>
+
+        {/* Floating Google Maps Left Navigation Drawer */}
+        <aside
+          className={`absolute top-4 left-4 bottom-4 z-20 w-full sm:w-[440px] md:w-[460px] flex flex-col bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden transition-all duration-300 ${
+            isPanelCollapsed ? '-translate-x-[calc(100%+24px)] pointer-events-none' : 'translate-x-0 pointer-events-auto'
+          }`}
+        >
+          {/* Drawer Top Header with Collapse Button */}
+          <div className="px-4 py-2.5 bg-slate-50/90 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center space-x-2 text-slate-800 text-xs font-bold">
+              <Navigation className="w-3.5 h-3.5 text-blue-600" />
+              <span>Pune Safe Navigation</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsPanelCollapsed(true)}
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors"
+              title="Hide panel to view full map"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Scrollable Drawer Content */}
+          <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5">
             {/* 1. Universal Origin / Destination Route Planner */}
             <RoutePlanner
               origin={origin}
@@ -513,8 +577,8 @@ export function App() {
             />
 
             {routeNotice && (
-              <div className="text-[11px] bg-teal-950/50 border border-teal-500/30 text-teal-300 px-3 py-2 rounded-xl flex items-center gap-2 animate-in fade-in duration-200">
-                <Compass className="w-3.5 h-3.5 text-teal-400 flex-shrink-0" />
+              <div className="text-[11px] bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-2 rounded-xl flex items-center gap-2 animate-in fade-in duration-200">
+                <Compass className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
                 <span>{routeNotice}</span>
               </div>
             )}
@@ -546,36 +610,31 @@ export function App() {
           </div>
         </aside>
 
-        {/* Right Side Map Area */}
-        <main className="flex-1 relative h-full w-full">
-          <Map
-            routes={routes}
-            selectedRouteId={selectedRouteId}
-            onSelectRoute={setSelectedRouteId}
-            showHeatmap={showHeatmap}
-            showAmenities={showAmenities}
-            incidents={incidents}
-            isPinningMode={isPinningMode}
-            onMapClickPin={handleMapClickPin}
-            originCoords={originCoords}
-            destCoords={destCoords}
-            originName={origin}
-            destName={destination}
-          />
+        {/* Floating Expand Button when drawer is collapsed */}
+        {isPanelCollapsed && (
+          <button
+            type="button"
+            onClick={() => setIsPanelCollapsed(false)}
+            className="absolute top-4 left-4 z-20 bg-white/95 border border-slate-200/90 shadow-xl px-4 py-2.5 rounded-2xl text-xs font-bold text-slate-800 flex items-center gap-2 hover:bg-slate-50 active:scale-95 transition-all"
+          >
+            <Navigation className="w-4 h-4 text-blue-600" />
+            <span>Open Navigation Panel</span>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
+        )}
 
-          {/* Floating Top-Right Layer Controls & Legend */}
-          <div className="absolute top-4 right-4 z-20">
-            <LayerControls
-              showHeatmap={showHeatmap}
-              onToggleHeatmap={() => setShowHeatmap(!showHeatmap)}
-              showAmenities={showAmenities}
-              onToggleAmenities={() => setShowAmenities(!showAmenities)}
-              onResetView={handleResetView}
-              isPinningMode={isPinningMode}
-              onCancelPinning={() => setIsPinningMode(false)}
-            />
-          </div>
-        </main>
+        {/* Floating Top-Right Layer Controls & Legend */}
+        <div className="absolute top-4 right-4 z-20">
+          <LayerControls
+            showHeatmap={showHeatmap}
+            onToggleHeatmap={() => setShowHeatmap(!showHeatmap)}
+            showAmenities={showAmenities}
+            onToggleAmenities={() => setShowAmenities(!showAmenities)}
+            onResetView={handleResetView}
+            isPinningMode={isPinningMode}
+            onCancelPinning={() => setIsPinningMode(false)}
+          />
+        </div>
       </div>
 
       {/* Incident Reporting Modal */}

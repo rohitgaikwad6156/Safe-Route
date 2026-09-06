@@ -59,19 +59,19 @@ export const RouteCards: React.FC<RouteCardsProps> = ({
       case 'safest':
         return (
           <div className="flex items-center gap-1.5">
-            <span className="font-mono font-bold text-xs text-teal-300 tracking-wider">━━━ [SOLID]</span>
-            <span className="px-2 py-0.5 text-[11px] font-bold rounded-md bg-teal-950 text-teal-300 border border-teal-500/50 flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" />
-              Safest
+            <span className="font-mono font-bold text-xs text-emerald-600 tracking-wider">━━━ [GREEN]</span>
+            <span className="px-2 py-0.5 text-[11px] font-bold rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+              Safest Route
             </span>
           </div>
         );
       case 'balanced':
         return (
           <div className="flex items-center gap-1.5">
-            <span className="font-mono font-bold text-xs text-amber-300 tracking-wider">╍╍╍ [DASH]</span>
-            <span className="px-2 py-0.5 text-[11px] font-bold rounded-md bg-amber-950 text-amber-300 border border-amber-500/50 flex items-center gap-1">
-              <Scale className="w-3 h-3" />
+            <span className="font-mono font-bold text-xs text-amber-600 tracking-wider">━━━ [YELLOW]</span>
+            <span className="px-2 py-0.5 text-[11px] font-bold rounded-md bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
+              <Scale className="w-3 h-3 text-amber-600" />
               Balanced
             </span>
           </div>
@@ -79,9 +79,9 @@ export const RouteCards: React.FC<RouteCardsProps> = ({
       case 'fastest':
         return (
           <div className="flex items-center gap-1.5">
-            <span className="font-mono font-bold text-xs text-sky-300 tracking-wider">┈┈┈ [DOT]</span>
-            <span className="px-2 py-0.5 text-[11px] font-bold rounded-md bg-sky-950 text-sky-300 border border-sky-500/50 flex items-center gap-1">
-              <Zap className="w-3 h-3" />
+            <span className="font-mono font-bold text-xs text-blue-600 tracking-wider">━━━ [BLUE]</span>
+            <span className="px-2 py-0.5 text-[11px] font-bold rounded-md bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1">
+              <Zap className="w-3 h-3 text-blue-600" />
               Fastest
             </span>
           </div>
@@ -91,15 +91,54 @@ export const RouteCards: React.FC<RouteCardsProps> = ({
 
   return (
     <div className="space-y-3">
+      {/* Header with count */}
       <div className="flex items-center justify-between px-1">
-        <span className="text-xs font-display font-bold uppercase tracking-wider text-slate-300">
-          Available Routes ({routes.length})
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+          Suggested Corridors ({routes.length})
         </span>
         <span className="text-[11px] text-slate-400 font-mono">
           [Tab] / [↑↓] Navigate
         </span>
       </div>
 
+      {/* 3-Route Horizontal Comparison Tab Bar: Immediate at-a-glance visibility */}
+      {routes.length > 1 && (
+        <div className="grid grid-cols-3 gap-2 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+          {routes.map((r) => {
+            const isSel = r.id === selectedRouteId;
+            const scoreTheme = getScoreColor(r.rss);
+            const rColor = r.type === 'safest' ? '#059669' : r.type === 'fastest' ? '#1a73e8' : '#d97706';
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => onSelectRoute(r.id)}
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all text-left active:scale-95 ${
+                  isSel
+                    ? 'bg-white border-2 shadow-md scale-[1.02]'
+                    : 'bg-white/60 border-slate-200 hover:bg-white hover:border-slate-300'
+                }`}
+                style={{
+                  borderColor: isSel ? rColor : undefined,
+                }}
+              >
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: rColor }} />
+                  <span className="text-xs font-bold text-slate-800 capitalize">{r.type}</span>
+                </div>
+                <div className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold border ${scoreTheme.badge} mb-1`}>
+                  {Math.round(r.rss)} RSS
+                </div>
+                <div className="text-[10px] text-slate-500 font-mono text-center">
+                  {formatDistance(r.distance_meters)}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Detailed Route Cards */}
       <div className="space-y-3">
         {routes.map((route) => {
           const isSelected = route.id === selectedRouteId;
@@ -112,6 +151,7 @@ export const RouteCards: React.FC<RouteCardsProps> = ({
           const attrib = route.attribution;
           const uncertainty = route.uncertainty;
           const havens = route.safe_havens;
+          const rColor = route.type === 'safest' ? '#059669' : route.type === 'fastest' ? '#1a73e8' : '#d97706';
 
           return (
             <div
@@ -137,14 +177,13 @@ export const RouteCards: React.FC<RouteCardsProps> = ({
                   onSelectRoute(prevRoute.id);
                 }
               }}
-              className={`rounded-2xl border transition-all duration-200 cursor-pointer overflow-hidden backdrop-blur-md focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:outline-none ${
+              className={`rounded-2xl border transition-all duration-200 cursor-pointer overflow-hidden backdrop-blur-md focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${
                 isSelected
-                  ? 'bg-slate-900/95 border-2 shadow-2xl scale-[1.01]'
-                  : 'bg-slate-900/70 border-slate-800 hover:border-slate-700 hover:bg-slate-900/90'
+                  ? 'bg-white border-2 shadow-xl scale-[1.01]'
+                  : 'bg-white/90 border-slate-200 hover:border-slate-300 hover:bg-white shadow-sm'
               }`}
               style={{
-                borderColor: isSelected ? route.color : undefined,
-                boxShadow: isSelected ? `0 0 25px -4px ${route.color}40` : undefined,
+                borderColor: isSelected ? rColor : undefined,
               }}
             >
               <div className="p-4 space-y-3">
@@ -153,18 +192,18 @@ export const RouteCards: React.FC<RouteCardsProps> = ({
                   <div className="flex items-center space-x-2">
                     <div
                       className="w-3 h-3 rounded-full shadow-sm"
-                      style={{ backgroundColor: route.color }}
+                      style={{ backgroundColor: rColor }}
                     />
                     {getTypeHeaderBadge(route)}
                   </div>
 
                   {/* RSS Score Badge */}
                   <div className="flex items-center space-x-1.5">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
                       RSS:
                     </span>
                     <span
-                      className={`px-2.5 py-0.5 rounded-lg font-mono font-bold text-xs border ${scoreTheme.badge} ${scoreTheme.glow}`}
+                      className={`px-2.5 py-0.5 rounded-lg font-mono font-bold text-xs border ${scoreTheme.badge}`}
                     >
                       {Math.round(route.rss)} / 100
                     </span>
@@ -173,186 +212,198 @@ export const RouteCards: React.FC<RouteCardsProps> = ({
 
                 {/* Route Title */}
                 <div>
-                  <h3 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                     {getTypeIcon(route.type)}
                     <span>{route.name}</span>
                   </h3>
                 </div>
 
-                {/* Counterfactual Detour Callout */}
-                {detour && (
-                  <div className="bg-amber-950/40 border border-amber-500/40 rounded-xl p-2.5 space-y-1 text-xs">
-                    <div className="flex items-center gap-1.5 text-amber-300 font-bold">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Counterfactual Safe Detour</span>
-                    </div>
-                    <p className="text-[11px] text-amber-200/90 leading-relaxed">
-                      {detour.explanation}
-                    </p>
-                  </div>
-                )}
-
                 {/* Metrics Grid */}
-                <div className="grid grid-cols-3 gap-2 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80 text-center">
+                <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-medium block">Distance</span>
-                    <span className="text-xs font-mono font-bold text-slate-200">
+                    <span className="text-[10px] text-slate-500 uppercase font-medium block">Distance</span>
+                    <span className="text-xs font-mono font-bold text-slate-800">
                       {formatDistance(route.distance_meters)}
                     </span>
                   </div>
-                  <div className="border-x border-slate-800">
-                    <span className="text-[10px] text-slate-400 uppercase font-medium block">Travel Time</span>
-                    <span className="text-xs font-mono font-bold text-slate-200 flex items-center justify-center gap-1">
-                      <Clock className="w-3 h-3 text-cyan-400 inline" />
+                  <div className="border-x border-slate-200">
+                    <span className="text-[10px] text-slate-500 uppercase font-medium block">Travel Time</span>
+                    <span className="text-xs font-mono font-bold text-slate-800 flex items-center justify-center gap-1">
+                      <Clock className="w-3 h-3 text-blue-600 inline" />
                       {formatDuration(route.duration_seconds)}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-medium block">Safety Grade</span>
+                    <span className="text-[10px] text-slate-500 uppercase font-medium block">Safety Grade</span>
                     <span className={`text-xs font-semibold ${scoreTheme.text}`}>
                       {route.risk_level}
                     </span>
                   </div>
                 </div>
 
-                {/* Attribution Math Breakdown Bar (Single Compact Segmented Bar) */}
-                {attrib && (
-                  <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 space-y-2">
-                    <div className="flex items-center justify-between text-[10px] font-display font-bold text-slate-300 uppercase">
-                      <span>Attribution Breakdown ({attrib.raw_rss.toFixed(1)} Raw RSS)</span>
-                      <span className="font-mono text-teal-300">100% Attributed</span>
-                    </div>
-                    {/* Compact Stacked Bar */}
-                    <div className="w-full h-2.5 rounded-full overflow-hidden flex bg-slate-900 border border-slate-800 p-0.5 gap-0.5">
-                      <div style={{ width: `${(attrib.contributions.accident / attrib.raw_rss) * 100}%` }} className="bg-rose-500 rounded-l-full" title={`Accident Safety: +${attrib.contributions.accident}`} />
-                      <div style={{ width: `${(attrib.contributions.emergency / attrib.raw_rss) * 100}%` }} className="bg-pink-500" title={`Emergency Access: +${attrib.contributions.emergency}`} />
-                      <div style={{ width: `${(attrib.contributions.lighting / attrib.raw_rss) * 100}%` }} className="bg-amber-400" title={`Street Lighting: +${attrib.contributions.lighting}`} />
-                      <div style={{ width: `${(attrib.contributions.pedestrian / attrib.raw_rss) * 100}%` }} className="bg-teal-400" title={`Pedestrian Path: +${attrib.contributions.pedestrian}`} />
-                      <div style={{ width: `${(attrib.contributions.traffic / attrib.raw_rss) * 100}%` }} className="bg-sky-400 rounded-r-full" title={`Traffic Flow: +${attrib.contributions.traffic}`} />
-                    </div>
-                    {/* Component Value Chips */}
-                    <div className="grid grid-cols-5 gap-1 text-center font-mono text-[9px]">
-                      <div className="bg-slate-900/90 py-1 rounded border border-slate-800/80"><span className="text-rose-400 block font-bold">+{attrib.contributions.accident}</span>Crash</div>
-                      <div className="bg-slate-900/90 py-1 rounded border border-slate-800/80"><span className="text-pink-400 block font-bold">+{attrib.contributions.emergency}</span>Emerg</div>
-                      <div className="bg-slate-900/90 py-1 rounded border border-slate-800/80"><span className="text-amber-400 block font-bold">+{attrib.contributions.lighting}</span>Light</div>
-                      <div className="bg-slate-900/90 py-1 rounded border border-slate-800/80"><span className="text-teal-400 block font-bold">+{attrib.contributions.pedestrian}</span>Ped</div>
-                      <div className="bg-slate-900/90 py-1 rounded border border-slate-800/80"><span className="text-sky-400 block font-bold">+{attrib.contributions.traffic}</span>Traf</div>
-                    </div>
+                {!isSelected && (
+                  <div className="pt-1 text-center">
+                    <span className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                      Click to inspect this route on map →
+                    </span>
                   </div>
                 )}
 
-                {/* Honest Uncertainty Confidence Pill */}
-                {uncertainty && (
-                  <div className="pt-0.5">
-                    <button
-                      type="button"
-                      onClick={(e) => toggleUncertainty(route.id, e)}
-                      className="w-full flex items-center justify-between text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors py-1"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <Info className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>Data Provenance & Confidence:</span>
-                        <span className="px-2 py-0.2 rounded text-[10px] font-bold uppercase bg-slate-800 text-cyan-300 border border-cyan-800/40">
-                          {uncertainty.overall_confidence} ({uncertainty.overall_verified_percentage}%)
+                {/* Detailed Breakdown for Selected Route */}
+                {isSelected && (
+                  <>
+                    {/* Counterfactual Detour Callout */}
+                    {detour && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1 text-xs">
+                        <div className="flex items-center gap-1.5 text-amber-900 font-bold">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Counterfactual Safe Detour</span>
+                        </div>
+                        <p className="text-[11px] text-amber-800 leading-relaxed">
+                          {detour.explanation}
+                        </p>
+                      </div>
+                    )}
+                    {/* Attribution Breakdown */}
+                    {attrib && (
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                        <div className="flex items-center justify-between text-[10px] font-bold text-slate-700 uppercase">
+                          <span>Attribution Breakdown ({attrib.raw_rss.toFixed(1)} Raw RSS)</span>
+                          <span className="font-mono text-emerald-700 font-bold">100% Attributed</span>
+                        </div>
+                        {/* Compact Stacked Bar */}
+                        <div className="w-full h-2.5 rounded-full overflow-hidden flex bg-slate-200 border border-slate-300 p-0.5 gap-0.5">
+                          <div style={{ width: `${(attrib.contributions.accident / attrib.raw_rss) * 100}%` }} className="bg-rose-500 rounded-l-full" title={`Accident Safety: +${attrib.contributions.accident}`} />
+                          <div style={{ width: `${(attrib.contributions.emergency / attrib.raw_rss) * 100}%` }} className="bg-pink-500" title={`Emergency Access: +${attrib.contributions.emergency}`} />
+                          <div style={{ width: `${(attrib.contributions.lighting / attrib.raw_rss) * 100}%` }} className="bg-amber-400" title={`Street Lighting: +${attrib.contributions.lighting}`} />
+                          <div style={{ width: `${(attrib.contributions.pedestrian / attrib.raw_rss) * 100}%` }} className="bg-emerald-500" title={`Pedestrian Path: +${attrib.contributions.pedestrian}`} />
+                          <div style={{ width: `${(attrib.contributions.traffic / attrib.raw_rss) * 100}%` }} className="bg-blue-500 rounded-r-full" title={`Traffic Flow: +${attrib.contributions.traffic}`} />
+                        </div>
+                        {/* Component Value Chips */}
+                        <div className="grid grid-cols-5 gap-1 text-center font-mono text-[9px]">
+                          <div className="bg-white py-1 rounded border border-slate-200"><span className="text-rose-600 block font-bold">+{attrib.contributions.accident}</span>Crash</div>
+                          <div className="bg-white py-1 rounded border border-slate-200"><span className="text-pink-600 block font-bold">+{attrib.contributions.emergency}</span>Emerg</div>
+                          <div className="bg-white py-1 rounded border border-slate-200"><span className="text-amber-600 block font-bold">+{attrib.contributions.lighting}</span>Light</div>
+                          <div className="bg-white py-1 rounded border border-slate-200"><span className="text-emerald-600 block font-bold">+{attrib.contributions.pedestrian}</span>Ped</div>
+                          <div className="bg-white py-1 rounded border border-slate-200"><span className="text-blue-600 block font-bold">+{attrib.contributions.traffic}</span>Traf</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Honest Uncertainty Confidence Pill */}
+                    {uncertainty && (
+                      <div className="pt-0.5">
+                        <button
+                          type="button"
+                          onClick={(e) => toggleUncertainty(route.id, e)}
+                          className="w-full flex items-center justify-between text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors py-1"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <Info className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Data Provenance & Confidence:</span>
+                            <span className="px-2 py-0.2 rounded text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
+                              {uncertainty.overall_confidence} ({uncertainty.overall_verified_percentage}%)
+                            </span>
+                          </span>
+                          {showUncertainty ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </button>
+                        {showUncertainty && (
+                          <div className="mt-1.5 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 space-y-1">
+                            <p className="text-[11px] leading-relaxed text-slate-700">{uncertainty.explanation}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Safe Haven Position-Band Coverage */}
+                    {havens && havens.bands.length > 0 && (
+                      <div className="pt-0.5 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={(e) => toggleHavens(route.id, e)}
+                          className="w-full flex items-center justify-between text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors py-1"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <Hospital className="w-3.5 h-3.5 text-rose-500" />
+                            <span>Safe Haven Checkpoints ({havens.bands.length} Bands)</span>
+                          </span>
+                          {showHavens ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </button>
+                        {showHavens && (
+                          <div className="mt-2 space-y-1.5">
+                            {havens.bands.map((b, idx) => (
+                              <div key={idx} className="p-2.5 bg-slate-50 rounded-lg text-xs border border-slate-200 flex items-center justify-between">
+                                <span className="text-slate-800 font-medium text-[11px]">{b.band_name}</span>
+                                <div className="text-[10px] text-slate-600 font-mono flex items-center gap-2">
+                                  <span className="text-rose-700 font-medium">🏥 {b.hospital.name.split(' ')[0]} ({b.hospital.distance_meters}m)</span>
+                                  <span className="text-blue-700 font-medium">🚓 {b.police.name.split(' ')[0]} ({b.police.distance_meters}m)</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Grounded Reasons List */}
+                    <div className="pt-0.5 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={(e) => toggleReasons(route.id, e)}
+                        className="w-full flex items-center justify-between text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors py-1"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Safety Explanations & Urban Proof</span>
                         </span>
-                      </span>
-                      {showUncertainty ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                    </button>
-                    {showUncertainty && (
-                      <div className="mt-1.5 p-2.5 bg-slate-950/70 border border-slate-800 rounded-xl text-xs text-slate-300 space-y-1">
-                        <p className="text-[11px] leading-relaxed text-slate-300">{uncertainty.explanation}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                        {showReasons ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </button>
 
-                {/* Safe Haven Position-Band Coverage */}
-                {havens && havens.bands.length > 0 && (
-                  <div className="pt-0.5 border-t border-slate-800/60">
-                    <button
-                      type="button"
-                      onClick={(e) => toggleHavens(route.id, e)}
-                      className="w-full flex items-center justify-between text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors py-1"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <Hospital className="w-3.5 h-3.5 text-pink-400" />
-                        <span>Safe Haven Checkpoints ({havens.bands.length} Bands)</span>
-                      </span>
-                      {showHavens ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                    </button>
-                    {showHavens && (
-                      <div className="mt-2 space-y-1.5">
-                        {havens.bands.map((b, idx) => (
-                          <div key={idx} className="p-2 bg-slate-950/60 rounded-lg text-xs border border-slate-800/60 flex items-center justify-between">
-                            <span className="text-slate-300 font-medium text-[11px]">{b.band_name}</span>
-                            <div className="text-[10px] text-slate-400 font-mono flex items-center gap-2">
-                              <span className="text-pink-300">🏥 {b.hospital.name.split(' ')[0]} ({b.hospital.distance_meters}m)</span>
-                              <span className="text-cyan-300">🚓 {b.police.name.split(' ')[0]} ({b.police.distance_meters}m)</span>
+                      {showReasons && (
+                        <div className="mt-2 space-y-2 pl-2 border-l-2 border-slate-200 text-xs text-slate-700">
+                          {route.reasons.map((reason, idx) => (
+                            <div key={idx} className="flex items-start gap-1.5">
+                              <span
+                                className="inline-block w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
+                                style={{ backgroundColor: rColor }}
+                              />
+                              <p className="text-[11px] leading-relaxed text-slate-700">{reason}</p>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Turn-by-Turn Steps */}
+                    <div className="pt-0.5 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={(e) => toggleSteps(route.id, e)}
+                        className="w-full flex items-center justify-between text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors py-1"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Turn-by-turn Navigation ({route.steps.length} steps)</span>
+                        </span>
+                        {showSteps ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </button>
+
+                      {showSteps && (
+                        <div className="mt-2 space-y-2 max-h-44 overflow-y-auto pr-1">
+                          {route.steps.map((step, idx) => (
+                            <div key={idx} className="p-2.5 bg-slate-50 rounded-lg text-xs space-y-0.5 border border-slate-200">
+                              <div className="text-slate-900 font-medium leading-snug">{step.instruction}</div>
+                              <div className="text-[10px] text-slate-500 flex items-center justify-between">
+                                <span>{step.street}</span>
+                                <span className="font-mono">{step.distance_meters} m</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
-
-                {/* Grounded Reasons List */}
-                <div className="pt-0.5 border-t border-slate-800/60">
-                  <button
-                    type="button"
-                    onClick={(e) => toggleReasons(route.id, e)}
-                    className="w-full flex items-center justify-between text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors py-1"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Grounded Explanations & Urban Proof</span>
-                    </span>
-                    {showReasons ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                  </button>
-
-                  {showReasons && (
-                    <div className="mt-2 space-y-2 pl-2 border-l-2 border-slate-800 text-xs text-slate-300">
-                      {route.reasons.map((reason, idx) => (
-                        <div key={idx} className="flex items-start gap-1.5">
-                          <span
-                            className="inline-block w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
-                            style={{ backgroundColor: route.color }}
-                          />
-                          <p className="text-[11px] leading-relaxed text-slate-300">{reason}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Turn-by-Turn Steps */}
-                <div className="pt-0.5 border-t border-slate-800/60">
-                  <button
-                    type="button"
-                    onClick={(e) => toggleSteps(route.id, e)}
-                    className="w-full flex items-center justify-between text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors py-1"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Turn-by-turn Navigation ({route.steps.length} steps)</span>
-                    </span>
-                    {showSteps ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                  </button>
-
-                  {showSteps && (
-                    <div className="mt-2 space-y-2 max-h-44 overflow-y-auto pr-1">
-                      {route.steps.map((step, idx) => (
-                        <div key={idx} className="p-2 bg-slate-950/60 rounded-lg text-xs space-y-0.5 border border-slate-800/60">
-                          <div className="text-slate-200 font-medium leading-snug">{step.instruction}</div>
-                          <div className="text-[10px] text-slate-400 flex items-center justify-between">
-                            <span>{step.street}</span>
-                            <span className="font-mono">{step.distance_meters} m</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           );

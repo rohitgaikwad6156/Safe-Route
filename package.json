@@ -5,6 +5,8 @@
   "description": "SafeRoute AI - Intelligent Urban Safety Navigation Engine for Pune Metropole",
   "scripts": {
     "dev": "npm --prefix frontend run dev",
+    "backend": "python backend/api/server.py",
+    "dev:backend": "python backend/api/server.py",
     "build": "npm --prefix frontend run build",
     "preview": "npm --prefix frontend run preview",
     "postinstall": "npm --prefix frontend install"

@@ -10,482 +10,4979 @@
     "lon": 73.8553
   },
   "departure_time": "21:30",
-  "is_weekend": false,
+  "is_weekend": true,
   "routes": [
     {
       "id": "route-fastest",
-      "name": "Fastest Route (Via Swargate)",
+      "name": "Fastest Route",
       "type": "fastest",
       "color": "#3b82f6",
-      "distance_meters": 11200,
-      "duration_seconds": 1440,
-      "raw_rss": 62.4,
-      "rss": 52.4,
+      "distance_meters": 10437,
+      "duration_seconds": 1252,
+      "raw_rss": 62.9,
+      "rss": 49.9,
       "risk_level": "Elevated Risk",
       "reasons": [
-        "Direct arterial corridor spanning 11.2 km with composite safety score of 52.4 RSS. Accident safety: 42.0/100, Lighting score: 78.0/100.",
-        "RSS Attribution: Accident safety contributes 12.6 pts (sub-score: 42.0), Emergency access contributes 14.8 pts (sub-score: 74.0), Street lighting contributes 15.6 pts (sub-score: 78.0), Pedestrian paths contribute 7.2 pts (sub-score: 48.0), and Traffic flow contributes 9.0 pts (sub-score: 60.0) to the 62.4 base RSS. Temporal modifier of -10.0 pts results in a final 52.4 RSS.",
-        "Temporal Causation: At 12:00 PM (Noon), Fastest Route ranked competitively at 67.4 RSS with +5.0 daytime modifier. By 21:30, late-evening modifier (-10.0 pts) dropped it to 52.4 RSS due to high truck volume along the Swargate corridor.",
-        "Data Provenance & Confidence: Estimated (38.5% ground-truth verified). Lighting is estimated (42.0% verified via OSM tags; 58.0% [6.5 km] inferred from PMC Ward density records for Shivajinagar & Bhavani Peth). Pedestrian infrastructure is estimated (35.0% verified; 65.0% inferred from highway classification).",
-        "Safe Haven Position-Band Coverage: Continuous emergency access verified across 4 journey bands. Nearest trauma facility never exceeds 650 m (accessible: Sancheti Hospital at 240 m; Sasoon General Hospital at 580 m; Bharati Hospital Katraj at 620 m). Police chowki proximity is maintained within 350 m."
+        "Direct arterial corridor spanning 10.4 km with composite safety score of 49.9 RSS. Accident score: 92.5/100, Lighting score: 20.0/100.",
+        "RSS Attribution: Accident safety contributes 27.7 pts (sub-score: 92.5), Emergency access contributes 15.0 pts (sub-score: 74.9), Street lighting contributes 4.0 pts (sub-score: 20.0), Pedestrian paths contribute 4.1 pts (sub-score: 27.5), and Traffic flow contributes 12.0 pts (sub-score: 80.0) to the 62.9 base RSS. Temporal modifier of -13.0 pts results in a final 49.9 RSS.",
+        "Route ranking remained stable between 12:00 and 21:30 (led by Safest Route), but absolute safety dropped by 22.5 points (from 72.1 to 49.6 RSS). Causal mechanisms: the tau=1.2 night hazard multiplier on unlit arterial blackspots; the ward lighting dropoff after 11:30 PM on untagged secondary streets.",
+        "Data Provenance & Confidence: Estimated (0.0% ground-truth verified). Lighting is estimated (0.0% verified via OSM tags; 100.0% [10.4 km] inferred from PMC Ward density records for Dhankawadi - Sahakarnagar). Pedestrian infrastructure is estimated (0.0% verified; 100.0% inferred from highway classification).",
+        "Safe Haven Position-Band Coverage: Continuous emergency access verified across 4 journey bands. Nearest trauma facility never exceeds 1090 m (accessible: Sancheti Hospital, Shivajinagar at 519 m; Chintamani Hospital, Bibwewadi at 1090 m; Bharti Hospital & Research Centre, Katraj at 91 m). Police chowki proximity is maintained within 2592 m."
       ],
       "subscores": {
-        "accident": 42.0,
-        "emergency": 74.0,
-        "lighting": 78.0,
-        "pedestrian": 48.0,
-        "traffic": 60.0
+        "accident": 92.5,
+        "emergency": 74.9,
+        "lighting": 20.0,
+        "pedestrian": 27.5,
+        "traffic": 80.0
       },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            73.844604,
+            18.531366
+          ],
+          [
+            73.844793,
+            18.531551
+          ],
+          [
+            73.844858,
+            18.531533
+          ],
+          [
+            73.845407,
+            18.531383
+          ],
+          [
+            73.845625,
+            18.531324
+          ],
+          [
+            73.846192,
+            18.53118
+          ],
+          [
+            73.846544,
+            18.531091
+          ],
+          [
+            73.846614,
+            18.531073
+          ],
+          [
+            73.846872,
+            18.531008
+          ],
+          [
+            73.846937,
+            18.530991
+          ],
+          [
+            73.8473,
+            18.530903
+          ],
+          [
+            73.847433,
+            18.530818
+          ],
+          [
+            73.847756,
+            18.530747
+          ],
+          [
+            73.848202,
+            18.530643
+          ],
+          [
+            73.848266,
+            18.530628
+          ],
+          [
+            73.848641,
+            18.530535
+          ],
+          [
+            73.848684,
+            18.530524
+          ],
+          [
+            73.848761,
+            18.530505
+          ],
+          [
+            73.84884,
+            18.530485
+          ],
+          [
+            73.848969,
+            18.530452
+          ],
+          [
+            73.849621,
+            18.530285
+          ],
+          [
+            73.849793,
+            18.530249
+          ],
+          [
+            73.84991,
+            18.530217
+          ],
+          [
+            73.850206,
+            18.530131
+          ],
+          [
+            73.850483,
+            18.530045
+          ],
+          [
+            73.850538,
+            18.530028
+          ],
+          [
+            73.850994,
+            18.529889
+          ],
+          [
+            73.851057,
+            18.529869
+          ],
+          [
+            73.851232,
+            18.529817
+          ],
+          [
+            73.851292,
+            18.529797
+          ],
+          [
+            73.851381,
+            18.529702
+          ],
+          [
+            73.851688,
+            18.529598
+          ],
+          [
+            73.851662,
+            18.52952
+          ],
+          [
+            73.85165,
+            18.529485
+          ],
+          [
+            73.851545,
+            18.52924
+          ],
+          [
+            73.851365,
+            18.529167
+          ],
+          [
+            73.851244,
+            18.529014
+          ],
+          [
+            73.851545,
+            18.528763
+          ],
+          [
+            73.851527,
+            18.528635
+          ],
+          [
+            73.851487,
+            18.528407
+          ],
+          [
+            73.851554,
+            18.528329
+          ],
+          [
+            73.851621,
+            18.528252
+          ],
+          [
+            73.851709,
+            18.528181
+          ],
+          [
+            73.851768,
+            18.528133
+          ],
+          [
+            73.851833,
+            18.52808
+          ],
+          [
+            73.851516,
+            18.527709
+          ],
+          [
+            73.851614,
+            18.527636
+          ],
+          [
+            73.851566,
+            18.527575
+          ],
+          [
+            73.85152,
+            18.527517
+          ],
+          [
+            73.85149,
+            18.527447
+          ],
+          [
+            73.851488,
+            18.527431
+          ],
+          [
+            73.851485,
+            18.527398
+          ],
+          [
+            73.851494,
+            18.527359
+          ],
+          [
+            73.851524,
+            18.527316
+          ],
+          [
+            73.851654,
+            18.527216
+          ],
+          [
+            73.852031,
+            18.526993
+          ],
+          [
+            73.852269,
+            18.526857
+          ],
+          [
+            73.852506,
+            18.526672
+          ],
+          [
+            73.852908,
+            18.526278
+          ],
+          [
+            73.853151,
+            18.52601
+          ],
+          [
+            73.853175,
+            18.525987
+          ],
+          [
+            73.853184,
+            18.525979
+          ],
+          [
+            73.853169,
+            18.525968
+          ],
+          [
+            73.853143,
+            18.525949
+          ],
+          [
+            73.85328,
+            18.525795
+          ],
+          [
+            73.853311,
+            18.525729
+          ],
+          [
+            73.853329,
+            18.525692
+          ],
+          [
+            73.853333,
+            18.525684
+          ],
+          [
+            73.853351,
+            18.525642
+          ],
+          [
+            73.853593,
+            18.525085
+          ],
+          [
+            73.853643,
+            18.524969
+          ],
+          [
+            73.853686,
+            18.524875
+          ],
+          [
+            73.853695,
+            18.524841
+          ],
+          [
+            73.853714,
+            18.524788
+          ],
+          [
+            73.853714,
+            18.524779
+          ],
+          [
+            73.853714,
+            18.524734
+          ],
+          [
+            73.854299,
+            18.523398
+          ],
+          [
+            73.854446,
+            18.523055
+          ],
+          [
+            73.854636,
+            18.522601
+          ],
+          [
+            73.855011,
+            18.521764
+          ],
+          [
+            73.855036,
+            18.521707
+          ],
+          [
+            73.85507,
+            18.521685
+          ],
+          [
+            73.855097,
+            18.521656
+          ],
+          [
+            73.855135,
+            18.521595
+          ],
+          [
+            73.855175,
+            18.521532
+          ],
+          [
+            73.855249,
+            18.521402
+          ],
+          [
+            73.855284,
+            18.521347
+          ],
+          [
+            73.855364,
+            18.521174
+          ],
+          [
+            73.855415,
+            18.521048
+          ],
+          [
+            73.855433,
+            18.521006
+          ],
+          [
+            73.855536,
+            18.520856
+          ],
+          [
+            73.855695,
+            18.520665
+          ],
+          [
+            73.855841,
+            18.520529
+          ],
+          [
+            73.856029,
+            18.520305
+          ],
+          [
+            73.856037,
+            18.520295
+          ],
+          [
+            73.856056,
+            18.520266
+          ],
+          [
+            73.85611,
+            18.520182
+          ],
+          [
+            73.856128,
+            18.520092
+          ],
+          [
+            73.856148,
+            18.519723
+          ],
+          [
+            73.856175,
+            18.519213
+          ],
+          [
+            73.856208,
+            18.518649
+          ],
+          [
+            73.856214,
+            18.518542
+          ],
+          [
+            73.856214,
+            18.51851
+          ],
+          [
+            73.856216,
+            18.518342
+          ],
+          [
+            73.856221,
+            18.518182
+          ],
+          [
+            73.856232,
+            18.51781
+          ],
+          [
+            73.856241,
+            18.517501
+          ],
+          [
+            73.856244,
+            18.517409
+          ],
+          [
+            73.856246,
+            18.517266
+          ],
+          [
+            73.856253,
+            18.516935
+          ],
+          [
+            73.856254,
+            18.516866
+          ],
+          [
+            73.856255,
+            18.516817
+          ],
+          [
+            73.85626,
+            18.516286
+          ],
+          [
+            73.85627,
+            18.516061
+          ],
+          [
+            73.856275,
+            18.515946
+          ],
+          [
+            73.856284,
+            18.515741
+          ],
+          [
+            73.856287,
+            18.515669
+          ],
+          [
+            73.856322,
+            18.515332
+          ],
+          [
+            73.856381,
+            18.515132
+          ],
+          [
+            73.856467,
+            18.514962
+          ],
+          [
+            73.856596,
+            18.51479
+          ],
+          [
+            73.856672,
+            18.514703
+          ],
+          [
+            73.856899,
+            18.514363
+          ],
+          [
+            73.857034,
+            18.514115
+          ],
+          [
+            73.85715,
+            18.513897
+          ],
+          [
+            73.85731,
+            18.513511
+          ],
+          [
+            73.857412,
+            18.513209
+          ],
+          [
+            73.857457,
+            18.513092
+          ],
+          [
+            73.857508,
+            18.512956
+          ],
+          [
+            73.857594,
+            18.512731
+          ],
+          [
+            73.857613,
+            18.51268
+          ],
+          [
+            73.857628,
+            18.512641
+          ],
+          [
+            73.857645,
+            18.512595
+          ],
+          [
+            73.857686,
+            18.512479
+          ],
+          [
+            73.857793,
+            18.512181
+          ],
+          [
+            73.857871,
+            18.511855
+          ],
+          [
+            73.857896,
+            18.511647
+          ],
+          [
+            73.857906,
+            18.511569
+          ],
+          [
+            73.857907,
+            18.511491
+          ],
+          [
+            73.857917,
+            18.510704
+          ],
+          [
+            73.857918,
+            18.510638
+          ],
+          [
+            73.857918,
+            18.510586
+          ],
+          [
+            73.857927,
+            18.509812
+          ],
+          [
+            73.857942,
+            18.509556
+          ],
+          [
+            73.857957,
+            18.509243
+          ],
+          [
+            73.857996,
+            18.508828
+          ],
+          [
+            73.857999,
+            18.508798
+          ],
+          [
+            73.858003,
+            18.508749
+          ],
+          [
+            73.858006,
+            18.508688
+          ],
+          [
+            73.85801,
+            18.508631
+          ],
+          [
+            73.858036,
+            18.507615
+          ],
+          [
+            73.858036,
+            18.507507
+          ],
+          [
+            73.85806,
+            18.506725
+          ],
+          [
+            73.858061,
+            18.506668
+          ],
+          [
+            73.858078,
+            18.506609
+          ],
+          [
+            73.8581,
+            18.506533
+          ],
+          [
+            73.858186,
+            18.506378
+          ],
+          [
+            73.858309,
+            18.506196
+          ],
+          [
+            73.858389,
+            18.506098
+          ],
+          [
+            73.858537,
+            18.505915
+          ],
+          [
+            73.858665,
+            18.505684
+          ],
+          [
+            73.858739,
+            18.505383
+          ],
+          [
+            73.858745,
+            18.50536
+          ],
+          [
+            73.858949,
+            18.504613
+          ],
+          [
+            73.859036,
+            18.504394
+          ],
+          [
+            73.85904,
+            18.504319
+          ],
+          [
+            73.859047,
+            18.504187
+          ],
+          [
+            73.859034,
+            18.503911
+          ],
+          [
+            73.858987,
+            18.503659
+          ],
+          [
+            73.858766,
+            18.502477
+          ],
+          [
+            73.858752,
+            18.502385
+          ],
+          [
+            73.858739,
+            18.502304
+          ],
+          [
+            73.858677,
+            18.501962
+          ],
+          [
+            73.858625,
+            18.501682
+          ],
+          [
+            73.858585,
+            18.50147
+          ],
+          [
+            73.858522,
+            18.501299
+          ],
+          [
+            73.858499,
+            18.501231
+          ],
+          [
+            73.85846,
+            18.501116
+          ],
+          [
+            73.858491,
+            18.500908
+          ],
+          [
+            73.858528,
+            18.500649
+          ],
+          [
+            73.858545,
+            18.500547
+          ],
+          [
+            73.858549,
+            18.500455
+          ],
+          [
+            73.858515,
+            18.500242
+          ],
+          [
+            73.858481,
+            18.500024
+          ],
+          [
+            73.858462,
+            18.499863
+          ],
+          [
+            73.858443,
+            18.499672
+          ],
+          [
+            73.858397,
+            18.499572
+          ],
+          [
+            73.858358,
+            18.499399
+          ],
+          [
+            73.858294,
+            18.499052
+          ],
+          [
+            73.858253,
+            18.498707
+          ],
+          [
+            73.858197,
+            18.498317
+          ],
+          [
+            73.85815,
+            18.498054
+          ],
+          [
+            73.858107,
+            18.497776
+          ],
+          [
+            73.858005,
+            18.497154
+          ],
+          [
+            73.857954,
+            18.496887
+          ],
+          [
+            73.857957,
+            18.496702
+          ],
+          [
+            73.857968,
+            18.496651
+          ],
+          [
+            73.857978,
+            18.496604
+          ],
+          [
+            73.857981,
+            18.496527
+          ],
+          [
+            73.857986,
+            18.496364
+          ],
+          [
+            73.857992,
+            18.496159
+          ],
+          [
+            73.857929,
+            18.494589
+          ],
+          [
+            73.857904,
+            18.49399
+          ],
+          [
+            73.857785,
+            18.493276
+          ],
+          [
+            73.85771,
+            18.49242
+          ],
+          [
+            73.857678,
+            18.491207
+          ],
+          [
+            73.857653,
+            18.490914
+          ],
+          [
+            73.857476,
+            18.489364
+          ],
+          [
+            73.857458,
+            18.489273
+          ],
+          [
+            73.857424,
+            18.488874
+          ],
+          [
+            73.857442,
+            18.488159
+          ],
+          [
+            73.857496,
+            18.487032
+          ],
+          [
+            73.857505,
+            18.486923
+          ],
+          [
+            73.85757,
+            18.485896
+          ],
+          [
+            73.857586,
+            18.485415
+          ],
+          [
+            73.857588,
+            18.485182
+          ],
+          [
+            73.857578,
+            18.484909
+          ],
+          [
+            73.85754,
+            18.484286
+          ],
+          [
+            73.857456,
+            18.483701
+          ],
+          [
+            73.857379,
+            18.4833
+          ],
+          [
+            73.857298,
+            18.482821
+          ],
+          [
+            73.857245,
+            18.482448
+          ],
+          [
+            73.857212,
+            18.482143
+          ],
+          [
+            73.857206,
+            18.481257
+          ],
+          [
+            73.857205,
+            18.481166
+          ],
+          [
+            73.85721,
+            18.480162
+          ],
+          [
+            73.857229,
+            18.479221
+          ],
+          [
+            73.857237,
+            18.478827
+          ],
+          [
+            73.857237,
+            18.478717
+          ],
+          [
+            73.857239,
+            18.478255
+          ],
+          [
+            73.85721,
+            18.477749
+          ],
+          [
+            73.857164,
+            18.477463
+          ],
+          [
+            73.857123,
+            18.477306
+          ],
+          [
+            73.857017,
+            18.477134
+          ],
+          [
+            73.856836,
+            18.476885
+          ],
+          [
+            73.8567,
+            18.476712
+          ],
+          [
+            73.856521,
+            18.47648
+          ],
+          [
+            73.85638,
+            18.476247
+          ],
+          [
+            73.856318,
+            18.476116
+          ],
+          [
+            73.856312,
+            18.475962
+          ],
+          [
+            73.856283,
+            18.475767
+          ],
+          [
+            73.856276,
+            18.475609
+          ],
+          [
+            73.856283,
+            18.475278
+          ],
+          [
+            73.856286,
+            18.475039
+          ],
+          [
+            73.856286,
+            18.474763
+          ],
+          [
+            73.856265,
+            18.474634
+          ],
+          [
+            73.856301,
+            18.474458
+          ],
+          [
+            73.856313,
+            18.474304
+          ],
+          [
+            73.856347,
+            18.473857
+          ],
+          [
+            73.856399,
+            18.47329
+          ],
+          [
+            73.856538,
+            18.472733
+          ],
+          [
+            73.856595,
+            18.472502
+          ],
+          [
+            73.856699,
+            18.472116
+          ],
+          [
+            73.856965,
+            18.471208
+          ],
+          [
+            73.857034,
+            18.470973
+          ],
+          [
+            73.857101,
+            18.470729
+          ],
+          [
+            73.857417,
+            18.469711
+          ],
+          [
+            73.857474,
+            18.469474
+          ],
+          [
+            73.857522,
+            18.469234
+          ],
+          [
+            73.85761,
+            18.468782
+          ],
+          [
+            73.857675,
+            18.468365
+          ],
+          [
+            73.857687,
+            18.468283
+          ],
+          [
+            73.857727,
+            18.467946
+          ],
+          [
+            73.857891,
+            18.466593
+          ],
+          [
+            73.857979,
+            18.465618
+          ],
+          [
+            73.858134,
+            18.464138
+          ],
+          [
+            73.858169,
+            18.46343
+          ],
+          [
+            73.858162,
+            18.46292
+          ],
+          [
+            73.858133,
+            18.462584
+          ],
+          [
+            73.858143,
+            18.462547
+          ],
+          [
+            73.858134,
+            18.462344
+          ],
+          [
+            73.858128,
+            18.462232
+          ],
+          [
+            73.858122,
+            18.46212
+          ],
+          [
+            73.858115,
+            18.461839
+          ],
+          [
+            73.858094,
+            18.461487
+          ],
+          [
+            73.858071,
+            18.460987
+          ],
+          [
+            73.858053,
+            18.46073
+          ],
+          [
+            73.858052,
+            18.460417
+          ],
+          [
+            73.858053,
+            18.460198
+          ],
+          [
+            73.858055,
+            18.459998
+          ],
+          [
+            73.858038,
+            18.459731
+          ],
+          [
+            73.85803,
+            18.459439
+          ],
+          [
+            73.858022,
+            18.459214
+          ],
+          [
+            73.858028,
+            18.458972
+          ],
+          [
+            73.858027,
+            18.458896
+          ],
+          [
+            73.858034,
+            18.45883
+          ],
+          [
+            73.858077,
+            18.458583
+          ],
+          [
+            73.858154,
+            18.458252
+          ],
+          [
+            73.858232,
+            18.457916
+          ],
+          [
+            73.858264,
+            18.457746
+          ],
+          [
+            73.858312,
+            18.457534
+          ],
+          [
+            73.858326,
+            18.457466
+          ],
+          [
+            73.8584,
+            18.457194
+          ],
+          [
+            73.858451,
+            18.456949
+          ],
+          [
+            73.858527,
+            18.456612
+          ],
+          [
+            73.858537,
+            18.456477
+          ],
+          [
+            73.858536,
+            18.45641
+          ],
+          [
+            73.858526,
+            18.456354
+          ],
+          [
+            73.858558,
+            18.456144
+          ],
+          [
+            73.858672,
+            18.455359
+          ],
+          [
+            73.858676,
+            18.455092
+          ],
+          [
+            73.858648,
+            18.454763
+          ],
+          [
+            73.858617,
+            18.454543
+          ],
+          [
+            73.858601,
+            18.45445
+          ],
+          [
+            73.858597,
+            18.454425
+          ],
+          [
+            73.858588,
+            18.454363
+          ],
+          [
+            73.858572,
+            18.454268
+          ],
+          [
+            73.858547,
+            18.454163
+          ],
+          [
+            73.858566,
+            18.454069
+          ],
+          [
+            73.858483,
+            18.45359
+          ],
+          [
+            73.858435,
+            18.453276
+          ],
+          [
+            73.858401,
+            18.453129
+          ],
+          [
+            73.858364,
+            18.453008
+          ],
+          [
+            73.858327,
+            18.452928
+          ],
+          [
+            73.858281,
+            18.452648
+          ],
+          [
+            73.858222,
+            18.452223
+          ],
+          [
+            73.858221,
+            18.452212
+          ],
+          [
+            73.858178,
+            18.451902
+          ],
+          [
+            73.858114,
+            18.451441
+          ],
+          [
+            73.858088,
+            18.451258
+          ],
+          [
+            73.85808,
+            18.451123
+          ],
+          [
+            73.858088,
+            18.450844
+          ],
+          [
+            73.858092,
+            18.450776
+          ],
+          [
+            73.858095,
+            18.450711
+          ],
+          [
+            73.858009,
+            18.450709
+          ],
+          [
+            73.857908,
+            18.450691
+          ],
+          [
+            73.857862,
+            18.450685
+          ],
+          [
+            73.856594,
+            18.450672
+          ],
+          [
+            73.856607,
+            18.451221
+          ],
+          [
+            73.856609,
+            18.45131
+          ],
+          [
+            73.856617,
+            18.4516
+          ],
+          [
+            73.856621,
+            18.451787
+          ],
+          [
+            73.856641,
+            18.452
+          ],
+          [
+            73.856654,
+            18.45214
+          ],
+          [
+            73.856667,
+            18.452279
+          ],
+          [
+            73.855723,
+            18.452409
+          ],
+          [
+            73.855144,
+            18.452476
+          ]
+        ]
+      },
+      "steps": [
+        {
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 29
+        },
+        {
+          "instruction": "Follow Ganeshkhind Road",
+          "street": "Ganeshkhind Road",
+          "distance_meters": 630
+        },
+        {
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 84
+        },
+        {
+          "instruction": "Follow Bankimchandra Chatopadhyay Path",
+          "street": "Bankimchandra Chatopadhyay Path",
+          "distance_meters": 48
+        },
+        {
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 219
+        },
+        {
+          "instruction": "Follow Dr. Rajendra Prasad Path",
+          "street": "Dr. Rajendra Prasad Path",
+          "distance_meters": 53
+        },
+        {
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 291
+        },
+        {
+          "instruction": "Follow Shivaji Road",
+          "street": "Shivaji Road",
+          "distance_meters": 149
+        },
+        {
+          "instruction": "Follow ['Shivaji Road', 'Shivaji Bridge']",
+          "street": "['Shivaji Road', 'Shivaji Bridge']",
+          "distance_meters": 364
+        },
+        {
+          "instruction": "Follow Shivaji Road",
+          "street": "Shivaji Road",
+          "distance_meters": 2457
+        },
+        {
+          "instruction": "Follow Satara Road",
+          "street": "Satara Road",
+          "distance_meters": 98
+        },
+        {
+          "instruction": "Follow Katraj - Swargate BRTS",
+          "street": "Katraj - Swargate BRTS",
+          "distance_meters": 5515
+        },
+        {
+          "instruction": "Follow unnamed to destination",
+          "street": "unnamed",
+          "distance_meters": 500
+        }
+      ],
       "attribution": {
         "contributions": {
-          "accident": 12.6,
-          "emergency": 14.8,
-          "lighting": 15.6,
-          "pedestrian": 7.2,
-          "traffic": 9.0
+          "accident": 27.7456,
+          "emergency": 14.9881,
+          "lighting": 4.0,
+          "pedestrian": 4.1283,
+          "traffic": 12.0
         },
         "subscore_means": {
-          "accident": 42.0,
-          "emergency": 74.0,
-          "lighting": 78.0,
-          "pedestrian": 48.0,
-          "traffic": 60.0
+          "accident": 92.49,
+          "emergency": 74.94,
+          "lighting": 20.0,
+          "pedestrian": 27.52,
+          "traffic": 80.0
         },
-        "raw_rss": 62.4,
-        "temporal_adjustment": -10.0,
-        "final_rss": 52.4,
-        "explanation": "RSS Attribution: Accident safety contributes 12.6 pts, Emergency access contributes 14.8 pts, Street lighting contributes 15.6 pts, Pedestrian paths contribute 7.2 pts, and Traffic flow contributes 9.0 pts."
+        "weights": {
+          "accident": 0.3,
+          "emergency": 0.2,
+          "lighting": 0.2,
+          "pedestrian": 0.15,
+          "traffic": 0.15
+        },
+        "raw_rss": 62.862,
+        "temporal_adjustment": -13.0,
+        "final_rss": 49.86,
+        "explanation": "RSS Attribution: Accident safety contributes 27.7 pts (sub-score: 92.5), Emergency access contributes 15.0 pts (sub-score: 74.9), Street lighting contributes 4.0 pts (sub-score: 20.0), Pedestrian paths contribute 4.1 pts (sub-score: 27.5), and Traffic flow contributes 12.0 pts (sub-score: 80.0) to the 62.9 base RSS. Temporal modifier of -13.0 pts results in a final 49.9 RSS."
       },
+      "counterfactual_detours": [],
       "uncertainty": {
         "overall_confidence": "estimated",
-        "overall_verified_percentage": 38.5,
+        "overall_verified_percentage": 0.0,
         "lighting": {
           "confidence": "estimated",
-          "verified_percentage": 42.0,
-          "verified_km": 4.7,
-          "estimated_km": 6.5,
-          "fallback_source": "PMC Environment Status Report Ward Lighting Density"
+          "verified_percentage": 0.0,
+          "verified_km": 0.0,
+          "estimated_km": 10.44,
+          "fallback_source": "PMC Environment Status Report (ESR) Ward Density"
         },
         "pedestrian": {
           "confidence": "estimated",
-          "verified_percentage": 35.0,
+          "verified_percentage": 0.0,
+          "verified_km": 0.0,
+          "estimated_km": 10.44,
           "fallback_source": "OSM Highway Hierarchy Classifier"
         },
         "accident": {
           "confidence": "verified",
           "source": "iRAD / Pune Traffic Police Blackspot Spatial Grid (WSI)"
         },
-        "explanation": "Confidence: Estimated (38.5% ground truth). 58.0% of lighting relies on PMC Ward density records."
+        "community_reported_meters": 0,
+        "explanation": "Data Provenance & Confidence: Estimated (0.0% ground-truth verified). Lighting is estimated (0.0% verified via OSM tags; 100.0% [10.4 km] inferred from PMC Ward density records for Dhankawadi - Sahakarnagar). Pedestrian infrastructure is estimated (0.0% verified; 100.0% inferred from highway classification)."
       },
       "safe_havens": {
         "bands": [
           {
             "band_name": "Band 1 (0% - 25% Corridor Start)",
-            "sample_coordinates": [18.5285, 73.8505],
-            "hospital": {"name": "Sancheti Hospital", "distance_meters": 240},
-            "police": {"name": "Shivajinagar Police Station", "distance_meters": 310},
-            "ecb": {"name": "Smart City ECB - Shimla Office", "distance_meters": 180}
+            "sample_coordinates": [
+              18.52421,
+              73.85394
+            ],
+            "hospital": {
+              "name": "Sancheti Hospital, Shivajinagar",
+              "distance_meters": 519
+            },
+            "police": {
+              "name": "Faraskhana Police Station (Budhwar Peth)",
+              "distance_meters": 142
+            },
+            "ecb": {
+              "name": "Smart City ECB - JM Road (Balgandharva Chowk)",
+              "distance_meters": 755
+            }
           },
           {
             "band_name": "Band 2 (25% - 50% Mid-Route North)",
-            "sample_coordinates": [18.5060, 73.8615],
-            "hospital": {"name": "Sasoon General Hospital", "distance_meters": 580},
-            "police": {"name": "Swargate Police Chowki", "distance_meters": 220},
-            "ecb": {"name": "Smart City ECB - Swargate Bus Stand", "distance_meters": 150}
+            "sample_coordinates": [
+              18.50186,
+              73.85866
+            ],
+            "hospital": {
+              "name": "Rao Nursing Home / Hospital, Swargate",
+              "distance_meters": 71
+            },
+            "police": {
+              "name": "Swargate Police Station",
+              "distance_meters": 9
+            },
+            "ecb": {
+              "name": "Smart City ECB - Swargate Jedhe Chowk Hub",
+              "distance_meters": 9
+            }
           },
           {
             "band_name": "Band 3 (50% - 75% Mid-Route South)",
-            "sample_coordinates": [18.4790, 73.8555],
-            "hospital": {"name": "Chintamani Hospital Bibvewadi", "distance_meters": 450},
-            "police": {"name": "Sahakarnagar Police Chowki", "distance_meters": 380},
-            "ecb": {"name": "Smart City ECB - Padmavati Chowk", "distance_meters": 290}
+            "sample_coordinates": [
+              18.47853,
+              73.85724
+            ],
+            "hospital": {
+              "name": "Chintamani Hospital, Bibwewadi",
+              "distance_meters": 1090
+            },
+            "police": {
+              "name": "Swargate Police Station",
+              "distance_meters": 2592
+            },
+            "ecb": {
+              "name": "Smart City ECB - Swargate Jedhe Chowk Hub",
+              "distance_meters": 2592
+            }
           },
           {
             "band_name": "Band 4 (75% - 100% Approach Terminus)",
-            "sample_coordinates": [18.4570, 73.8540],
-            "hospital": {"name": "Bharati Hospital Katraj", "distance_meters": 210},
-            "police": {"name": "Katraj Traffic Chowki", "distance_meters": 190},
-            "ecb": {"name": "Smart City ECB - Katraj Dairy", "distance_meters": 160}
+            "sample_coordinates": [
+              18.45555,
+              73.85864
+            ],
+            "hospital": {
+              "name": "Bharti Hospital & Research Centre, Katraj",
+              "distance_meters": 91
+            },
+            "police": {
+              "name": "Bharti Vidyapeeth / Katraj Police Chowki",
+              "distance_meters": 460
+            },
+            "ecb": {
+              "name": "Smart City ECB - Katraj Chowk Subway",
+              "distance_meters": 460
+            }
           }
         ],
-        "max_hospital_distance_meters": 580,
-        "max_police_distance_meters": 380,
-        "explanation": "Safe Haven Position-Band Coverage: Emergency facilities reachable within 580 m across all 4 journey bands."
-      },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [73.8446, 18.5314],
-          [73.8465, 18.5298],
-          [73.8505, 18.5285],
-          [73.8540, 18.5275],
-          [73.8580, 18.5270],
-          [73.8610, 18.5240],
-          [73.8640, 18.5190],
-          [73.8635, 18.5120],
-          [73.8615, 18.5060],
-          [73.8590, 18.5015],
-          [73.8580, 18.4975],
-          [73.8575, 18.4940],
-          [73.8568, 18.4890],
-          [73.8560, 18.4850],
-          [73.8555, 18.4790],
-          [73.8550, 18.4730],
-          [73.8548, 18.4680],
-          [73.8545, 18.4630],
-          [73.8540, 18.4570],
-          [73.8553, 18.4529]
-        ]
-      },
-      "steps": [
-        {
-          "instruction": "Head southeast from Shivajinagar Station toward Shimla Office Chowk",
-          "distance_meters": 450,
-          "street": "Old Mumbai-Pune Highway"
-        },
-        {
-          "instruction": "Turn slight left onto Dengle Bridge road toward Nana Peth",
-          "distance_meters": 1800,
-          "street": "Dengle Bridge Rd"
-        },
-        {
-          "instruction": "Continue straight through Swargate Chowk onto Pune-Satara Road",
-          "distance_meters": 3200,
-          "street": "Pune - Satara Rd"
-        },
-        {
-          "instruction": "Proceed south past Balaji Nagar & Bharati Vidyapeeth",
-          "distance_meters": 4200,
-          "street": "Pune - Satara Rd"
-        },
-        {
-          "instruction": "Arrive at Katraj Chowk terminus",
-          "distance_meters": 1550,
-          "street": "Katraj Chowk"
-        }
-      ]
+        "max_hospital_distance_meters": 1090,
+        "max_police_distance_meters": 2592,
+        "explanation": "Safe Haven Position-Band Coverage: Continuous emergency access verified across 4 journey bands. Nearest trauma facility never exceeds 1090 m (accessible: Sancheti Hospital, Shivajinagar at 519 m; Chintamani Hospital, Bibwewadi at 1090 m; Bharti Hospital & Research Centre, Katraj at 91 m). Police chowki proximity is maintained within 2592 m."
+      }
     },
     {
       "id": "route-safest",
-      "name": "Safest Route (Via Karve Rd & Sinhagad Bypass)",
+      "name": "Safest Route",
       "type": "safest",
-      "color": "#2dd4bf",
-      "distance_meters": 13400,
-      "duration_seconds": 1860,
-      "raw_rss": 91.5,
-      "rss": 81.5,
-      "risk_level": "Safe Corridor",
+      "color": "#10b981",
+      "distance_meters": 11789,
+      "duration_seconds": 1415,
+      "raw_rss": 67.1,
+      "rss": 54.1,
+      "risk_level": "Elevated Risk",
       "reasons": [
-        "Avoided a 4,500 m stretch of Pune - Satara Road — 34.0 cumulative WSI (11 recorded serious/fatal crashes), no continuous footpath, 78% unlit flyovers. Bypass adds 2,200 m (+4.4 min). Primary avoidance factor: severe accident crash history (WSI 34.0).",
-        "RSS Attribution: Accident safety contributes 27.6 pts (sub-score: 92.0), Emergency access contributes 18.8 pts (sub-score: 94.0), Street lighting contributes 19.0 pts (sub-score: 95.0), Pedestrian paths contribute 13.2 pts (sub-score: 88.0), and Traffic flow contributes 12.9 pts (sub-score: 86.0) to the 91.5 base RSS. Temporal modifier of -10.0 pts results in a final 81.5 RSS.",
-        "Temporal Causation: At 12:00 PM, Safest Route was strong at 96.5 RSS (+5.0 daytime modifier). By 21:30, it won decisively at 81.5 RSS because its 98% LED lighting and continuous sidewalks buffered against the -10.0 late-evening drop.",
-        "Data Provenance & Confidence: Estimated (31.4% ground-truth verified). Lighting is estimated (28.5% verified via OSM tags; 71.5% [9.6 km] inferred from PMC Ward density records for Kothrud-Bavdhan & Sinhagad Road). Pedestrian infrastructure is estimated (34.2% verified; 65.8% inferred from highway classification).",
-        "Safe Haven Position-Band Coverage: Continuous emergency access verified across 4 journey bands. Nearest trauma facility never exceeds 410 m (accessible: Sancheti Hospital at 240 m; Deenanath Mangeshkar Hospital at 320 m; Bharati Hospital Katraj at 410 m). Police chowki proximity is maintained within 280 m."
+        "Direct arterial corridor spanning 11.8 km with composite safety score of 54.1 RSS. Accident score: 96.6/100, Lighting score: 20.0/100.",
+        "RSS Attribution: Accident safety contributes 29.0 pts (sub-score: 96.6), Emergency access contributes 14.3 pts (sub-score: 71.4), Street lighting contributes 4.0 pts (sub-score: 20.0), Pedestrian paths contribute 7.8 pts (sub-score: 52.1), and Traffic flow contributes 12.0 pts (sub-score: 80.0) to the 67.1 base RSS. Temporal modifier of -13.0 pts results in a final 54.1 RSS.",
+        "Route ranking remained stable between 12:00 and 21:30 (led by Safest Route), but absolute safety dropped by 22.5 points (from 72.1 to 49.6 RSS). Causal mechanisms: the tau=1.2 night hazard multiplier on unlit arterial blackspots; the ward lighting dropoff after 11:30 PM on untagged secondary streets.",
+        "Data Provenance & Confidence: Estimated (0.0% ground-truth verified). Lighting is estimated (0.0% verified via OSM tags; 100.0% [11.8 km] inferred from PMC Ward density records for Dhankawadi - Sahakarnagar). Pedestrian infrastructure is estimated (0.0% verified; 100.0% inferred from highway classification).",
+        "Safe Haven Position-Band Coverage: Continuous emergency access verified across 4 journey bands. Nearest trauma facility never exceeds 1117 m (accessible: Sancheti Hospital, Shivajinagar at 1117 m; Chintamani Hospital, Bibwewadi at 921 m; Bharti Hospital & Research Centre, Katraj at 76 m). Police chowki proximity is maintained within 2289 m."
       ],
       "subscores": {
-        "accident": 92.0,
-        "emergency": 94.0,
-        "lighting": 95.0,
-        "pedestrian": 88.0,
-        "traffic": 86.0
+        "accident": 96.6,
+        "emergency": 71.4,
+        "lighting": 20.0,
+        "pedestrian": 52.1,
+        "traffic": 80.0
       },
-      "attribution": {
-        "contributions": {
-          "accident": 27.6,
-          "emergency": 18.8,
-          "lighting": 19.0,
-          "pedestrian": 13.2,
-          "traffic": 12.9
-        },
-        "subscore_means": {
-          "accident": 92.0,
-          "emergency": 94.0,
-          "lighting": 95.0,
-          "pedestrian": 88.0,
-          "traffic": 86.0
-        },
-        "raw_rss": 91.5,
-        "temporal_adjustment": -10.0,
-        "final_rss": 81.5,
-        "explanation": "RSS Attribution: Accident safety contributes 27.6 pts, Emergency access contributes 18.8 pts, Street lighting contributes 19.0 pts, Pedestrian paths contribute 13.2 pts, and Traffic flow contributes 12.9 pts."
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            73.844604,
+            18.531366
+          ],
+          [
+            73.844793,
+            18.531551
+          ],
+          [
+            73.844858,
+            18.531533
+          ],
+          [
+            73.844814,
+            18.531478
+          ],
+          [
+            73.844717,
+            18.531335
+          ],
+          [
+            73.844696,
+            18.531298
+          ],
+          [
+            73.844681,
+            18.531273
+          ],
+          [
+            73.844655,
+            18.531209
+          ],
+          [
+            73.844684,
+            18.531229
+          ],
+          [
+            73.844709,
+            18.531239
+          ],
+          [
+            73.844743,
+            18.531243
+          ],
+          [
+            73.844845,
+            18.531233
+          ],
+          [
+            73.84497,
+            18.531213
+          ],
+          [
+            73.845793,
+            18.530991
+          ],
+          [
+            73.84579,
+            18.529493
+          ],
+          [
+            73.84579,
+            18.529431
+          ],
+          [
+            73.845788,
+            18.528223
+          ],
+          [
+            73.845777,
+            18.528057
+          ],
+          [
+            73.845782,
+            18.527853
+          ],
+          [
+            73.845795,
+            18.527562
+          ],
+          [
+            73.845801,
+            18.527161
+          ],
+          [
+            73.844994,
+            18.527175
+          ],
+          [
+            73.844994,
+            18.526381
+          ],
+          [
+            73.844561,
+            18.52641
+          ],
+          [
+            73.844167,
+            18.526437
+          ],
+          [
+            73.843846,
+            18.526477
+          ],
+          [
+            73.843712,
+            18.525838
+          ],
+          [
+            73.843663,
+            18.5256
+          ],
+          [
+            73.843575,
+            18.525181
+          ],
+          [
+            73.843487,
+            18.524759
+          ],
+          [
+            73.843451,
+            18.524586
+          ],
+          [
+            73.843238,
+            18.524627
+          ],
+          [
+            73.843183,
+            18.524361
+          ],
+          [
+            73.842851,
+            18.524431
+          ],
+          [
+            73.842684,
+            18.523754
+          ],
+          [
+            73.843282,
+            18.523642
+          ],
+          [
+            73.843479,
+            18.523605
+          ],
+          [
+            73.84334,
+            18.522984
+          ],
+          [
+            73.843239,
+            18.522438
+          ],
+          [
+            73.843579,
+            18.522354
+          ],
+          [
+            73.844239,
+            18.522144
+          ],
+          [
+            73.844799,
+            18.521977
+          ],
+          [
+            73.844751,
+            18.521889
+          ],
+          [
+            73.844532,
+            18.521257
+          ],
+          [
+            73.844377,
+            18.520793
+          ],
+          [
+            73.845414,
+            18.520392
+          ],
+          [
+            73.845845,
+            18.520177
+          ],
+          [
+            73.845931,
+            18.520134
+          ],
+          [
+            73.845969,
+            18.520106
+          ],
+          [
+            73.84621,
+            18.519929
+          ],
+          [
+            73.846248,
+            18.519973
+          ],
+          [
+            73.846883,
+            18.519523
+          ],
+          [
+            73.847538,
+            18.519212
+          ],
+          [
+            73.848056,
+            18.519002
+          ],
+          [
+            73.848287,
+            18.518856
+          ],
+          [
+            73.848465,
+            18.519115
+          ],
+          [
+            73.848567,
+            18.519054
+          ],
+          [
+            73.848446,
+            18.518915
+          ],
+          [
+            73.848377,
+            18.518773
+          ],
+          [
+            73.848298,
+            18.51853
+          ],
+          [
+            73.848231,
+            18.518214
+          ],
+          [
+            73.848166,
+            18.517912
+          ],
+          [
+            73.848145,
+            18.517727
+          ],
+          [
+            73.849473,
+            18.517749
+          ],
+          [
+            73.8496,
+            18.517768
+          ],
+          [
+            73.849734,
+            18.517812
+          ],
+          [
+            73.849846,
+            18.517865
+          ],
+          [
+            73.849943,
+            18.517928
+          ],
+          [
+            73.850001,
+            18.517992
+          ],
+          [
+            73.849988,
+            18.518002
+          ],
+          [
+            73.849977,
+            18.518014
+          ],
+          [
+            73.849968,
+            18.518028
+          ],
+          [
+            73.849963,
+            18.518043
+          ],
+          [
+            73.84996,
+            18.518059
+          ],
+          [
+            73.849962,
+            18.518075
+          ],
+          [
+            73.849966,
+            18.518091
+          ],
+          [
+            73.849973,
+            18.518105
+          ],
+          [
+            73.849984,
+            18.518118
+          ],
+          [
+            73.849996,
+            18.518129
+          ],
+          [
+            73.850011,
+            18.518137
+          ],
+          [
+            73.850027,
+            18.518142
+          ],
+          [
+            73.850044,
+            18.518144
+          ],
+          [
+            73.850061,
+            18.518143
+          ],
+          [
+            73.850077,
+            18.518139
+          ],
+          [
+            73.850092,
+            18.518132
+          ],
+          [
+            73.850106,
+            18.518122
+          ],
+          [
+            73.850117,
+            18.51811
+          ],
+          [
+            73.850126,
+            18.518096
+          ],
+          [
+            73.850131,
+            18.518081
+          ],
+          [
+            73.850133,
+            18.518065
+          ],
+          [
+            73.850132,
+            18.518049
+          ],
+          [
+            73.850128,
+            18.518033
+          ],
+          [
+            73.85012,
+            18.518019
+          ],
+          [
+            73.85011,
+            18.518006
+          ],
+          [
+            73.850097,
+            18.517996
+          ],
+          [
+            73.850083,
+            18.517988
+          ],
+          [
+            73.850067,
+            18.517982
+          ],
+          [
+            73.850091,
+            18.517876
+          ],
+          [
+            73.850121,
+            18.517159
+          ],
+          [
+            73.850096,
+            18.517073
+          ],
+          [
+            73.850056,
+            18.517014
+          ],
+          [
+            73.850011,
+            18.516938
+          ],
+          [
+            73.849981,
+            18.516862
+          ],
+          [
+            73.849973,
+            18.516758
+          ],
+          [
+            73.849968,
+            18.516623
+          ],
+          [
+            73.849985,
+            18.516403
+          ],
+          [
+            73.85,
+            18.516209
+          ],
+          [
+            73.850013,
+            18.515962
+          ],
+          [
+            73.850052,
+            18.515373
+          ],
+          [
+            73.850067,
+            18.514955
+          ],
+          [
+            73.850115,
+            18.514185
+          ],
+          [
+            73.8502,
+            18.513455
+          ],
+          [
+            73.850278,
+            18.512812
+          ],
+          [
+            73.850324,
+            18.512536
+          ],
+          [
+            73.850359,
+            18.512473
+          ],
+          [
+            73.850465,
+            18.512378
+          ],
+          [
+            73.851481,
+            18.512503
+          ],
+          [
+            73.852151,
+            18.512597
+          ],
+          [
+            73.852168,
+            18.512424
+          ],
+          [
+            73.852175,
+            18.512258
+          ],
+          [
+            73.852183,
+            18.512053
+          ],
+          [
+            73.852149,
+            18.511864
+          ],
+          [
+            73.852128,
+            18.511785
+          ],
+          [
+            73.85212,
+            18.511724
+          ],
+          [
+            73.852187,
+            18.511216
+          ],
+          [
+            73.852207,
+            18.51112
+          ],
+          [
+            73.852282,
+            18.510569
+          ],
+          [
+            73.852314,
+            18.510339
+          ],
+          [
+            73.852374,
+            18.510009
+          ],
+          [
+            73.852421,
+            18.50983
+          ],
+          [
+            73.852507,
+            18.509507
+          ],
+          [
+            73.85264,
+            18.50904
+          ],
+          [
+            73.852681,
+            18.508488
+          ],
+          [
+            73.852709,
+            18.508349
+          ],
+          [
+            73.852797,
+            18.50811
+          ],
+          [
+            73.85287,
+            18.507991
+          ],
+          [
+            73.852982,
+            18.507881
+          ],
+          [
+            73.853113,
+            18.507838
+          ],
+          [
+            73.853095,
+            18.507703
+          ],
+          [
+            73.853058,
+            18.507596
+          ],
+          [
+            73.852604,
+            18.507046
+          ],
+          [
+            73.852939,
+            18.506899
+          ],
+          [
+            73.852675,
+            18.506597
+          ],
+          [
+            73.852419,
+            18.506306
+          ],
+          [
+            73.852377,
+            18.50613
+          ],
+          [
+            73.852374,
+            18.50577
+          ],
+          [
+            73.852369,
+            18.505552
+          ],
+          [
+            73.85236,
+            18.505122
+          ],
+          [
+            73.852369,
+            18.50432
+          ],
+          [
+            73.852366,
+            18.504228
+          ],
+          [
+            73.852349,
+            18.503861
+          ],
+          [
+            73.852335,
+            18.503542
+          ],
+          [
+            73.852317,
+            18.503237
+          ],
+          [
+            73.852242,
+            18.502524
+          ],
+          [
+            73.85225,
+            18.502448
+          ],
+          [
+            73.852298,
+            18.50241
+          ],
+          [
+            73.853045,
+            18.502319
+          ],
+          [
+            73.853041,
+            18.502269
+          ],
+          [
+            73.853038,
+            18.502219
+          ],
+          [
+            73.853032,
+            18.502152
+          ],
+          [
+            73.853028,
+            18.502078
+          ],
+          [
+            73.853058,
+            18.502075
+          ],
+          [
+            73.853071,
+            18.502073
+          ],
+          [
+            73.853655,
+            18.501998
+          ],
+          [
+            73.853673,
+            18.501984
+          ],
+          [
+            73.853688,
+            18.501957
+          ],
+          [
+            73.853731,
+            18.501313
+          ],
+          [
+            73.853735,
+            18.501249
+          ],
+          [
+            73.853757,
+            18.500928
+          ],
+          [
+            73.85376,
+            18.500874
+          ],
+          [
+            73.853757,
+            18.500812
+          ],
+          [
+            73.853754,
+            18.500751
+          ],
+          [
+            73.853702,
+            18.500677
+          ],
+          [
+            73.853705,
+            18.500618
+          ],
+          [
+            73.853712,
+            18.500542
+          ],
+          [
+            73.853737,
+            18.500543
+          ],
+          [
+            73.853808,
+            18.500544
+          ],
+          [
+            73.853803,
+            18.500063
+          ],
+          [
+            73.853781,
+            18.499946
+          ],
+          [
+            73.853749,
+            18.499863
+          ],
+          [
+            73.85375,
+            18.499819
+          ],
+          [
+            73.853826,
+            18.49982
+          ],
+          [
+            73.853929,
+            18.499822
+          ],
+          [
+            73.854013,
+            18.499824
+          ],
+          [
+            73.854003,
+            18.499746
+          ],
+          [
+            73.85401,
+            18.499596
+          ],
+          [
+            73.854031,
+            18.499391
+          ],
+          [
+            73.854044,
+            18.499265
+          ],
+          [
+            73.854069,
+            18.498954
+          ],
+          [
+            73.854078,
+            18.498835
+          ],
+          [
+            73.854109,
+            18.498759
+          ],
+          [
+            73.854145,
+            18.498243
+          ],
+          [
+            73.854197,
+            18.497618
+          ],
+          [
+            73.854261,
+            18.49745
+          ],
+          [
+            73.854268,
+            18.497432
+          ],
+          [
+            73.854313,
+            18.49736
+          ],
+          [
+            73.854392,
+            18.497269
+          ],
+          [
+            73.854482,
+            18.497204
+          ],
+          [
+            73.854606,
+            18.497175
+          ],
+          [
+            73.854722,
+            18.497155
+          ],
+          [
+            73.854829,
+            18.497142
+          ],
+          [
+            73.855356,
+            18.497062
+          ],
+          [
+            73.855446,
+            18.497049
+          ],
+          [
+            73.855622,
+            18.497025
+          ],
+          [
+            73.855613,
+            18.496968
+          ],
+          [
+            73.8556,
+            18.496879
+          ],
+          [
+            73.855591,
+            18.496819
+          ],
+          [
+            73.85566,
+            18.49681
+          ],
+          [
+            73.856415,
+            18.496732
+          ],
+          [
+            73.857399,
+            18.496607
+          ],
+          [
+            73.857607,
+            18.496589
+          ],
+          [
+            73.857703,
+            18.496573
+          ],
+          [
+            73.857735,
+            18.496553
+          ],
+          [
+            73.857758,
+            18.496534
+          ],
+          [
+            73.857831,
+            18.496532
+          ],
+          [
+            73.857981,
+            18.496527
+          ],
+          [
+            73.857986,
+            18.496364
+          ],
+          [
+            73.857992,
+            18.496159
+          ],
+          [
+            73.857929,
+            18.494589
+          ],
+          [
+            73.857904,
+            18.49399
+          ],
+          [
+            73.857785,
+            18.493276
+          ],
+          [
+            73.85771,
+            18.49242
+          ],
+          [
+            73.857678,
+            18.491207
+          ],
+          [
+            73.857653,
+            18.490914
+          ],
+          [
+            73.857476,
+            18.489364
+          ],
+          [
+            73.857458,
+            18.489273
+          ],
+          [
+            73.857424,
+            18.488874
+          ],
+          [
+            73.857442,
+            18.488159
+          ],
+          [
+            73.857496,
+            18.487032
+          ],
+          [
+            73.857505,
+            18.486923
+          ],
+          [
+            73.85757,
+            18.485896
+          ],
+          [
+            73.857586,
+            18.485415
+          ],
+          [
+            73.857588,
+            18.485182
+          ],
+          [
+            73.857578,
+            18.484909
+          ],
+          [
+            73.85754,
+            18.484286
+          ],
+          [
+            73.857456,
+            18.483701
+          ],
+          [
+            73.857379,
+            18.4833
+          ],
+          [
+            73.857298,
+            18.482821
+          ],
+          [
+            73.857245,
+            18.482448
+          ],
+          [
+            73.857212,
+            18.482143
+          ],
+          [
+            73.857206,
+            18.481257
+          ],
+          [
+            73.857205,
+            18.481166
+          ],
+          [
+            73.85721,
+            18.480162
+          ],
+          [
+            73.857229,
+            18.479221
+          ],
+          [
+            73.857237,
+            18.478827
+          ],
+          [
+            73.857237,
+            18.478717
+          ],
+          [
+            73.857239,
+            18.478255
+          ],
+          [
+            73.85721,
+            18.477749
+          ],
+          [
+            73.857164,
+            18.477463
+          ],
+          [
+            73.857123,
+            18.477306
+          ],
+          [
+            73.857017,
+            18.477134
+          ],
+          [
+            73.856836,
+            18.476885
+          ],
+          [
+            73.8567,
+            18.476712
+          ],
+          [
+            73.856521,
+            18.47648
+          ],
+          [
+            73.85638,
+            18.476247
+          ],
+          [
+            73.856318,
+            18.476116
+          ],
+          [
+            73.856312,
+            18.475962
+          ],
+          [
+            73.856283,
+            18.475767
+          ],
+          [
+            73.856276,
+            18.475609
+          ],
+          [
+            73.856283,
+            18.475278
+          ],
+          [
+            73.856286,
+            18.475039
+          ],
+          [
+            73.856286,
+            18.474763
+          ],
+          [
+            73.856265,
+            18.474634
+          ],
+          [
+            73.856301,
+            18.474458
+          ],
+          [
+            73.856313,
+            18.474304
+          ],
+          [
+            73.856347,
+            18.473857
+          ],
+          [
+            73.856399,
+            18.47329
+          ],
+          [
+            73.856538,
+            18.472733
+          ],
+          [
+            73.856595,
+            18.472502
+          ],
+          [
+            73.856699,
+            18.472116
+          ],
+          [
+            73.856965,
+            18.471208
+          ],
+          [
+            73.857034,
+            18.470973
+          ],
+          [
+            73.857101,
+            18.470729
+          ],
+          [
+            73.857417,
+            18.469711
+          ],
+          [
+            73.857474,
+            18.469474
+          ],
+          [
+            73.857522,
+            18.469234
+          ],
+          [
+            73.85761,
+            18.468782
+          ],
+          [
+            73.857675,
+            18.468365
+          ],
+          [
+            73.857687,
+            18.468283
+          ],
+          [
+            73.857727,
+            18.467946
+          ],
+          [
+            73.857891,
+            18.466593
+          ],
+          [
+            73.857979,
+            18.465618
+          ],
+          [
+            73.858134,
+            18.464138
+          ],
+          [
+            73.858169,
+            18.46343
+          ],
+          [
+            73.858162,
+            18.46292
+          ],
+          [
+            73.858133,
+            18.462584
+          ],
+          [
+            73.858143,
+            18.462547
+          ],
+          [
+            73.858134,
+            18.462344
+          ],
+          [
+            73.858128,
+            18.462232
+          ],
+          [
+            73.858122,
+            18.46212
+          ],
+          [
+            73.858115,
+            18.461839
+          ],
+          [
+            73.858094,
+            18.461487
+          ],
+          [
+            73.858071,
+            18.460987
+          ],
+          [
+            73.858053,
+            18.46073
+          ],
+          [
+            73.858052,
+            18.460417
+          ],
+          [
+            73.858053,
+            18.460198
+          ],
+          [
+            73.858055,
+            18.459998
+          ],
+          [
+            73.858038,
+            18.459731
+          ],
+          [
+            73.85803,
+            18.459439
+          ],
+          [
+            73.858022,
+            18.459214
+          ],
+          [
+            73.858028,
+            18.458972
+          ],
+          [
+            73.858027,
+            18.458896
+          ],
+          [
+            73.858034,
+            18.45883
+          ],
+          [
+            73.858077,
+            18.458583
+          ],
+          [
+            73.858154,
+            18.458252
+          ],
+          [
+            73.858232,
+            18.457916
+          ],
+          [
+            73.858264,
+            18.457746
+          ],
+          [
+            73.858312,
+            18.457534
+          ],
+          [
+            73.858326,
+            18.457466
+          ],
+          [
+            73.8584,
+            18.457194
+          ],
+          [
+            73.858451,
+            18.456949
+          ],
+          [
+            73.858527,
+            18.456612
+          ],
+          [
+            73.858537,
+            18.456477
+          ],
+          [
+            73.858536,
+            18.45641
+          ],
+          [
+            73.858526,
+            18.456354
+          ],
+          [
+            73.858558,
+            18.456144
+          ],
+          [
+            73.858672,
+            18.455359
+          ],
+          [
+            73.858676,
+            18.455092
+          ],
+          [
+            73.858648,
+            18.454763
+          ],
+          [
+            73.858617,
+            18.454543
+          ],
+          [
+            73.858601,
+            18.45445
+          ],
+          [
+            73.858597,
+            18.454425
+          ],
+          [
+            73.8587,
+            18.454404
+          ],
+          [
+            73.858777,
+            18.454387
+          ],
+          [
+            73.858762,
+            18.454287
+          ],
+          [
+            73.858743,
+            18.454125
+          ],
+          [
+            73.858732,
+            18.454023
+          ],
+          [
+            73.858679,
+            18.453749
+          ],
+          [
+            73.858592,
+            18.453269
+          ],
+          [
+            73.858476,
+            18.45267
+          ],
+          [
+            73.858412,
+            18.452187
+          ],
+          [
+            73.858367,
+            18.45185
+          ],
+          [
+            73.858306,
+            18.451315
+          ],
+          [
+            73.858316,
+            18.450846
+          ],
+          [
+            73.85832,
+            18.450782
+          ],
+          [
+            73.858191,
+            18.450781
+          ],
+          [
+            73.858092,
+            18.450776
+          ],
+          [
+            73.858005,
+            18.450773
+          ],
+          [
+            73.8579,
+            18.45077
+          ],
+          [
+            73.857908,
+            18.450691
+          ],
+          [
+            73.857862,
+            18.450685
+          ],
+          [
+            73.856594,
+            18.450672
+          ],
+          [
+            73.856607,
+            18.451221
+          ],
+          [
+            73.856609,
+            18.45131
+          ],
+          [
+            73.856617,
+            18.4516
+          ],
+          [
+            73.856674,
+            18.451599
+          ],
+          [
+            73.857258,
+            18.451573
+          ],
+          [
+            73.85727,
+            18.451918
+          ],
+          [
+            73.85727,
+            18.452098
+          ],
+          [
+            73.856727,
+            18.452135
+          ],
+          [
+            73.856654,
+            18.45214
+          ],
+          [
+            73.856667,
+            18.452279
+          ],
+          [
+            73.855723,
+            18.452409
+          ],
+          [
+            73.855144,
+            18.452476
+          ]
+        ]
       },
-      "counterfactual_detours": [
+      "steps": [
         {
-          "block_index": 1,
-          "avoided_length_meters": 4500,
-          "street_name": "Pune - Satara Road",
-          "wsi_sum": 34.0,
-          "estimated_fatalities": 11,
-          "unlit_percentage": 78.0,
-          "no_sidewalk_percentage": 82.0,
-          "dominant_hazard": "severe accident crash history (WSI 34.0)",
-          "extra_distance_meters": 2200,
-          "extra_time_minutes": 4.4,
-          "explanation": "Avoided a 4,500 m stretch of Pune - Satara Road — 34.0 cumulative WSI (11 recorded serious/fatal crashes), no continuous footpath, 78% unlit flyovers. Bypass adds 2,200 m (+4.4 min). Primary avoidance factor: severe accident crash history (WSI 34.0)."
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 29
+        },
+        {
+          "instruction": "Follow Ganeshkhind Road",
+          "street": "Ganeshkhind Road",
+          "distance_meters": 7
+        },
+        {
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 766
+        },
+        {
+          "instruction": "Follow Chaturshringi Road",
+          "street": "Chaturshringi Road",
+          "distance_meters": 122
+        },
+        {
+          "instruction": "Follow Dattatray Dhondiba Thopte Path",
+          "street": "Dattatray Dhondiba Thopte Path",
+          "distance_meters": 214
+        },
+        {
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 53
+        },
+        {
+          "instruction": "Follow Ghole Road",
+          "street": "Ghole Road",
+          "distance_meters": 36
+        },
+        {
+          "instruction": "Follow G. H. Patil Path",
+          "street": "G. H. Patil Path",
+          "distance_meters": 77
+        },
+        {
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 218
+        },
+        {
+          "instruction": "Follow Madhavrao Shirole Path",
+          "street": "Madhavrao Shirole Path",
+          "distance_meters": 172
+        },
+        {
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 139
+        },
+        {
+          "instruction": "Follow Rambhau Palshikar Path",
+          "street": "Rambhau Palshikar Path",
+          "distance_meters": 180
+        },
+        {
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 340
+        },
+        {
+          "instruction": "Follow Karandikar Road",
+          "street": "Karandikar Road",
+          "distance_meters": 157
+        },
+        {
+          "instruction": "Follow Namdeo Raut Path",
+          "street": "Namdeo Raut Path",
+          "distance_meters": 204
+        },
+        {
+          "instruction": "Follow Shinde Paar Chowk",
+          "street": "Shinde Paar Chowk",
+          "distance_meters": 50
+        },
+        {
+          "instruction": "Follow Appasaheb Bhagwat Path",
+          "street": "Appasaheb Bhagwat Path",
+          "distance_meters": 426
+        },
+        {
+          "instruction": "Follow Vasudev Balvant Phadke Path",
+          "street": "Vasudev Balvant Phadke Path",
+          "distance_meters": 208
+        },
+        {
+          "instruction": "Follow Vedacharya Phatak Guruji Marg",
+          "street": "Vedacharya Phatak Guruji Marg",
+          "distance_meters": 179
+        },
+        {
+          "instruction": "Follow Kakasaheb Chachar Path",
+          "street": "Kakasaheb Chachar Path",
+          "distance_meters": 82
+        },
+        {
+          "instruction": "Follow Ravjimama Kondhakar Path",
+          "street": "Ravjimama Kondhakar Path",
+          "distance_meters": 381
+        },
+        {
+          "instruction": "Follow Bhikardas Maruti Path",
+          "street": "Bhikardas Maruti Path",
+          "distance_meters": 91
+        },
+        {
+          "instruction": "Follow 31",
+          "street": "31",
+          "distance_meters": 105
+        },
+        {
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 39
+        },
+        {
+          "instruction": "Follow N. S. Navare Path",
+          "street": "N. S. Navare Path",
+          "distance_meters": 86
+        },
+        {
+          "instruction": "Follow Parvati Road",
+          "street": "Parvati Road",
+          "distance_meters": 232
+        },
+        {
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 1366
+        },
+        {
+          "instruction": "Follow Katraj - Swargate BRTS",
+          "street": "Katraj - Swargate BRTS",
+          "distance_meters": 4742
+        },
+        {
+          "instruction": "Follow unnamed to destination",
+          "street": "unnamed",
+          "distance_meters": 1088
         }
       ],
+      "attribution": {
+        "contributions": {
+          "accident": 28.9812,
+          "emergency": 14.2802,
+          "lighting": 4.0,
+          "pedestrian": 7.8201,
+          "traffic": 12.0
+        },
+        "subscore_means": {
+          "accident": 96.6,
+          "emergency": 71.4,
+          "lighting": 20.0,
+          "pedestrian": 52.13,
+          "traffic": 80.0
+        },
+        "weights": {
+          "accident": 0.3,
+          "emergency": 0.2,
+          "lighting": 0.2,
+          "pedestrian": 0.15,
+          "traffic": 0.15
+        },
+        "raw_rss": 67.0815,
+        "temporal_adjustment": -13.0,
+        "final_rss": 54.08,
+        "explanation": "RSS Attribution: Accident safety contributes 29.0 pts (sub-score: 96.6), Emergency access contributes 14.3 pts (sub-score: 71.4), Street lighting contributes 4.0 pts (sub-score: 20.0), Pedestrian paths contribute 7.8 pts (sub-score: 52.1), and Traffic flow contributes 12.0 pts (sub-score: 80.0) to the 67.1 base RSS. Temporal modifier of -13.0 pts results in a final 54.1 RSS."
+      },
+      "counterfactual_detours": [],
       "uncertainty": {
         "overall_confidence": "estimated",
-        "overall_verified_percentage": 31.4,
+        "overall_verified_percentage": 0.0,
         "lighting": {
           "confidence": "estimated",
-          "verified_percentage": 28.5,
-          "verified_km": 3.8,
-          "estimated_km": 9.6,
-          "fallback_source": "PMC Environment Status Report Ward Lighting Density"
+          "verified_percentage": 0.0,
+          "verified_km": 0.0,
+          "estimated_km": 11.79,
+          "fallback_source": "PMC Environment Status Report (ESR) Ward Density"
         },
         "pedestrian": {
           "confidence": "estimated",
-          "verified_percentage": 34.2,
+          "verified_percentage": 0.0,
+          "verified_km": 0.0,
+          "estimated_km": 11.79,
           "fallback_source": "OSM Highway Hierarchy Classifier"
         },
         "accident": {
           "confidence": "verified",
           "source": "iRAD / Pune Traffic Police Blackspot Spatial Grid (WSI)"
         },
-        "explanation": "Confidence: Estimated (31.4% ground truth). 71.5% of lighting relies on PMC Ward density records."
+        "community_reported_meters": 0,
+        "explanation": "Data Provenance & Confidence: Estimated (0.0% ground-truth verified). Lighting is estimated (0.0% verified via OSM tags; 100.0% [11.8 km] inferred from PMC Ward density records for Dhankawadi - Sahakarnagar). Pedestrian infrastructure is estimated (0.0% verified; 100.0% inferred from highway classification)."
       },
       "safe_havens": {
         "bands": [
           {
             "band_name": "Band 1 (0% - 25% Corridor Start)",
-            "sample_coordinates": [18.5240, 73.8430],
-            "hospital": {"name": "Sancheti Hospital", "distance_meters": 240},
-            "police": {"name": "Deccan Police Station", "distance_meters": 210},
-            "ecb": {"name": "Smart City ECB - Balgandharva", "distance_meters": 140}
+            "sample_coordinates": [
+              18.52135,
+              73.84456
+            ],
+            "hospital": {
+              "name": "Sancheti Hospital, Shivajinagar",
+              "distance_meters": 1117
+            },
+            "police": {
+              "name": "Deccan Gymkhana Police Station",
+              "distance_meters": 765
+            },
+            "ecb": {
+              "name": "Smart City ECB - FC Road (Goodluck Chowk)",
+              "distance_meters": 409
+            }
           },
           {
             "band_name": "Band 2 (25% - 50% Mid-Route North)",
-            "sample_coordinates": [18.5080, 73.8290],
-            "hospital": {"name": "Deenanath Mangeshkar Hospital", "distance_meters": 320},
-            "police": {"name": "Kothrud Police Station", "distance_meters": 280},
-            "ecb": {"name": "Smart City ECB - Nal Stop Chowk", "distance_meters": 110}
+            "sample_coordinates": [
+              18.50312,
+              73.85231
+            ],
+            "hospital": {
+              "name": "Rao Nursing Home / Hospital, Swargate",
+              "distance_meters": 613
+            },
+            "police": {
+              "name": "Swargate Police Station",
+              "distance_meters": 680
+            },
+            "ecb": {
+              "name": "Smart City ECB - Swargate Jedhe Chowk Hub",
+              "distance_meters": 680
+            }
           },
           {
             "band_name": "Band 3 (50% - 75% Mid-Route South)",
-            "sample_coordinates": [18.4810, 73.8345],
-            "hospital": {"name": "Navale General Hospital", "distance_meters": 390},
-            "police": {"name": "Sinhagad Road Police Chowki", "distance_meters": 250},
-            "ecb": {"name": "Smart City ECB - Pu La Deshpande", "distance_meters": 170}
+            "sample_coordinates": [
+              18.48125,
+              73.85721
+            ],
+            "hospital": {
+              "name": "Chintamani Hospital, Bibwewadi",
+              "distance_meters": 921
+            },
+            "police": {
+              "name": "Swargate Police Station",
+              "distance_meters": 2289
+            },
+            "ecb": {
+              "name": "Smart City ECB - Swargate Jedhe Chowk Hub",
+              "distance_meters": 2289
+            }
           },
           {
             "band_name": "Band 4 (75% - 100% Approach Terminus)",
-            "sample_coordinates": [18.4560, 73.8480],
-            "hospital": {"name": "Bharati Hospital Katraj", "distance_meters": 410},
-            "police": {"name": "Katraj Traffic Chowki", "distance_meters": 240},
-            "ecb": {"name": "Smart City ECB - Katraj Bypass", "distance_meters": 180}
+            "sample_coordinates": [
+              18.45524,
+              73.85867
+            ],
+            "hospital": {
+              "name": "Bharti Hospital & Research Centre, Katraj",
+              "distance_meters": 76
+            },
+            "police": {
+              "name": "Bharti Vidyapeeth / Katraj Police Chowki",
+              "distance_meters": 441
+            },
+            "ecb": {
+              "name": "Smart City ECB - Katraj Chowk Subway",
+              "distance_meters": 441
+            }
           }
         ],
-        "max_hospital_distance_meters": 410,
-        "max_police_distance_meters": 280,
-        "explanation": "Safe Haven Position-Band Coverage: Emergency facilities reachable within 410 m across all 4 journey bands."
-      },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [73.8446, 18.5314],
-          [73.8420, 18.5280],
-          [73.8430, 18.5240],
-          [73.8440, 18.5210],
-          [73.8425, 18.5185],
-          [73.8405, 18.5170],
-          [73.8370, 18.5145],
-          [73.8340, 18.5120],
-          [73.8310, 18.5095],
-          [73.8290, 18.5080],
-          [73.8320, 18.5020],
-          [73.8310, 18.4950],
-          [73.8330, 18.4870],
-          [73.8345, 18.4810],
-          [73.8360, 18.4730],
-          [73.8385, 18.4650],
-          [73.8440, 18.4580],
-          [73.8480, 18.4560],
-          [73.8510, 18.4545],
-          [73.8553, 18.4529]
-        ]
-      },
-      "steps": [
-        {
-          "instruction": "Head southwest on JM Road toward Balgandharva Chowk",
-          "distance_meters": 1200,
-          "street": "Jangali Maharaj Rd"
-        },
-        {
-          "instruction": "Turn right toward Deccan Gymkhana onto Karve Road",
-          "distance_meters": 1900,
-          "street": "Karve Rd"
-        },
-        {
-          "instruction": "Turn left at Nal Stop onto Erandwane DP Road toward Rajaram Bridge",
-          "distance_meters": 2400,
-          "street": "DP Road"
-        },
-        {
-          "instruction": "Merge onto illuminated Sinhagad Road along Pu La Deshpande Garden",
-          "distance_meters": 3800,
-          "street": "Sinhagad Rd"
-        },
-        {
-          "instruction": "Take Ambegaon bypass connector with dedicated bike/pedestrian lanes",
-          "distance_meters": 2600,
-          "street": "Ambegaon Link Rd"
-        },
-        {
-          "instruction": "Reach Katraj Chowk safely",
-          "distance_meters": 1500,
-          "street": "Katraj Chowk"
-        }
-      ]
+        "max_hospital_distance_meters": 1117,
+        "max_police_distance_meters": 2289,
+        "explanation": "Safe Haven Position-Band Coverage: Continuous emergency access verified across 4 journey bands. Nearest trauma facility never exceeds 1117 m (accessible: Sancheti Hospital, Shivajinagar at 1117 m; Chintamani Hospital, Bibwewadi at 921 m; Bharti Hospital & Research Centre, Katraj at 76 m). Police chowki proximity is maintained within 2289 m."
+      }
     },
     {
       "id": "route-balanced",
-      "name": "Balanced Route (Via Sarasbaug & Bibvewadi)",
+      "name": "Balanced Route",
       "type": "balanced",
       "color": "#f59e0b",
-      "distance_meters": 11900,
-      "duration_seconds": 1560,
-      "raw_rss": 83.8,
-      "rss": 73.8,
-      "risk_level": "Moderate Safety",
+      "distance_meters": 11235,
+      "duration_seconds": 1348,
+      "raw_rss": 66.2,
+      "rss": 53.2,
+      "risk_level": "Elevated Risk",
       "reasons": [
-        "Avoided a 2,100 m bottleneck at Swargate main junction — 19.0 cumulative WSI, dense mixed traffic. Adds 700 m (+2.0 min) via Bajirao Road arterial corridor.",
-        "RSS Attribution: Accident safety contributes 24.3 pts (sub-score: 81.0), Emergency access contributes 17.0 pts (sub-score: 85.0), Street lighting contributes 17.6 pts (sub-score: 88.0), Pedestrian paths contribute 12.3 pts (sub-score: 82.0), and Traffic flow contributes 12.6 pts (sub-score: 84.0) to the 83.8 base RSS. Temporal modifier of -10.0 pts results in a final 73.8 RSS.",
-        "Temporal Causation: At 12:00 PM, Balanced Route achieved 88.8 RSS (+5.0 daytime modifier). By 21:30, it sustained a solid 73.8 RSS, capturing 88% of Safest Route safety with only +2 min travel time over Fastest.",
-        "Data Provenance & Confidence: Estimated (34.0% ground-truth verified). Lighting is estimated (32.0% verified via OSM tags; 68.0% [8.1 km] inferred from PMC Ward density records for Kasba-Vishrambaugwada & Bibwewadi). Pedestrian infrastructure is estimated (36.0% verified; 64.0% inferred from highway classification).",
-        "Safe Haven Position-Band Coverage: Continuous emergency access verified across 4 journey bands. Nearest trauma facility never exceeds 490 m (accessible: Poona Hospital at 290 m; Chintamani Hospital at 440 m; Bharati Hospital Katraj at 490 m). Police chowki proximity is maintained within 310 m."
+        "Direct arterial corridor spanning 11.2 km with composite safety score of 53.2 RSS. Accident score: 96.8/100, Lighting score: 20.0/100.",
+        "RSS Attribution: Accident safety contributes 29.0 pts (sub-score: 96.7), Emergency access contributes 13.9 pts (sub-score: 69.6), Street lighting contributes 4.0 pts (sub-score: 20.0), Pedestrian paths contribute 7.2 pts (sub-score: 48.2), and Traffic flow contributes 12.0 pts (sub-score: 80.0) to the 66.2 base RSS. Temporal modifier of -13.0 pts results in a final 53.2 RSS.",
+        "Route ranking remained stable between 12:00 and 21:30 (led by Safest Route), but absolute safety dropped by 22.5 points (from 72.1 to 49.6 RSS). Causal mechanisms: the tau=1.2 night hazard multiplier on unlit arterial blackspots; the ward lighting dropoff after 11:30 PM on untagged secondary streets.",
+        "Data Provenance & Confidence: Estimated (0.0% ground-truth verified). Lighting is estimated (0.0% verified via OSM tags; 100.0% [11.2 km] inferred from PMC Ward density records for Dhankawadi - Sahakarnagar). Pedestrian infrastructure is estimated (0.0% verified; 100.0% inferred from highway classification).",
+        "Safe Haven Position-Band Coverage: Continuous emergency access verified across 4 journey bands. Nearest trauma facility never exceeds 933 m (accessible: Sancheti Hospital, Shivajinagar at 753 m; Chintamani Hospital, Bibwewadi at 933 m; Bharti Hospital & Research Centre, Katraj at 150 m). Police chowki proximity is maintained within 2315 m."
       ],
       "subscores": {
-        "accident": 81.0,
-        "emergency": 85.0,
-        "lighting": 88.0,
-        "pedestrian": 82.0,
-        "traffic": 84.0
+        "accident": 96.7,
+        "emergency": 69.6,
+        "lighting": 20.0,
+        "pedestrian": 48.2,
+        "traffic": 80.0
       },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            73.844604,
+            18.531366
+          ],
+          [
+            73.8445,
+            18.531397
+          ],
+          [
+            73.844477,
+            18.531366
+          ],
+          [
+            73.844425,
+            18.531296
+          ],
+          [
+            73.844449,
+            18.531287
+          ],
+          [
+            73.844472,
+            18.531278
+          ],
+          [
+            73.844564,
+            18.531244
+          ],
+          [
+            73.84462,
+            18.531222
+          ],
+          [
+            73.844655,
+            18.531209
+          ],
+          [
+            73.844684,
+            18.531229
+          ],
+          [
+            73.844709,
+            18.531239
+          ],
+          [
+            73.844743,
+            18.531243
+          ],
+          [
+            73.844845,
+            18.531233
+          ],
+          [
+            73.84497,
+            18.531213
+          ],
+          [
+            73.845793,
+            18.530991
+          ],
+          [
+            73.84579,
+            18.529493
+          ],
+          [
+            73.84579,
+            18.529431
+          ],
+          [
+            73.845788,
+            18.528223
+          ],
+          [
+            73.845777,
+            18.528057
+          ],
+          [
+            73.845782,
+            18.527853
+          ],
+          [
+            73.845795,
+            18.527562
+          ],
+          [
+            73.845801,
+            18.527161
+          ],
+          [
+            73.844994,
+            18.527175
+          ],
+          [
+            73.844994,
+            18.526381
+          ],
+          [
+            73.845265,
+            18.526362
+          ],
+          [
+            73.845584,
+            18.526341
+          ],
+          [
+            73.845858,
+            18.526322
+          ],
+          [
+            73.846272,
+            18.526265
+          ],
+          [
+            73.846417,
+            18.526245
+          ],
+          [
+            73.846524,
+            18.52623
+          ],
+          [
+            73.846643,
+            18.526214
+          ],
+          [
+            73.846769,
+            18.526173
+          ],
+          [
+            73.84704,
+            18.526086
+          ],
+          [
+            73.847226,
+            18.526026
+          ],
+          [
+            73.847271,
+            18.526002
+          ],
+          [
+            73.847767,
+            18.525732
+          ],
+          [
+            73.847593,
+            18.52539
+          ],
+          [
+            73.847473,
+            18.525154
+          ],
+          [
+            73.847185,
+            18.524588
+          ],
+          [
+            73.84807,
+            18.524223
+          ],
+          [
+            73.848672,
+            18.523943
+          ],
+          [
+            73.848856,
+            18.523858
+          ],
+          [
+            73.848512,
+            18.523337
+          ],
+          [
+            73.848593,
+            18.523311
+          ],
+          [
+            73.848382,
+            18.522957
+          ],
+          [
+            73.848357,
+            18.522886
+          ],
+          [
+            73.84836,
+            18.522856
+          ],
+          [
+            73.848361,
+            18.522841
+          ],
+          [
+            73.848378,
+            18.522806
+          ],
+          [
+            73.848419,
+            18.522772
+          ],
+          [
+            73.848916,
+            18.522593
+          ],
+          [
+            73.849217,
+            18.522499
+          ],
+          [
+            73.849202,
+            18.52245
+          ],
+          [
+            73.849169,
+            18.522346
+          ],
+          [
+            73.84915,
+            18.522287
+          ],
+          [
+            73.849226,
+            18.522263
+          ],
+          [
+            73.849323,
+            18.522233
+          ],
+          [
+            73.84932,
+            18.522205
+          ],
+          [
+            73.849313,
+            18.522124
+          ],
+          [
+            73.849317,
+            18.522052
+          ],
+          [
+            73.84932,
+            18.52202
+          ],
+          [
+            73.849345,
+            18.521879
+          ],
+          [
+            73.84966,
+            18.520131
+          ],
+          [
+            73.849681,
+            18.520045
+          ],
+          [
+            73.849739,
+            18.519983
+          ],
+          [
+            73.84981,
+            18.519918
+          ],
+          [
+            73.84993,
+            18.519847
+          ],
+          [
+            73.849774,
+            18.519718
+          ],
+          [
+            73.849768,
+            18.519697
+          ],
+          [
+            73.849758,
+            18.519677
+          ],
+          [
+            73.849744,
+            18.519659
+          ],
+          [
+            73.849727,
+            18.519644
+          ],
+          [
+            73.849707,
+            18.519633
+          ],
+          [
+            73.849617,
+            18.51939
+          ],
+          [
+            73.849618,
+            18.519361
+          ],
+          [
+            73.849623,
+            18.519333
+          ],
+          [
+            73.849633,
+            18.519286
+          ],
+          [
+            73.849666,
+            18.519193
+          ],
+          [
+            73.849718,
+            18.519045
+          ],
+          [
+            73.849796,
+            18.518852
+          ],
+          [
+            73.849861,
+            18.518692
+          ],
+          [
+            73.850001,
+            18.518229
+          ],
+          [
+            73.850027,
+            18.518142
+          ],
+          [
+            73.850044,
+            18.518144
+          ],
+          [
+            73.850061,
+            18.518143
+          ],
+          [
+            73.850077,
+            18.518139
+          ],
+          [
+            73.850092,
+            18.518132
+          ],
+          [
+            73.850106,
+            18.518122
+          ],
+          [
+            73.850117,
+            18.51811
+          ],
+          [
+            73.850126,
+            18.518096
+          ],
+          [
+            73.850131,
+            18.518081
+          ],
+          [
+            73.850133,
+            18.518065
+          ],
+          [
+            73.850132,
+            18.518049
+          ],
+          [
+            73.850128,
+            18.518033
+          ],
+          [
+            73.85012,
+            18.518019
+          ],
+          [
+            73.85011,
+            18.518006
+          ],
+          [
+            73.850097,
+            18.517996
+          ],
+          [
+            73.850083,
+            18.517988
+          ],
+          [
+            73.850067,
+            18.517982
+          ],
+          [
+            73.850091,
+            18.517876
+          ],
+          [
+            73.850121,
+            18.517159
+          ],
+          [
+            73.850096,
+            18.517073
+          ],
+          [
+            73.850056,
+            18.517014
+          ],
+          [
+            73.850011,
+            18.516938
+          ],
+          [
+            73.849981,
+            18.516862
+          ],
+          [
+            73.849973,
+            18.516758
+          ],
+          [
+            73.849968,
+            18.516623
+          ],
+          [
+            73.849985,
+            18.516403
+          ],
+          [
+            73.85,
+            18.516209
+          ],
+          [
+            73.850013,
+            18.515962
+          ],
+          [
+            73.850052,
+            18.515373
+          ],
+          [
+            73.850067,
+            18.514955
+          ],
+          [
+            73.848382,
+            18.51466
+          ],
+          [
+            73.848459,
+            18.513988
+          ],
+          [
+            73.848495,
+            18.513265
+          ],
+          [
+            73.848577,
+            18.512604
+          ],
+          [
+            73.848629,
+            18.512178
+          ],
+          [
+            73.848696,
+            18.51158
+          ],
+          [
+            73.848677,
+            18.511481
+          ],
+          [
+            73.8488,
+            18.510772
+          ],
+          [
+            73.848808,
+            18.510744
+          ],
+          [
+            73.848849,
+            18.510398
+          ],
+          [
+            73.848876,
+            18.510227
+          ],
+          [
+            73.848936,
+            18.509855
+          ],
+          [
+            73.849083,
+            18.50898
+          ],
+          [
+            73.849108,
+            18.508831
+          ],
+          [
+            73.849127,
+            18.508729
+          ],
+          [
+            73.849144,
+            18.508651
+          ],
+          [
+            73.849286,
+            18.508549
+          ],
+          [
+            73.8497,
+            18.508287
+          ],
+          [
+            73.849949,
+            18.508129
+          ],
+          [
+            73.850027,
+            18.508068
+          ],
+          [
+            73.850191,
+            18.507974
+          ],
+          [
+            73.850403,
+            18.507826
+          ],
+          [
+            73.850494,
+            18.507334
+          ],
+          [
+            73.850517,
+            18.507168
+          ],
+          [
+            73.850526,
+            18.507107
+          ],
+          [
+            73.850534,
+            18.507009
+          ],
+          [
+            73.850545,
+            18.506873
+          ],
+          [
+            73.850562,
+            18.50667
+          ],
+          [
+            73.850574,
+            18.506524
+          ],
+          [
+            73.850625,
+            18.505914
+          ],
+          [
+            73.850632,
+            18.50583
+          ],
+          [
+            73.850649,
+            18.505359
+          ],
+          [
+            73.850667,
+            18.504879
+          ],
+          [
+            73.850689,
+            18.504325
+          ],
+          [
+            73.850694,
+            18.504239
+          ],
+          [
+            73.850703,
+            18.504085
+          ],
+          [
+            73.850722,
+            18.503747
+          ],
+          [
+            73.850729,
+            18.503625
+          ],
+          [
+            73.850741,
+            18.503429
+          ],
+          [
+            73.850781,
+            18.502808
+          ],
+          [
+            73.850787,
+            18.502575
+          ],
+          [
+            73.850803,
+            18.502
+          ],
+          [
+            73.85081,
+            18.501724
+          ],
+          [
+            73.850802,
+            18.501322
+          ],
+          [
+            73.85087,
+            18.501027
+          ],
+          [
+            73.850907,
+            18.500102
+          ],
+          [
+            73.850917,
+            18.499869
+          ],
+          [
+            73.850935,
+            18.499571
+          ],
+          [
+            73.85093,
+            18.499517
+          ],
+          [
+            73.850899,
+            18.499425
+          ],
+          [
+            73.851043,
+            18.499257
+          ],
+          [
+            73.851138,
+            18.499184
+          ],
+          [
+            73.851273,
+            18.499136
+          ],
+          [
+            73.851427,
+            18.499122
+          ],
+          [
+            73.851626,
+            18.499126
+          ],
+          [
+            73.851788,
+            18.499166
+          ],
+          [
+            73.851979,
+            18.499208
+          ],
+          [
+            73.852263,
+            18.499305
+          ],
+          [
+            73.853255,
+            18.499642
+          ],
+          [
+            73.85361,
+            18.499764
+          ],
+          [
+            73.853701,
+            18.499819
+          ],
+          [
+            73.853749,
+            18.499863
+          ],
+          [
+            73.85375,
+            18.499819
+          ],
+          [
+            73.853826,
+            18.49982
+          ],
+          [
+            73.853929,
+            18.499822
+          ],
+          [
+            73.854013,
+            18.499824
+          ],
+          [
+            73.854003,
+            18.499746
+          ],
+          [
+            73.85401,
+            18.499596
+          ],
+          [
+            73.854031,
+            18.499391
+          ],
+          [
+            73.854044,
+            18.499265
+          ],
+          [
+            73.854069,
+            18.498954
+          ],
+          [
+            73.854078,
+            18.498835
+          ],
+          [
+            73.854109,
+            18.498759
+          ],
+          [
+            73.854145,
+            18.498243
+          ],
+          [
+            73.854197,
+            18.497618
+          ],
+          [
+            73.854261,
+            18.49745
+          ],
+          [
+            73.854268,
+            18.497432
+          ],
+          [
+            73.854313,
+            18.49736
+          ],
+          [
+            73.854392,
+            18.497269
+          ],
+          [
+            73.854482,
+            18.497204
+          ],
+          [
+            73.854606,
+            18.497175
+          ],
+          [
+            73.854722,
+            18.497155
+          ],
+          [
+            73.854829,
+            18.497142
+          ],
+          [
+            73.855356,
+            18.497062
+          ],
+          [
+            73.855446,
+            18.497049
+          ],
+          [
+            73.855622,
+            18.497025
+          ],
+          [
+            73.855613,
+            18.496968
+          ],
+          [
+            73.8556,
+            18.496879
+          ],
+          [
+            73.855591,
+            18.496819
+          ],
+          [
+            73.85566,
+            18.49681
+          ],
+          [
+            73.856415,
+            18.496732
+          ],
+          [
+            73.857399,
+            18.496607
+          ],
+          [
+            73.857607,
+            18.496589
+          ],
+          [
+            73.857703,
+            18.496573
+          ],
+          [
+            73.857735,
+            18.496553
+          ],
+          [
+            73.857758,
+            18.496534
+          ],
+          [
+            73.857831,
+            18.496532
+          ],
+          [
+            73.857981,
+            18.496527
+          ],
+          [
+            73.857986,
+            18.496364
+          ],
+          [
+            73.857992,
+            18.496159
+          ],
+          [
+            73.857929,
+            18.494589
+          ],
+          [
+            73.857904,
+            18.49399
+          ],
+          [
+            73.857785,
+            18.493276
+          ],
+          [
+            73.85771,
+            18.49242
+          ],
+          [
+            73.857678,
+            18.491207
+          ],
+          [
+            73.857653,
+            18.490914
+          ],
+          [
+            73.857476,
+            18.489364
+          ],
+          [
+            73.857458,
+            18.489273
+          ],
+          [
+            73.857424,
+            18.488874
+          ],
+          [
+            73.857442,
+            18.488159
+          ],
+          [
+            73.857496,
+            18.487032
+          ],
+          [
+            73.857505,
+            18.486923
+          ],
+          [
+            73.85757,
+            18.485896
+          ],
+          [
+            73.857586,
+            18.485415
+          ],
+          [
+            73.857588,
+            18.485182
+          ],
+          [
+            73.857578,
+            18.484909
+          ],
+          [
+            73.85754,
+            18.484286
+          ],
+          [
+            73.857456,
+            18.483701
+          ],
+          [
+            73.857379,
+            18.4833
+          ],
+          [
+            73.857298,
+            18.482821
+          ],
+          [
+            73.857245,
+            18.482448
+          ],
+          [
+            73.857212,
+            18.482143
+          ],
+          [
+            73.857206,
+            18.481257
+          ],
+          [
+            73.857205,
+            18.481166
+          ],
+          [
+            73.85721,
+            18.480162
+          ],
+          [
+            73.857229,
+            18.479221
+          ],
+          [
+            73.857237,
+            18.478827
+          ],
+          [
+            73.857237,
+            18.478717
+          ],
+          [
+            73.857239,
+            18.478255
+          ],
+          [
+            73.85721,
+            18.477749
+          ],
+          [
+            73.857164,
+            18.477463
+          ],
+          [
+            73.857123,
+            18.477306
+          ],
+          [
+            73.857017,
+            18.477134
+          ],
+          [
+            73.856836,
+            18.476885
+          ],
+          [
+            73.8567,
+            18.476712
+          ],
+          [
+            73.856521,
+            18.47648
+          ],
+          [
+            73.85638,
+            18.476247
+          ],
+          [
+            73.856318,
+            18.476116
+          ],
+          [
+            73.856312,
+            18.475962
+          ],
+          [
+            73.856283,
+            18.475767
+          ],
+          [
+            73.856276,
+            18.475609
+          ],
+          [
+            73.856283,
+            18.475278
+          ],
+          [
+            73.856286,
+            18.475039
+          ],
+          [
+            73.856286,
+            18.474763
+          ],
+          [
+            73.856265,
+            18.474634
+          ],
+          [
+            73.856301,
+            18.474458
+          ],
+          [
+            73.856313,
+            18.474304
+          ],
+          [
+            73.856347,
+            18.473857
+          ],
+          [
+            73.856399,
+            18.47329
+          ],
+          [
+            73.856538,
+            18.472733
+          ],
+          [
+            73.856595,
+            18.472502
+          ],
+          [
+            73.856699,
+            18.472116
+          ],
+          [
+            73.856965,
+            18.471208
+          ],
+          [
+            73.857034,
+            18.470973
+          ],
+          [
+            73.857101,
+            18.470729
+          ],
+          [
+            73.857417,
+            18.469711
+          ],
+          [
+            73.857474,
+            18.469474
+          ],
+          [
+            73.857522,
+            18.469234
+          ],
+          [
+            73.85761,
+            18.468782
+          ],
+          [
+            73.857675,
+            18.468365
+          ],
+          [
+            73.857687,
+            18.468283
+          ],
+          [
+            73.857727,
+            18.467946
+          ],
+          [
+            73.857891,
+            18.466593
+          ],
+          [
+            73.857979,
+            18.465618
+          ],
+          [
+            73.858134,
+            18.464138
+          ],
+          [
+            73.858169,
+            18.46343
+          ],
+          [
+            73.858162,
+            18.46292
+          ],
+          [
+            73.858133,
+            18.462584
+          ],
+          [
+            73.858143,
+            18.462547
+          ],
+          [
+            73.858134,
+            18.462344
+          ],
+          [
+            73.858128,
+            18.462232
+          ],
+          [
+            73.858122,
+            18.46212
+          ],
+          [
+            73.858115,
+            18.461839
+          ],
+          [
+            73.858094,
+            18.461487
+          ],
+          [
+            73.858071,
+            18.460987
+          ],
+          [
+            73.858053,
+            18.46073
+          ],
+          [
+            73.858052,
+            18.460417
+          ],
+          [
+            73.858053,
+            18.460198
+          ],
+          [
+            73.858055,
+            18.459998
+          ],
+          [
+            73.858038,
+            18.459731
+          ],
+          [
+            73.85803,
+            18.459439
+          ],
+          [
+            73.858022,
+            18.459214
+          ],
+          [
+            73.858028,
+            18.458972
+          ],
+          [
+            73.858027,
+            18.458896
+          ],
+          [
+            73.858034,
+            18.45883
+          ],
+          [
+            73.858077,
+            18.458583
+          ],
+          [
+            73.858154,
+            18.458252
+          ],
+          [
+            73.858232,
+            18.457916
+          ],
+          [
+            73.858264,
+            18.457746
+          ],
+          [
+            73.858312,
+            18.457534
+          ],
+          [
+            73.858326,
+            18.457466
+          ],
+          [
+            73.8584,
+            18.457194
+          ],
+          [
+            73.858451,
+            18.456949
+          ],
+          [
+            73.858527,
+            18.456612
+          ],
+          [
+            73.858537,
+            18.456477
+          ],
+          [
+            73.858536,
+            18.45641
+          ],
+          [
+            73.858526,
+            18.456354
+          ],
+          [
+            73.858558,
+            18.456144
+          ],
+          [
+            73.858672,
+            18.455359
+          ],
+          [
+            73.858676,
+            18.455092
+          ],
+          [
+            73.858648,
+            18.454763
+          ],
+          [
+            73.858617,
+            18.454543
+          ],
+          [
+            73.858601,
+            18.45445
+          ],
+          [
+            73.858597,
+            18.454425
+          ],
+          [
+            73.858588,
+            18.454363
+          ],
+          [
+            73.858572,
+            18.454268
+          ],
+          [
+            73.858547,
+            18.454163
+          ],
+          [
+            73.858566,
+            18.454069
+          ],
+          [
+            73.858483,
+            18.45359
+          ],
+          [
+            73.858435,
+            18.453276
+          ],
+          [
+            73.858401,
+            18.453129
+          ],
+          [
+            73.858364,
+            18.453008
+          ],
+          [
+            73.858327,
+            18.452928
+          ],
+          [
+            73.858281,
+            18.452648
+          ],
+          [
+            73.858222,
+            18.452223
+          ],
+          [
+            73.858221,
+            18.452212
+          ],
+          [
+            73.858178,
+            18.451902
+          ],
+          [
+            73.858114,
+            18.451441
+          ],
+          [
+            73.858088,
+            18.451258
+          ],
+          [
+            73.85808,
+            18.451123
+          ],
+          [
+            73.858088,
+            18.450844
+          ],
+          [
+            73.858092,
+            18.450776
+          ],
+          [
+            73.858005,
+            18.450773
+          ],
+          [
+            73.8579,
+            18.45077
+          ],
+          [
+            73.857908,
+            18.450691
+          ],
+          [
+            73.857862,
+            18.450685
+          ],
+          [
+            73.856594,
+            18.450672
+          ],
+          [
+            73.856607,
+            18.451221
+          ],
+          [
+            73.856609,
+            18.45131
+          ],
+          [
+            73.856617,
+            18.4516
+          ],
+          [
+            73.856621,
+            18.451787
+          ],
+          [
+            73.856641,
+            18.452
+          ],
+          [
+            73.856654,
+            18.45214
+          ],
+          [
+            73.856667,
+            18.452279
+          ],
+          [
+            73.855723,
+            18.452409
+          ],
+          [
+            73.855144,
+            18.452476
+          ]
+        ]
+      },
+      "steps": [
+        {
+          "instruction": "Follow Ganeshkhind Road",
+          "street": "Ganeshkhind Road",
+          "distance_meters": 12
+        },
+        {
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 764
+        },
+        {
+          "instruction": "Follow Chaturshringi Road",
+          "street": "Chaturshringi Road",
+          "distance_meters": 306
+        },
+        {
+          "instruction": "Follow Shankarrao Kanitkar Path",
+          "street": "Shankarrao Kanitkar Path",
+          "distance_meters": 141
+        },
+        {
+          "instruction": "Follow Dadasaheb Joglekar Path",
+          "street": "Dadasaheb Joglekar Path",
+          "distance_meters": 194
+        },
+        {
+          "instruction": "Follow Jangli Maharaj Path",
+          "street": "Jangli Maharaj Path",
+          "distance_meters": 68
+        },
+        {
+          "instruction": "Follow Appasaheb Shinde Path",
+          "street": "Appasaheb Shinde Path",
+          "distance_meters": 9
+        },
+        {
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 202
+        },
+        {
+          "instruction": "Follow Maharshi Vitthal Ramji Shinde Bridge",
+          "street": "Maharshi Vitthal Ramji Shinde Bridge",
+          "distance_meters": 281
+        },
+        {
+          "instruction": "Follow Omkareshwar Path",
+          "street": "Omkareshwar Path",
+          "distance_meters": 22
+        },
+        {
+          "instruction": "Follow Chimaji Appa Peshwe Chowk",
+          "street": "Chimaji Appa Peshwe Chowk",
+          "distance_meters": 12
+        },
+        {
+          "instruction": "Follow T Saheb KK Marg",
+          "street": "T Saheb KK Marg",
+          "distance_meters": 174
+        },
+        {
+          "instruction": "Follow Shinde Paar Chowk",
+          "street": "Shinde Paar Chowk",
+          "distance_meters": 29
+        },
+        {
+          "instruction": "Follow Appasaheb Bhagwat Path",
+          "street": "Appasaheb Bhagwat Path",
+          "distance_meters": 341
+        },
+        {
+          "instruction": "Follow Munjabacha Bol",
+          "street": "Munjabacha Bol",
+          "distance_meters": 181
+        },
+        {
+          "instruction": "Follow Tatyasaheb Karandikar Path",
+          "street": "Tatyasaheb Karandikar Path",
+          "distance_meters": 674
+        },
+        {
+          "instruction": "Follow Lokmanya Tilak Marg",
+          "street": "Lokmanya Tilak Marg",
+          "distance_meters": 161
+        },
+        {
+          "instruction": "Follow Sane Guruji Marg",
+          "street": "Sane Guruji Marg",
+          "distance_meters": 938
+        },
+        {
+          "instruction": "Follow unnamed",
+          "street": "unnamed",
+          "distance_meters": 1065
+        },
+        {
+          "instruction": "Follow Katraj - Swargate BRTS",
+          "street": "Katraj - Swargate BRTS",
+          "distance_meters": 5153
+        },
+        {
+          "instruction": "Follow unnamed to destination",
+          "street": "unnamed",
+          "distance_meters": 509
+        }
+      ],
       "attribution": {
         "contributions": {
-          "accident": 24.3,
-          "emergency": 17.0,
-          "lighting": 17.6,
-          "pedestrian": 12.3,
-          "traffic": 12.6
+          "accident": 29.0239,
+          "emergency": 13.9249,
+          "lighting": 4.0,
+          "pedestrian": 7.2239,
+          "traffic": 12.0
         },
         "subscore_means": {
-          "accident": 81.0,
-          "emergency": 85.0,
-          "lighting": 88.0,
-          "pedestrian": 82.0,
-          "traffic": 84.0
+          "accident": 96.75,
+          "emergency": 69.62,
+          "lighting": 20.0,
+          "pedestrian": 48.16,
+          "traffic": 80.0
         },
-        "raw_rss": 83.8,
-        "temporal_adjustment": -10.0,
-        "final_rss": 73.8,
-        "explanation": "RSS Attribution: Accident safety contributes 24.3 pts, Emergency access contributes 17.0 pts, Street lighting contributes 17.6 pts, Pedestrian paths contribute 12.3 pts, and Traffic flow contributes 12.6 pts."
+        "weights": {
+          "accident": 0.3,
+          "emergency": 0.2,
+          "lighting": 0.2,
+          "pedestrian": 0.15,
+          "traffic": 0.15
+        },
+        "raw_rss": 66.1727,
+        "temporal_adjustment": -13.0,
+        "final_rss": 53.17,
+        "explanation": "RSS Attribution: Accident safety contributes 29.0 pts (sub-score: 96.7), Emergency access contributes 13.9 pts (sub-score: 69.6), Street lighting contributes 4.0 pts (sub-score: 20.0), Pedestrian paths contribute 7.2 pts (sub-score: 48.2), and Traffic flow contributes 12.0 pts (sub-score: 80.0) to the 66.2 base RSS. Temporal modifier of -13.0 pts results in a final 53.2 RSS."
       },
+      "counterfactual_detours": [],
       "uncertainty": {
         "overall_confidence": "estimated",
-        "overall_verified_percentage": 34.0,
+        "overall_verified_percentage": 0.0,
         "lighting": {
           "confidence": "estimated",
-          "verified_percentage": 32.0,
-          "verified_km": 3.8,
-          "estimated_km": 8.1,
-          "fallback_source": "PMC Environment Status Report Ward Lighting Density"
+          "verified_percentage": 0.0,
+          "verified_km": 0.0,
+          "estimated_km": 11.24,
+          "fallback_source": "PMC Environment Status Report (ESR) Ward Density"
         },
         "pedestrian": {
           "confidence": "estimated",
-          "verified_percentage": 36.0,
+          "verified_percentage": 0.0,
+          "verified_km": 0.0,
+          "estimated_km": 11.24,
           "fallback_source": "OSM Highway Hierarchy Classifier"
         },
         "accident": {
           "confidence": "verified",
           "source": "iRAD / Pune Traffic Police Blackspot Spatial Grid (WSI)"
         },
-        "explanation": "Confidence: Estimated (34.0% ground truth). 68.0% of lighting relies on PMC Ward density records."
+        "community_reported_meters": 0,
+        "explanation": "Data Provenance & Confidence: Estimated (0.0% ground-truth verified). Lighting is estimated (0.0% verified via OSM tags; 100.0% [11.2 km] inferred from PMC Ward density records for Dhankawadi - Sahakarnagar). Pedestrian infrastructure is estimated (0.0% verified; 100.0% inferred from highway classification)."
       },
       "safe_havens": {
         "bands": [
           {
             "band_name": "Band 1 (0% - 25% Corridor Start)",
-            "sample_coordinates": [18.5195, 73.8553],
-            "hospital": {"name": "Poona Hospital", "distance_meters": 290},
-            "police": {"name": "Faraskhana Police Station", "distance_meters": 180},
-            "ecb": {"name": "Smart City ECB - Shaniwar Wada", "distance_meters": 120}
+            "sample_coordinates": [
+              18.52226,
+              73.84923
+            ],
+            "hospital": {
+              "name": "Sancheti Hospital, Shivajinagar",
+              "distance_meters": 753
+            },
+            "police": {
+              "name": "Faraskhana Police Station (Budhwar Peth)",
+              "distance_meters": 680
+            },
+            "ecb": {
+              "name": "Smart City ECB - JM Road (Balgandharva Chowk)",
+              "distance_meters": 651
+            }
           },
           {
             "band_name": "Band 2 (25% - 50% Mid-Route North)",
-            "sample_coordinates": [18.5010, 73.8525],
-            "hospital": {"name": "Sarasbaug Polyclinic", "distance_meters": 340},
-            "police": {"name": "Swargate Traffic Chowki", "distance_meters": 290},
-            "ecb": {"name": "Smart City ECB - Sarasbaug", "distance_meters": 140}
+            "sample_coordinates": [
+              18.49955,
+              73.85093
+            ],
+            "hospital": {
+              "name": "Rao Nursing Home / Hospital, Swargate",
+              "distance_meters": 794
+            },
+            "police": {
+              "name": "Swargate Police Station",
+              "distance_meters": 846
+            },
+            "ecb": {
+              "name": "Smart City ECB - Swargate Jedhe Chowk Hub",
+              "distance_meters": 846
+            }
           },
           {
             "band_name": "Band 3 (50% - 75% Mid-Route South)",
-            "sample_coordinates": [18.4780, 73.8520],
-            "hospital": {"name": "Chintamani Hospital Bibvewadi", "distance_meters": 440},
-            "police": {"name": "Bibvewadi Police Chowki", "distance_meters": 310},
-            "ecb": {"name": "Smart City ECB - Padmavati", "distance_meters": 220}
+            "sample_coordinates": [
+              18.48102,
+              73.85721
+            ],
+            "hospital": {
+              "name": "Chintamani Hospital, Bibwewadi",
+              "distance_meters": 933
+            },
+            "police": {
+              "name": "Swargate Police Station",
+              "distance_meters": 2315
+            },
+            "ecb": {
+              "name": "Smart City ECB - Swargate Jedhe Chowk Hub",
+              "distance_meters": 2315
+            }
           },
           {
             "band_name": "Band 4 (75% - 100% Approach Terminus)",
-            "sample_coordinates": [18.4600, 73.8580],
-            "hospital": {"name": "Bharati Hospital Katraj", "distance_meters": 490},
-            "police": {"name": "Katraj Traffic Chowki", "distance_meters": 260},
-            "ecb": {"name": "Smart City ECB - Katraj Kondhwa Rd", "distance_meters": 190}
+            "sample_coordinates": [
+              18.45624,
+              73.85854
+            ],
+            "hospital": {
+              "name": "Bharti Hospital & Research Centre, Katraj",
+              "distance_meters": 150
+            },
+            "police": {
+              "name": "Bharti Vidyapeeth / Katraj Police Chowki",
+              "distance_meters": 505
+            },
+            "ecb": {
+              "name": "Smart City ECB - Katraj Chowk Subway",
+              "distance_meters": 505
+            }
           }
         ],
-        "max_hospital_distance_meters": 490,
-        "max_police_distance_meters": 310,
-        "explanation": "Safe Haven Position-Band Coverage: Emergency facilities reachable within 490 m across all 4 journey bands."
-      },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [73.8446, 18.5314],
-          [73.8480, 18.5300],
-          [73.8490, 18.5250],
-          [73.8520, 18.5220],
-          [73.8550, 18.5195],
-          [73.8535, 18.5140],
-          [73.8530, 18.5100],
-          [73.8525, 18.5010],
-          [73.8510, 18.4950],
-          [73.8500, 18.4870],
-          [73.8520, 18.4780],
-          [73.8550, 18.4700],
-          [73.8570, 18.4640],
-          [73.8580, 18.4600],
-          [73.8565, 18.4560],
-          [73.8553, 18.4529]
-        ]
-      },
-      "steps": [
-        {
-          "instruction": "Depart Shivajinagar south through Congress Bhavan toward Shaniwar Wada",
-          "distance_meters": 1400,
-          "street": "Shivaji Rd"
-        },
-        {
-          "instruction": "Take Bajirao Road past Appa Balwant Chowk toward Sarasbaug",
-          "distance_meters": 2200,
-          "street": "Bajirao Rd"
-        },
-        {
-          "instruction": "Continue through Sahakar Nagar along residential avenue",
-          "distance_meters": 2800,
-          "street": "Sahakar Nagar Rd"
-        },
-        {
-          "instruction": "Follow Bibvewadi Kondhwa road toward upper Katraj connector",
-          "distance_meters": 3600,
-          "street": "Bibvewadi Main Rd"
-        },
-        {
-          "instruction": "Turn right onto Katraj Chowk approach",
-          "distance_meters": 1900,
-          "street": "Katraj Chowk"
-        }
-      ]
+        "max_hospital_distance_meters": 933,
+        "max_police_distance_meters": 2315,
+        "explanation": "Safe Haven Position-Band Coverage: Continuous emergency access verified across 4 journey bands. Nearest trauma facility never exceeds 933 m (accessible: Sancheti Hospital, Shivajinagar at 753 m; Chintamani Hospital, Bibwewadi at 933 m; Bharti Hospital & Research Centre, Katraj at 150 m). Police chowki proximity is maintained within 2315 m."
+      }
     }
   ]
 }

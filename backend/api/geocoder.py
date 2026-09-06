@@ -24,12 +24,20 @@ def load_committed_landmarks() -> list:
     return data
 
 
+def normalize_location_text(text: str) -> str:
+    """Normalizes location string by removing punctuation, extra spaces, and casing."""
+    import re
+    cleaned = re.sub(r"[^a-zA-Z0-9\s]", " ", text)
+    return re.sub(r"\s+", " ", cleaned).strip().lower()
+
+
 def geocode_location(query: str, timeout_seconds: float = 1.0) -> Dict[str, Any]:
     """
     Geocodes a location query.
-    1. Tries online Nominatim with a tight timeout.
-    2. On ANY exception (ConnectionError, Timeout, HTTPError, offline), falls back
-       to committed landmark table in backend/data/landmarks.json.
+    1. Tries normalized matching against committed landmarks (instant, 0ms).
+    2. Tries online Nominatim for specific unindexed Pune addresses.
+    3. On ANY exception or zero-connectivity, gracefully falls back
+       to committed landmark table with substring and token matching.
 
     Returns
     -------
@@ -44,8 +52,64 @@ def geocode_location(query: str, timeout_seconds: float = 1.0) -> Dict[str, Any]
     """
     q_clean = query.strip()
     landmarks = load_committed_landmarks()
+    q_lower = q_clean.lower()
+    q_norm = normalize_location_text(q_clean)
+    q_words = [w for w in q_norm.split() if w not in {"the", "in", "near", "at"}]
+    q_stripped = q_lower.replace(", pune", "").replace(" pune", "").replace(", maharashtra", "").replace(", india", "").strip()
+    q_stripped_norm = normalize_location_text(q_stripped)
 
-    # Try online Nominatim first if query is provided
+    # 1. Check committed landmark registry first (instant, 0ms, 100% verified ground truth)
+    for lm in landmarks:
+        lm_name_low = lm["name"].lower()
+        lm_name_norm = normalize_location_text(lm["name"])
+        if q_lower == lm_name_low or q_norm == lm_name_norm or q_stripped_norm == lm_name_norm:
+            return {
+                "name": lm["name"],
+                "lat": float(lm["lat"]),
+                "lon": float(lm["lon"]),
+                "ward": lm.get("ward", "Pune Central"),
+                "source": "offline_landmark_registry",
+                "offline_fallback": True
+            }
+        for alias in lm.get("aliases", []):
+            al_low = alias.lower()
+            al_norm = normalize_location_text(alias)
+            if q_lower == al_low or q_norm == al_norm or q_stripped_norm == al_norm:
+                return {
+                    "name": lm["name"],
+                    "lat": float(lm["lat"]),
+                    "lon": float(lm["lon"]),
+                    "ward": lm.get("ward", "Pune Central"),
+                    "source": "offline_landmark_registry",
+                    "offline_fallback": True
+                }
+
+    # 2. Check token/word containment in landmark name or aliases
+    if q_words:
+        for lm in landmarks:
+            lm_name_norm = normalize_location_text(lm["name"])
+            if all(w in lm_name_norm for w in q_words):
+                return {
+                    "name": lm["name"],
+                    "lat": float(lm["lat"]),
+                    "lon": float(lm["lon"]),
+                    "ward": lm.get("ward", "Pune Central"),
+                    "source": "offline_landmark_registry",
+                    "offline_fallback": True
+                }
+            for alias in lm.get("aliases", []):
+                al_norm = normalize_location_text(alias)
+                if all(w in al_norm for w in q_words):
+                    return {
+                        "name": lm["name"],
+                        "lat": float(lm["lat"]),
+                        "lon": float(lm["lon"]),
+                        "ward": lm.get("ward", "Pune Central"),
+                        "source": "offline_landmark_registry",
+                        "offline_fallback": True
+                    }
+
+    # 3. Try online Nominatim for specific unindexed Pune addresses
     try:
         url = "https://nominatim.openstreetmap.org/search"
         headers = {"User-Agent": "SafeRouteAI-Demo/1.0"}
@@ -65,12 +129,10 @@ def geocode_location(query: str, timeout_seconds: float = 1.0) -> Dict[str, Any]
         # Expected failure mode under conference Wi-Fi / offline testing
         pass
 
-    # Guaranteed Offline Fallback: search committed landmark registry
-    q_lower = q_clean.lower()
-    
-    # 1. Exact or substring match in name or aliases
+    # 4. Guaranteed Offline Fallback: search committed landmark registry by partial substring
     for lm in landmarks:
-        if q_lower in lm["name"].lower():
+        lm_norm = normalize_location_text(lm["name"])
+        if q_norm in lm_norm or lm_norm in q_norm:
             return {
                 "name": lm["name"],
                 "lat": float(lm["lat"]),
@@ -80,7 +142,8 @@ def geocode_location(query: str, timeout_seconds: float = 1.0) -> Dict[str, Any]
                 "offline_fallback": True
             }
         for alias in lm.get("aliases", []):
-            if q_lower in alias.lower():
+            al_norm = normalize_location_text(alias)
+            if q_norm in al_norm or al_norm in q_norm:
                 return {
                     "name": lm["name"],
                     "lat": float(lm["lat"]),
@@ -90,9 +153,10 @@ def geocode_location(query: str, timeout_seconds: float = 1.0) -> Dict[str, Any]
                     "offline_fallback": True
                 }
 
-    # 2. Match ward or area keyword
+    # 5. Match ward or area keyword
     for lm in landmarks:
-        if lm.get("ward", "").lower() in q_lower or q_lower in lm.get("ward", "").lower():
+        w_norm = normalize_location_text(lm.get("ward", ""))
+        if w_norm and (w_norm in q_norm or q_norm in w_norm):
             return {
                 "name": lm["name"],
                 "lat": float(lm["lat"]),
