@@ -4,6 +4,7 @@ Survives flaky conference Wi-Fi, offline mode, zero-distance queries,
 out-of-bounds coordinates, cold-start latency, and form spam.
 Runs on Flask (built-in, zero external dependencies).
 """
+import os
 import time
 import threading
 from datetime import datetime
@@ -17,6 +18,10 @@ from backend.scoring.corroboration import submit_incident, get_privacy_aggregate
 from backend.api.geocoder import geocode_location
 
 app = Flask(__name__)
+
+# Preload graph into module-level memory at startup (per AGENTS.md Rule 2)
+_graph_mgr = get_graph_manager()
+_graph_mgr.load()
 
 # Global rate limiter state: { ip: list_of_timestamps }
 _RATE_LIMITS: Dict[str, List[float]] = {}
@@ -237,8 +242,6 @@ def start_background_server(port: int = 8000):
 
 
 if __name__ == "__main__":
-    print("[SafeRoute AI] Initializing graph in background...")
-    mgr = get_graph_manager()
-    mgr.load()
-    print(f"[SafeRoute AI] Graph ready in {mgr.load_time_seconds}s. Starting API server on port 8000...")
-    app.run(host="0.0.0.0", port=8000, debug=False)
+    port = int(os.environ.get("PORT", 8000))
+    print(f"[SafeRoute AI] Graph ready in {_graph_mgr.load_time_seconds}s. Starting API server on port {port}...")
+    app.run(host="0.0.0.0", port=port, debug=False)

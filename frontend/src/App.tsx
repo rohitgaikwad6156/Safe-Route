@@ -11,6 +11,8 @@ import { RouteData, IncidentReport, Landmark } from './types';
 import mockRoutesData from './mocks/routes.json';
 import { adjustRouteRSS, computeTemporalModifier } from './lib/temporal';
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+
 export function App() {
   const [origin, setOrigin] = useState('Shivajinagar Station, Pune');
   const [destination, setDestination] = useState('Katraj (Katraj Chowk), Pune');
@@ -67,7 +69,7 @@ export function App() {
     let active = true;
     const checkHealth = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:8000/health', { signal: AbortSignal.timeout(1000) });
+        const res = await fetch(`${API_BASE_URL}/health`, { signal: AbortSignal.timeout(2500) });
         if (res.ok && active) {
           const data = await res.json();
           setBackendHealth({ status: data.status, loadTime: data.load_time_seconds, nodes: data.total_nodes });
@@ -217,6 +219,24 @@ export function App() {
     });
     setPinnedLocation(null);
     setIsPinningMode(false);
+
+    // Asynchronously submit to live backend API if online
+    fetch(`${API_BASE_URL}/api/post-incident`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        latitude: newReport.lat,
+        longitude: newReport.lon,
+        incident_type: newReport.category,
+        severity: newReport.severity,
+        description: newReport.description,
+        reported_by: 'citizen_web_client',
+        reporter_lat: newReport.lat,
+        reporter_lon: newReport.lon
+      })
+    }).catch(() => {
+      // Offline fallback: report remains preserved in local state
+    });
   };
 
   const handleStartPinning = () => {
