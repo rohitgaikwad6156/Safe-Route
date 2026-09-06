@@ -1,8 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, MapPin, ArrowDownUp, Navigation, X, Building2, GraduationCap, Train, Landmark as LandmarkIcon, Database, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import {
+  Search,
+  MapPin,
+  ArrowDownUp,
+  Navigation,
+  X,
+  Building2,
+  GraduationCap,
+  Train,
+  Landmark as LandmarkIcon,
+  Database,
+  AlertTriangle,
+  CheckCircle2,
+  Compass,
+  Sparkles,
+  Loader2
+} from 'lucide-react';
 import { Landmark } from '../types';
 import landmarksData from '../mocks/landmarks.json';
-import { validateBBox, SUPPORTED_AREAS } from '../lib/geocoding';
+import { validateBBox, searchPuneLandmarks } from '../lib/geocoding';
 
 interface RoutePlannerProps {
   origin: string;
@@ -11,7 +27,23 @@ interface RoutePlannerProps {
   onDestinationChange: (val: string) => void;
   onSwap: () => void;
   onSelectLandmark?: (landmark: Landmark, target: 'origin' | 'destination') => void;
+  onCalculateRoute?: (originText: string, destText: string) => void;
+  isLoading?: boolean;
+  originCoords?: [number, number];
+  destCoords?: [number, number];
 }
+
+const POPULAR_HUBS = [
+  { name: 'Kothrud', label: 'Kothrud' },
+  { name: 'Hinjawadi', label: 'Hinjawadi' },
+  { name: 'Shivajinagar Station, Pune', label: 'Shivajinagar' },
+  { name: 'Katraj (Katraj Chowk), Pune', label: 'Katraj' },
+  { name: 'Viman Nagar', label: 'Viman Nagar' },
+  { name: 'Baner', label: 'Baner' },
+  { name: 'Hadapsar', label: 'Hadapsar' },
+  { name: 'Swargate', label: 'Swargate' },
+  { name: 'Aundh', label: 'Aundh' },
+];
 
 export const RoutePlanner: React.FC<RoutePlannerProps> = ({
   origin,
@@ -20,13 +52,18 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
   onDestinationChange,
   onSwap,
   onSelectLandmark,
+  onCalculateRoute,
+  isLoading = false,
+  originCoords,
+  destCoords,
 }) => {
   const [activeField, setActiveField] = useState<'origin' | 'destination' | null>(null);
   const [originQuery, setOriginQuery] = useState(origin);
   const [destQuery, setDestQuery] = useState(destination);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const isIdentical = origin.trim().toLowerCase() === destination.trim().toLowerCase() && origin.trim().length > 0;
+  const isIdentical =
+    origin.trim().toLowerCase() === destination.trim().toLowerCase() && origin.trim().length > 0;
 
   // Check if inputs contain coordinates outside bbox
   const parseCoord = (str: string): [number, number] | null => {
@@ -62,26 +99,14 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const getFilteredLandmarks = (query: string) => {
-    if (!query || query.trim().length === 0) {
-      return (landmarksData as Landmark[]).slice(0, 5);
-    }
-    const q = query.toLowerCase();
-    return (landmarksData as Landmark[]).filter((item) => {
-      const matchName = item.name.toLowerCase().includes(q);
-      const matchWard = item.ward?.toLowerCase().includes(q);
-      const matchAliases = item.aliases?.some((a) => a.toLowerCase().includes(q));
-      return matchName || matchWard || matchAliases;
-    }).slice(0, 6);
-  };
+  const currentSuggestions =
+    activeField === 'origin'
+      ? searchPuneLandmarks(originQuery, 6)
+      : activeField === 'destination'
+      ? searchPuneLandmarks(destQuery, 6)
+      : [];
 
-  const currentSuggestions = activeField === 'origin'
-    ? getFilteredLandmarks(originQuery)
-    : activeField === 'destination'
-    ? getFilteredLandmarks(destQuery)
-    : [];
-
-  const getCategoryIcon = (category: string) => {
+  const getCategoryIcon = (category?: string) => {
     switch (category) {
       case 'education':
         return <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />;
@@ -94,16 +119,49 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
     }
   };
 
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setActiveField(null);
+    if (onCalculateRoute) {
+      onCalculateRoute(originQuery, destQuery);
+    }
+  };
+
+  const handleQuickHubClick = (hubName: string) => {
+    if (activeField === 'origin') {
+      setOriginQuery(hubName);
+      onOriginChange(hubName);
+      onCalculateRoute?.(hubName, destQuery);
+      setActiveField(null);
+    } else if (activeField === 'destination') {
+      setDestQuery(hubName);
+      onDestinationChange(hubName);
+      onCalculateRoute?.(originQuery, hubName);
+      setActiveField(null);
+    } else {
+      // If neither is focused, set destination if origin already exists, otherwise origin
+      if (!originQuery || originQuery === 'Shivajinagar Station, Pune') {
+        setOriginQuery(hubName);
+        onOriginChange(hubName);
+        onCalculateRoute?.(hubName, destQuery);
+      } else {
+        setDestQuery(hubName);
+        onDestinationChange(hubName);
+        onCalculateRoute?.(originQuery, hubName);
+      }
+    }
+  };
+
   return (
     <div className="bg-slate-900/90 rounded-2xl border border-slate-800/80 p-4 shadow-xl backdrop-blur-md relative z-30">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-          <Navigation className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Pune Route Navigation</span>
+          <Navigation className="w-3.5 h-3.5 text-teal-400" />
+          <span>Pune Dynamic Routing</span>
         </span>
-        <span className="text-[11px] font-mono text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/40 flex items-center gap-1">
-          <Database className="w-3 h-3 text-cyan-400" />
-          <span>Offline Landmark Registry</span>
+        <span className="text-[11px] font-mono text-teal-400 bg-teal-950/60 px-2 py-0.5 rounded border border-teal-800/40 flex items-center gap-1">
+          <Database className="w-3 h-3 text-teal-400" />
+          <span>Universal Pune Search</span>
         </span>
       </div>
 
@@ -121,95 +179,166 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
         </div>
       )}
 
-      <div className="relative flex items-center gap-3">
-        {/* Visual Line connector */}
-        <div className="flex flex-col items-center justify-between h-20 py-2">
-          <div className="w-3 h-3 rounded-full border-2 border-emerald-400 bg-emerald-950 flex items-center justify-center">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="relative flex items-center gap-3">
+          {/* Visual Line connector */}
+          <div className="flex flex-col items-center justify-between h-20 py-2">
+            <div className="w-3 h-3 rounded-full border-2 border-emerald-400 bg-emerald-950 flex items-center justify-center">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            </div>
+            <div className="w-0.5 h-8 bg-gradient-to-b from-emerald-500 via-teal-500 to-rose-500" />
+            <div className="w-3 h-3 rounded-full border-2 border-rose-500 bg-rose-950 flex items-center justify-center">
+              <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            </div>
           </div>
-          <div className="w-0.5 h-8 bg-gradient-to-b from-emerald-500 via-cyan-500 to-rose-500" />
-          <div className="w-3 h-3 rounded-full border-2 border-rose-500 bg-rose-950 flex items-center justify-center">
-            <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+
+          {/* Inputs */}
+          <div className="flex-1 space-y-2">
+            {/* Origin Input */}
+            <div className="relative">
+              <input
+                type="text"
+                value={originQuery}
+                onFocus={() => setActiveField('origin')}
+                onChange={(e) => {
+                  setOriginQuery(e.target.value);
+                  onOriginChange(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSubmit();
+                  }
+                }}
+                placeholder="Type any Pune origin (e.g. Kothrud, Hadapsar, Baner)..."
+                className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500 transition-colors pr-8"
+              />
+              {originQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOriginQuery('');
+                    onOriginChange('');
+                  }}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-200"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Destination Input */}
+            <div className="relative">
+              <input
+                type="text"
+                value={destQuery}
+                onFocus={() => setActiveField('destination')}
+                onChange={(e) => {
+                  setDestQuery(e.target.value);
+                  onDestinationChange(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSubmit();
+                  }
+                }}
+                placeholder="Type any Pune destination (e.g. Hinjawadi, Viman Nagar)..."
+                className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors pr-8"
+              />
+              {destQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDestQuery('');
+                    onDestinationChange('');
+                  }}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-200"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Swap Button */}
+          <button
+            type="button"
+            onClick={onSwap}
+            title="Swap Origin & Destination"
+            className="p-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 rounded-xl border border-slate-700 transition-all flex items-center justify-center shadow-md hover:text-white"
+          >
+            <ArrowDownUp className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Inputs */}
-        <div className="flex-1 space-y-2">
-          {/* Origin Input */}
-          <div className="relative">
-            <input
-              type="text"
-              value={originQuery}
-              onFocus={() => setActiveField('origin')}
-              onChange={(e) => {
-                setOriginQuery(e.target.value);
-                onOriginChange(e.target.value);
-              }}
-              placeholder="Enter starting point (e.g. Shivajinagar Station)..."
-              className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors pr-8"
-            />
-            {originQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setOriginQuery('');
-                  onOriginChange('');
-                }}
-                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-200"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+        {/* Action Button: Find Safe Routes */}
+        <div className="pt-1 flex items-center gap-2">
+          <button
+            type="submit"
+            disabled={isLoading || !originQuery.trim() || !destQuery.trim()}
+            className="flex-1 py-2 px-3.5 rounded-xl font-bold text-xs bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-slate-950 shadow-lg shadow-teal-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-950" />
+                <span>Computing Calibrated Safe Corridor...</span>
+              </>
+            ) : (
+              <>
+                <Compass className="w-3.5 h-3.5 text-slate-950" />
+                <span>Calculate Safe Routes</span>
+              </>
             )}
-          </div>
-
-          {/* Destination Input */}
-          <div className="relative">
-            <input
-              type="text"
-              value={destQuery}
-              onFocus={() => setActiveField('destination')}
-              onChange={(e) => {
-                setDestQuery(e.target.value);
-                onDestinationChange(e.target.value);
-              }}
-              placeholder="Enter destination (e.g. Katraj Chowk)..."
-              className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors pr-8"
-            />
-            {destQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setDestQuery('');
-                  onDestinationChange('');
-                }}
-                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-200"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          </button>
         </div>
+      </form>
 
-        {/* Swap Button */}
-        <button
-          type="button"
-          onClick={onSwap}
-          title="Swap Origin & Destination"
-          className="p-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 rounded-xl border border-slate-700 transition-all flex items-center justify-center shadow-md hover:text-white"
-        >
-          <ArrowDownUp className="w-4 h-4" />
-        </button>
+      {/* Quick Select Popular Pune Hubs */}
+      <div className="mt-3 pt-2.5 border-t border-slate-800/80">
+        <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">
+          <Sparkles className="w-3 h-3 text-amber-400" />
+          <span>Quick Select Pune Corridors</span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {POPULAR_HUBS.map((hub) => (
+            <button
+              key={hub.name}
+              type="button"
+              onClick={() => handleQuickHubClick(hub.name)}
+              className="px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-teal-300 border border-slate-700/60 transition-all active:scale-95"
+            >
+              {hub.label}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {/* Coordinates feedback */}
+      {(originCoords || destCoords) && (
+        <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] font-mono text-slate-400">
+          {originCoords && (
+            <div className="flex items-center gap-1 text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>A: {originCoords[1].toFixed(3)}°, {originCoords[0].toFixed(3)}°</span>
+            </div>
+          )}
+          {destCoords && (
+            <div className="flex items-center gap-1 text-rose-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+              <span>B: {destCoords[1].toFixed(3)}°, {destCoords[0].toFixed(3)}°</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Autocomplete Dropdown */}
-      {activeField && currentSuggestions.length > 0 && (
+      {activeField && (
         <div
           ref={dropdownRef}
           className="absolute left-0 right-0 top-full mt-2 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl overflow-hidden z-50 backdrop-blur-xl animate-in fade-in slide-in-from-top-1 duration-150"
         >
           <div className="p-2 bg-slate-950/70 border-b border-slate-800 text-[10px] font-semibold uppercase text-slate-400 tracking-wider flex items-center justify-between">
-            <span>Verified Pune Landmarks</span>
-            <span>{currentSuggestions.length} found</span>
+            <span>Verified Pune Landmarks & Areas</span>
+            <span>{currentSuggestions.length} suggestions</span>
           </div>
           <div className="max-h-60 overflow-y-auto divide-y divide-slate-800/60">
             {currentSuggestions.map((item) => (
@@ -236,7 +365,7 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
                     {getCategoryIcon(item.category)}
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-slate-200 group-hover:text-cyan-300">
+                    <div className="text-xs font-semibold text-slate-200 group-hover:text-teal-300">
                       {item.name}
                     </div>
                     {item.ward && (
@@ -251,6 +380,23 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
                 </span>
               </button>
             ))}
+
+            {/* Free-text Search Item */}
+            {((activeField === 'origin' && originQuery.trim()) || (activeField === 'destination' && destQuery.trim())) && (
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleSubmit();
+                }}
+                className="w-full text-left px-3 py-2.5 bg-teal-950/40 hover:bg-teal-900/50 text-teal-300 transition-colors flex items-center gap-2 text-xs font-medium"
+              >
+                <Search className="w-3.5 h-3.5 text-teal-400 flex-shrink-0" />
+                <span>
+                  Search custom location: "{activeField === 'origin' ? originQuery : destQuery}"
+                </span>
+              </button>
+            )}
           </div>
         </div>
       )}

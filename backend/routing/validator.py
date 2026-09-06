@@ -8,13 +8,13 @@ import math
 
 # Pune Metropolitan Calibrated Bounding Box (docs/contracts/data.md)
 PUNE_BBOX = {
-    "min_lat": 18.440,  # Katraj / Navale Bridge / Jambhulwadi
-    "max_lat": 18.580,  # Aundh / Sangvi / Khadki
-    "min_lon": 73.780,  # Kothrud / Bavdhan / Baner
-    "max_lon": 73.950,  # Hadapsar / Magarpatta / Malwadi
+    "min_lat": 18.380,  # Katraj / Kondhwa / Jambhulwadi / Saswad road
+    "max_lat": 18.680,  # PCMC / Akurdi / Bhosari / Pune Airport
+    "min_lon": 73.700,  # Hinjewadi / Wakad / Bavdhan / Pirangut
+    "max_lon": 74.020,  # Hadapsar / Wagholi / Kharadi / Manjari
 }
 
-SUPPORTED_AREAS_TEXT = "Shivajinagar, Katraj, Kothrud, Aundh, Swargate, and Hadapsar"
+SUPPORTED_AREAS_TEXT = "Shivajinagar, Katraj, Kothrud, Aundh, Swargate, Hadapsar, Baner, Hinjawadi, and Viman Nagar"
 
 
 def haversine_distance_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:

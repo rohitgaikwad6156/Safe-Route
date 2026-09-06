@@ -39,7 +39,7 @@ export const Map: React.FC<MapProps> = ({
   const incidentMarkersRef = useRef<maplibregl.Marker[]>([]);
   const amenityMarkersRef = useRef<maplibregl.Marker[]>([]);
   const animationFrameRef = useRef<number | null>(null);
-  const hasAnimatedSafestRef = useRef<boolean>(false);
+  const activeRouteLayerIdsRef = useRef<string[]>([]);
 
   // Key Pune amenities for visual context
   const keyAmenities = [
@@ -52,21 +52,6 @@ export const Map: React.FC<MapProps> = ({
   ];
 
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
-
-  // Fallback vector style if CartoDB tile server is unreachable or offline
-  const offlineFallbackStyle: maplibregl.StyleSpecification = {
-    version: 8,
-    sources: {},
-    layers: [
-      {
-        id: 'offline-bg-layer',
-        type: 'background',
-        paint: {
-          'background-color': '#090d16',
-        },
-      },
-    ],
-  };
 
   // Progressive line-drawing animation for Safest Route when selected (single moment of motion)
   const animateSafestRoute = (map: maplibregl.Map, safestRoute: RouteData) => {
@@ -147,122 +132,167 @@ export const Map: React.FC<MapProps> = ({
           1.0, 'rgba(255, 0, 50, 0.95)'
         ],
         'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 10, 14, 14, 28],
-        'heatmap-opacity': 0.65, // Calibrated: does not obscure routes
+        'heatmap-opacity': 0.65,
       },
       layout: {
         visibility: showHeatmap ? 'visible' : 'none',
       },
     });
 
-    // 2. Add Route Polyline Sources and Layers with Colorblind-Differentiated Styles
-    routes.forEach((route) => {
+    // Initial route sync
+    syncRoutesOnMap(map, routes, selectedRouteId);
+  };
+
+  const syncRoutesOnMap = (map: maplibregl.Map, routeList: RouteData[], currentSelId: string) => {
+    if (!map.isStyleLoaded()) return;
+
+    const currentLayerIds = new Set<string>();
+
+    routeList.forEach((route) => {
       const sourceId = `route-source-${route.id}`;
       const casingId = `route-casing-${route.id}`;
       const lineId = `route-line-${route.id}`;
+      currentLayerIds.add(casingId);
+      currentLayerIds.add(lineId);
 
-      const isSelected = route.id === selectedRouteId;
+      const isSelected = route.id === currentSelId;
       const isSafest = route.type === 'safest';
       const isBalanced = route.type === 'balanced';
       const isFastest = route.type === 'fastest';
 
-      // Accessible Multi-Channel Differentiation:
-      // Safest: Heavy Solid (8.0px / 6.0px) - Vivid Teal #2dd4bf
-      // Balanced: Medium Dashed [4, 2.5] (6.2px / 4.5px) - Warm Gold #f59e0b
-      // Fastest: Light Dotted [1.5, 2] (4.5px / 3.0px) - Ultramarine Blue #38bdf8
       const baseWidth = isSafest ? 6.0 : (isBalanced ? 4.5 : 3.0);
       const selWidth = isSafest ? 8.0 : (isBalanced ? 6.2 : 4.5);
       const currentWidth = isSelected ? selWidth : baseWidth;
       const casingWidth = currentWidth + (isSelected ? 5.5 : 4.0);
 
-      map.addSource(sourceId, {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {
-            id: route.id,
-            name: route.name,
-            color: route.color,
-            rss: route.rss,
-          },
-          geometry: route.geometry,
+      const geoData: any = {
+        type: 'Feature',
+        properties: {
+          id: route.id,
+          name: route.name,
+          color: route.color,
+          rss: route.rss,
         },
-      });
-
-      // Dark High-Contrast Casing Halo: floats cleanly above heatmap & streets
-      map.addLayer({
-        id: casingId,
-        type: 'line',
-        source: sourceId,
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#030712',
-          'line-width': casingWidth,
-          'line-opacity': 0.95,
-        },
-      });
-
-      // Primary polyline with distinct dash arrays
-      const linePaint: Record<string, any> = {
-        'line-color': route.color,
-        'line-width': currentWidth,
-        'line-opacity': isSelected ? 1.0 : 0.65,
+        geometry: route.geometry,
       };
 
-      if (isBalanced) {
-        linePaint['line-dasharray'] = [4, 2.5]; // Long dash
-      } else if (isFastest) {
-        linePaint['line-dasharray'] = [1.5, 2]; // Dotted
-      }
-      // Safest has no line-dasharray -> 100% Solid
+      const existingSource = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+      if (existingSource) {
+        existingSource.setData(geoData);
+      } else {
+        map.addSource(sourceId, {
+          type: 'geojson',
+          data: geoData,
+        });
 
-      map.addLayer({
-        id: lineId,
-        type: 'line',
-        source: sourceId,
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: linePaint,
-      });
+        // Dark High-Contrast Casing Halo
+        map.addLayer({
+          id: casingId,
+          type: 'line',
+          source: sourceId,
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: {
+            'line-color': '#030712',
+            'line-width': casingWidth,
+            'line-opacity': 0.95,
+          },
+        });
 
-      // Interactive cursor & click on polyline
-      map.on('mouseenter', lineId, () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
+        // Primary polyline
+        const linePaint: Record<string, any> = {
+          'line-color': route.color,
+          'line-width': currentWidth,
+          'line-opacity': isSelected ? 1.0 : 0.65,
+        };
 
-      map.on('mouseleave', lineId, () => {
-        map.getCanvas().style.cursor = isPinningMode ? 'crosshair' : '';
-      });
-
-      map.on('click', lineId, (e) => {
-        if (isPinningMode && onMapClickPin) {
-          onMapClickPin({ lat: e.lngLat.lat, lon: e.lngLat.lng });
-        } else if (!isPinningMode) {
-          onSelectRoute(route.id);
+        if (isBalanced) {
+          linePaint['line-dasharray'] = [4, 2.5];
+        } else if (isFastest) {
+          linePaint['line-dasharray'] = [1.5, 2];
         }
-      });
+
+        map.addLayer({
+          id: lineId,
+          type: 'line',
+          source: sourceId,
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: linePaint,
+        });
+
+        // Click handlers
+        map.on('mouseenter', lineId, () => {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', lineId, () => {
+          map.getCanvas().style.cursor = isPinningMode ? 'crosshair' : '';
+        });
+        map.on('click', lineId, (e) => {
+          if (isPinningMode && onMapClickPin) {
+            onMapClickPin({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+          } else if (!isPinningMode) {
+            onSelectRoute(route.id);
+          }
+        });
+      }
+
+      // Update line styles and bring selected layer to top
+      if (map.getLayer(casingId)) {
+        map.setPaintProperty(casingId, 'line-width', casingWidth);
+        if (isSelected) map.moveLayer(casingId);
+      }
+      if (map.getLayer(lineId)) {
+        map.setPaintProperty(lineId, 'line-width', currentWidth);
+        map.setPaintProperty(lineId, 'line-opacity', isSelected ? 1.0 : 0.65);
+        if (isSelected) map.moveLayer(lineId);
+      }
     });
 
-    // Fit bounds to cover all routes
-    fitRouteBounds(map, routes);
+    activeRouteLayerIdsRef.current = Array.from(currentLayerIds);
 
-    // Initial progressive line-draw if Safest is selected on load
-    const safest = routes.find((r) => r.type === 'safest');
-    if (safest && selectedRouteId === safest.id && !hasAnimatedSafestRef.current) {
-      hasAnimatedSafestRef.current = true;
+    // Fit bounds to cover all newly synced routes
+    fitRouteBounds(map, routeList);
+
+    // Progressive line draw for the Safest Route
+    const safest = routeList.find((r) => r.type === 'safest');
+    if (safest && currentSelId === safest.id) {
       animateSafestRoute(map, safest);
     }
   };
 
-  // Initialize Map with offline tile server failure recovery
+  const fitRouteBounds = (map: maplibregl.Map, rList: RouteData[]) => {
+    if (!rList || rList.length === 0) return;
+    const bounds = new maplibregl.LngLatBounds();
+    let hasCoords = false;
+
+    rList.forEach((r) => {
+      r.geometry?.coordinates?.forEach((coord) => {
+        if (Array.isArray(coord) && coord.length >= 2) {
+          bounds.extend([coord[0], coord[1]]);
+          hasCoords = true;
+        }
+      });
+    });
+
+    if (hasCoords && !bounds.isEmpty()) {
+      const isMobile = window.innerWidth < 768;
+      map.fitBounds(bounds, {
+        padding: { top: 70, bottom: 70, left: isMobile ? 30 : 490, right: 70 },
+        maxZoom: 15,
+        duration: 1200,
+      });
+    }
+  };
+
+  // Initialize Map
   useEffect(() => {
     if (!mapContainer.current || mapInstance.current) return;
 
-    // Center of Pune (between Shivajinagar & Katraj)
     const puneCenter: [number, number] = [73.848, 18.492];
 
     const map = new maplibregl.Map({
@@ -282,25 +312,13 @@ export const Map: React.FC<MapProps> = ({
       setupMapContent(map);
     });
 
-    // Error recovery: switch to offline fallback style if tile server is unreachable
     map.on('error', (e) => {
       const errStr = e.error?.message || '';
       if (errStr.includes('style') || errStr.includes('fetch') || errStr.includes('Failed') || errStr.includes('tile')) {
         setIsOfflineMode(true);
-        if (!map.isStyleLoaded()) {
-          try {
-            map.setStyle(offlineFallbackStyle);
-            map.once('style.load', () => {
-              setupMapContent(map);
-            });
-          } catch (err) {
-            console.warn('[MapLibre] Fallback style switch:', err);
-          }
-        }
       }
     });
 
-    // Map click for pinning incident
     map.on('click', (e) => {
       if (isPinningMode && onMapClickPin) {
         onMapClickPin({ lat: e.lngLat.lat, lon: e.lngLat.lng });
@@ -324,48 +342,14 @@ export const Map: React.FC<MapProps> = ({
     mapInstance.current.getCanvas().style.cursor = isPinningMode ? 'crosshair' : '';
   }, [isPinningMode]);
 
-  // Update Route selection visual styling
+  // Reactive Route Synchronization whenever routes or selection change
   useEffect(() => {
     const map = mapInstance.current;
     if (!map || !map.isStyleLoaded()) return;
+    syncRoutesOnMap(map, routes, selectedRouteId);
+  }, [routes, selectedRouteId]);
 
-    routes.forEach((route) => {
-      const isSelected = route.id === selectedRouteId;
-      const isSafest = route.type === 'safest';
-      const isBalanced = route.type === 'balanced';
-
-      const baseWidth = isSafest ? 6.0 : (isBalanced ? 4.5 : 3.0);
-      const selWidth = isSafest ? 8.0 : (isBalanced ? 6.2 : 4.5);
-      const currentWidth = isSelected ? selWidth : baseWidth;
-      const casingWidth = currentWidth + (isSelected ? 5.5 : 4.0);
-
-      const lineId = `route-line-${route.id}`;
-      const casingId = `route-casing-${route.id}`;
-
-      if (map.getLayer(casingId)) {
-        map.setPaintProperty(casingId, 'line-width', casingWidth);
-        if (isSelected) {
-          map.moveLayer(casingId);
-        }
-      }
-
-      if (map.getLayer(lineId)) {
-        map.setPaintProperty(lineId, 'line-width', currentWidth);
-        map.setPaintProperty(lineId, 'line-opacity', isSelected ? 1.0 : 0.65);
-        if (isSelected) {
-          map.moveLayer(lineId);
-        }
-      }
-    });
-
-    // Single moment of motion: draw safest route along path when selected
-    const safest = routes.find((r) => r.type === 'safest');
-    if (safest && selectedRouteId === safest.id) {
-      animateSafestRoute(map, safest);
-    }
-  }, [selectedRouteId, routes]);
-
-  // Update Heatmap visibility (placed below routes)
+  // Update Heatmap visibility
   useEffect(() => {
     const map = mapInstance.current;
     if (!map || !map.isStyleLoaded()) return;
@@ -375,7 +359,7 @@ export const Map: React.FC<MapProps> = ({
     }
   }, [showHeatmap]);
 
-  // Update Origin and Destination custom markers (High-contrast, zero animation noise)
+  // Update Origin and Destination custom markers
   useEffect(() => {
     const map = mapInstance.current;
     if (!map) return;
@@ -424,7 +408,6 @@ export const Map: React.FC<MapProps> = ({
     const map = mapInstance.current;
     if (!map) return;
 
-    // Remove existing
     amenityMarkersRef.current.forEach((m) => m.remove());
     amenityMarkersRef.current = [];
 
@@ -488,21 +471,6 @@ export const Map: React.FC<MapProps> = ({
     });
   }, [incidents]);
 
-  const fitRouteBounds = (map: maplibregl.Map, rList: RouteData[]) => {
-    if (!rList.length) return;
-    const bounds = new maplibregl.LngLatBounds();
-    rList.forEach((r) => {
-      r.geometry.coordinates.forEach((coord) => {
-        bounds.extend(coord);
-      });
-    });
-    map.fitBounds(bounds, {
-      padding: { top: 60, bottom: 60, left: 450, right: 60 },
-      maxZoom: 14,
-      duration: 1200,
-    });
-  };
-
   return (
     <div className="relative w-full h-full overflow-hidden">
       <div
@@ -515,8 +483,8 @@ export const Map: React.FC<MapProps> = ({
         }}
       />
       {isOfflineMode && (
-        <div className="absolute bottom-6 left-6 z-20 bg-slate-900/90 border border-cyan-500/40 px-3 py-1.5 rounded-xl shadow-xl backdrop-blur-md flex items-center gap-2 text-xs text-cyan-300 animate-in fade-in duration-300">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+        <div className="absolute bottom-6 left-6 z-20 bg-slate-900/90 border border-teal-500/40 px-3 py-1.5 rounded-xl shadow-xl backdrop-blur-md flex items-center gap-2 text-xs text-teal-300 animate-in fade-in duration-300">
+          <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
           <span>Offline Vector Canvas Active (Tile Server Offline — Routes & Safety Markers Visible)</span>
         </div>
       )}
