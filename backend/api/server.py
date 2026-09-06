@@ -159,23 +159,23 @@ def submit_incident_endpoint():
     Incident reporting endpoint protected by rate limiting, proximity gating,
     and two-stage peer corroboration.
     """
-    client_id = request.remote_addr or "unknown_client"
+    data = request.get_json() or {}
+    client_id = data.get("reported_by") or data.get("user_id") or request.remote_addr or "unknown_client"
     is_allowed, retry_after = check_rate_limit(client_id)
 
     if not is_allowed:
         return jsonify({
             "error": "rate_limit_exceeded",
-            "message": f"Rate limit exceeded: Maximum {MAX_INCIDENTS_PER_MINUTE} hazard reports allowed per minute to prevent spam.",
+            "message": f"Rate limit exceeded: Maximum {MAX_INCIDENTS_PER_MINUTE} hazard reports allowed per user per window.",
             "retry_after_seconds": retry_after
         }), 429
 
-    data = request.get_json() or {}
     lat = float(data.get("lat") or data.get("latitude", 0.0))
     lon = float(data.get("lon") or data.get("longitude", 0.0))
     category = data.get("category") or data.get("incident_type", "road_hazard")
     severity = int(data.get("severity", 3))
     description = data.get("description", "")
-    reporter_id = data.get("reported_by") or data.get("user_id") or data.get("user_id_hash") or client_id
+    reporter_id = client_id
 
     # Optional reporter GPS coordinate for proximity gating (within 150m)
     reporter_lat = float(data["reporter_lat"]) if "reporter_lat" in data else None

@@ -250,7 +250,10 @@ def test_post_incident_api_endpoint_and_peer_corroboration():
     t0 = datetime.now()
     lat1, lon1 = 18.52000, 73.85000
     lat2, lon2 = 18.52135, 73.85000  # ~150m apart
-    unique_type = f"waterlogging_{time.time_ns()}"
+    unique_suffix = time.time_ns()
+    unique_type = f"waterlogging_{unique_suffix}"
+    user_1 = f"mobile_user_1_{unique_suffix}"
+    user_2 = f"mobile_user_2_{unique_suffix}"
 
     # 1. Post first incident
     payload1 = {
@@ -258,7 +261,7 @@ def test_post_incident_api_endpoint_and_peer_corroboration():
         "longitude": lon1,
         "incident_type": unique_type,
         "severity": 4,
-        "reported_by": "mobile_user_1",
+        "reported_by": user_1,
         "reporter_lat": lat1,
         "reporter_lon": lon1,
         "reported_at": t0.strftime("%Y-%m-%d %H:%M:%S")
@@ -276,7 +279,7 @@ def test_post_incident_api_endpoint_and_peer_corroboration():
         "longitude": lon2,
         "incident_type": unique_type,
         "severity": 4,
-        "reported_by": "mobile_user_2",
+        "reported_by": user_2,
         "reporter_lat": lat2,
         "reporter_lon": lon2,
         "reported_at": t1.strftime("%Y-%m-%d %H:%M:%S")

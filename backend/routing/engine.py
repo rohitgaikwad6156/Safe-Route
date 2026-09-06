@@ -15,6 +15,8 @@ import json
 import time
 import math
 import heapq
+import pickle
+import logging
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
@@ -22,6 +24,8 @@ from typing import Dict, List, Tuple, Any, Optional
 import networkx as nx
 import numpy as np
 from scipy.spatial import cKDTree
+
+logger = logging.getLogger(__name__)
 
 from backend.routing.graph_loader import PuneGraphManager, get_graph_manager
 from backend.scoring.accident import calculate_accident_score
@@ -112,7 +116,18 @@ class RoutingEngine:
         self._build_edge_cache()
 
     def _build_edge_cache(self) -> None:
-        """Precomputes SSS, subscores, severity, and hazard buffer status across all edges."""
+        """Precomputes SSS, subscores, severity, and hazard buffer status across all edges or loads from disk."""
+        cache_path = DATA_DIR / "precomputed_sss.pkl"
+        if cache_path.exists():
+            try:
+                t0 = time.time()
+                with open(cache_path, "rb") as f:
+                    self.adj, self.adj_best = pickle.load(f)
+                logger.info(f"Loaded precomputed SSS edge cache in {time.time() - t0:.3f}s from {cache_path.name}")
+                return
+            except Exception as e:
+                logger.warning(f"Failed to load precomputed edge cache from {cache_path}: {e}. Recomputing...")
+
         graph = self.manager.largest_component_graph
         node_coords = self.manager.node_coords
 
@@ -204,6 +219,14 @@ class RoutingEngine:
             pair_key = (u_str, v_str)
             if pair_key not in self.adj_best or length_m < self.adj_best[pair_key][0]:
                 self.adj_best[pair_key] = (length_m, full_sss, full_risk, edge_payload)
+
+        # Persist precomputed edge scores to disk for instant O(1) restarts
+        try:
+            with open(cache_path, "wb") as f:
+                pickle.dump((self.adj, self.adj_best), f, protocol=pickle.HIGHEST_PROTOCOL)
+            logger.info(f"Persisted precomputed SSS edge cache ({len(self.adj_best)} edges) to {cache_path.name}")
+        except Exception as e:
+            logger.warning(f"Could not persist precomputed edge cache to {cache_path}: {e}")
 
     def _route_fastest(self, source: str, target: str) -> List[str]:
         """

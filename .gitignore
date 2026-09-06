@@ -50,6 +50,7 @@ yarn-error.log*
 *.sqlite3
 *.db
 backend/data/incidents.db
+backend/data/precomputed_sss.pkl
 
 # IDE & OS
 .vscode/
