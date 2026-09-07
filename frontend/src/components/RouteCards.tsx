@@ -227,7 +227,7 @@ export const RouteCards: React.FC<RouteCardsProps> = ({
                     </span>
                   </div>
                   <div className="border-x border-slate-200">
-                    <span className="text-[10px] text-slate-500 uppercase font-medium block">Travel Time</span>
+                    <span className="text-[10px] text-slate-500 uppercase font-medium block">Est. time</span>
                     <span className="text-xs font-mono font-bold text-slate-800 flex items-center justify-center gap-1">
                       <Clock className="w-3 h-3 text-blue-600 inline" />
                       {formatDuration(route.duration_seconds)}
@@ -252,6 +252,9 @@ export const RouteCards: React.FC<RouteCardsProps> = ({
                 {/* Detailed Breakdown for Selected Route */}
                 {isSelected && (
                   <>
+                    {route.notice && <p className="p-3 text-sm bg-amber-50 text-amber-900 rounded-lg">{route.notice}</p>}
+                    <p className="text-sm text-slate-600">{route.distance_overhead_percentage ?? 0}% additional distance · {route.shared_with_fastest ? 'Shares shortest route' : 'Alternative road path'}. {route.traffic_source}</p>
+                    {!!route.community_penalty && <p className="text-sm text-rose-700">Active community hazards: −{route.community_penalty} RSS points.</p>}
                     {/* Counterfactual Detour Callout */}
                     {detour && (
                       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1 text-xs">
@@ -269,15 +272,15 @@ export const RouteCards: React.FC<RouteCardsProps> = ({
                       <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
                         <div className="flex items-center justify-between text-[10px] font-bold text-slate-700 uppercase">
                           <span>Attribution Breakdown ({attrib.raw_rss.toFixed(1)} Raw RSS)</span>
-                          <span className="font-mono text-emerald-700 font-bold">100% Attributed</span>
+                          <span className="font-mono text-emerald-700 font-bold">Model contributions</span>
                         </div>
                         {/* Compact Stacked Bar */}
                         <div className="w-full h-2.5 rounded-full overflow-hidden flex bg-slate-200 border border-slate-300 p-0.5 gap-0.5">
-                          <div style={{ width: `${(attrib.contributions.accident / attrib.raw_rss) * 100}%` }} className="bg-rose-500 rounded-l-full" title={`Accident Safety: +${attrib.contributions.accident}`} />
-                          <div style={{ width: `${(attrib.contributions.emergency / attrib.raw_rss) * 100}%` }} className="bg-pink-500" title={`Emergency Access: +${attrib.contributions.emergency}`} />
-                          <div style={{ width: `${(attrib.contributions.lighting / attrib.raw_rss) * 100}%` }} className="bg-amber-400" title={`Street Lighting: +${attrib.contributions.lighting}`} />
-                          <div style={{ width: `${(attrib.contributions.pedestrian / attrib.raw_rss) * 100}%` }} className="bg-emerald-500" title={`Pedestrian Path: +${attrib.contributions.pedestrian}`} />
-                          <div style={{ width: `${(attrib.contributions.traffic / attrib.raw_rss) * 100}%` }} className="bg-blue-500 rounded-r-full" title={`Traffic Flow: +${attrib.contributions.traffic}`} />
+                          <div style={{ width: `${(attrib.contributions.accident / Math.max(1, attrib.raw_rss)) * 100}%` }} className="bg-rose-500 rounded-l-full" title={`Accident Safety: +${attrib.contributions.accident}`} />
+                          <div style={{ width: `${(attrib.contributions.emergency / Math.max(1, attrib.raw_rss)) * 100}%` }} className="bg-pink-500" title={`Emergency Access: +${attrib.contributions.emergency}`} />
+                          <div style={{ width: `${(attrib.contributions.lighting / Math.max(1, attrib.raw_rss)) * 100}%` }} className="bg-amber-400" title={`Street Lighting: +${attrib.contributions.lighting}`} />
+                          <div style={{ width: `${(attrib.contributions.pedestrian / Math.max(1, attrib.raw_rss)) * 100}%` }} className="bg-emerald-500" title={`Pedestrian Path: +${attrib.contributions.pedestrian}`} />
+                          <div style={{ width: `${(attrib.contributions.traffic / Math.max(1, attrib.raw_rss)) * 100}%` }} className="bg-blue-500 rounded-r-full" title={`Traffic Flow: +${attrib.contributions.traffic}`} />
                         </div>
                         {/* Component Value Chips */}
                         <div className="grid grid-cols-5 gap-1 text-center font-mono text-[9px]">
@@ -383,7 +386,7 @@ export const RouteCards: React.FC<RouteCardsProps> = ({
                       >
                         <span className="flex items-center gap-1.5">
                           <MapPin className="w-3.5 h-3.5 text-slate-500" />
-                          <span>Turn-by-turn Navigation ({route.steps.length} steps)</span>
+                          <span>Road-by-road itinerary ({route.steps.length} steps)</span>
                         </span>
                         {showSteps ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                       </button>

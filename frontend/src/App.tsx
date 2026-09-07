@@ -8,121 +8,28 @@ import { LayerControls } from './components/LayerControls';
 import { IncidentModal } from './components/IncidentModal';
 import { Map } from './components/Map';
 import { RouteData, IncidentReport, Landmark } from './types';
-import mockRoutesData from './mocks/routes.json';
+
 import { adjustRouteRSS, computeTemporalModifier } from './lib/temporal';
 import { geocodeLocation, GeocodeResult } from './lib/geocoding';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
-
-function generateCorridorFallback(origGeo: GeocodeResult, destGeo: GeocodeResult): RouteData[] {
-  const oLat = origGeo.lat;
-  const oLon = origGeo.lon;
-  const dLat = destGeo.lat;
-  const dLon = destGeo.lon;
-
-  const dLatM = (dLat - oLat) * 111320;
-  const dLonM = (dLon - oLon) * 111320 * Math.cos((oLat * Math.PI) / 180);
-  const approxDist = Math.max(500, Math.round(Math.sqrt(dLatM * dLatM + dLonM * dLonM)));
-  const midLat = (oLat + dLat) / 2;
-  const midLon = (oLon + dLon) / 2;
-
-  const fastestCoords: [number, number][] = [
-    [oLon, oLat],
-    [midLon, midLat],
-    [dLon, dLat]
-  ];
-  const safestCoords: [number, number][] = [
-    [oLon, oLat],
-    [oLon + (dLon - oLon) * 0.3 + 0.003, oLat + (dLat - oLat) * 0.3 - 0.002],
-    [midLon + 0.004, midLat - 0.003],
-    [oLon + (dLon - oLon) * 0.7 + 0.002, oLat + (dLat - oLat) * 0.7 - 0.001],
-    [dLon, dLat]
-  ];
-  const balancedCoords: [number, number][] = [
-    [oLon, oLat],
-    [midLon - 0.002, midLat + 0.002],
-    [dLon, dLat]
-  ];
-
-  return [
-    {
-      id: 'route-safest',
-      name: `Safest Route: ${origGeo.name.split(',')[0]} → ${destGeo.name.split(',')[0]}`,
-      type: 'safest',
-      color: '#2dd4bf',
-      distance_meters: Math.round(approxDist * 1.12),
-      duration_seconds: Math.round((approxDist * 1.12) / 8.3),
-      raw_rss: 78.5,
-      rss: 78.5,
-      risk_level: 'Safe Corridor',
-      reasons: [
-        `Risk-weighted arterial route connecting ${origGeo.name.split(',')[0]} to ${destGeo.name.split(',')[0]}.`,
-        'Avoids unlit interior alleys and high-incident accident intersections.',
-        'Maintains high proximity to PMC surveillance and active emergency corridors.'
-      ],
-      subscores: { accident: 82.0, emergency: 79.0, lighting: 76.5, pedestrian: 74.0, traffic: 80.0 },
-      geometry: { type: 'LineString', coordinates: safestCoords },
-      steps: [
-        { instruction: `Depart ${origGeo.name.split(',')[0]} via well-lit arterial corridor`, distance_meters: Math.round(approxDist * 0.4), street: 'Arterial Corridor' },
-        { instruction: `Continue toward ${destGeo.name.split(',')[0]} along protected safety avenue`, distance_meters: Math.round(approxDist * 0.72), street: 'Connecting Avenue' }
-      ]
-    },
-    {
-      id: 'route-fastest',
-      name: `Fastest Route: ${origGeo.name.split(',')[0]} → ${destGeo.name.split(',')[0]}`,
-      type: 'fastest',
-      color: '#38bdf8',
-      distance_meters: approxDist,
-      duration_seconds: Math.round(approxDist / 9.5),
-      raw_rss: 58.2,
-      rss: 58.2,
-      risk_level: 'Moderate Safety',
-      reasons: [
-        `Direct shortest-path corridor minimizing transit time (${(approxDist / 1000).toFixed(1)} km).`,
-        'Higher exposure to mixed vehicular traffic and uncalibrated junction crossings.'
-      ],
-      subscores: { accident: 54.0, emergency: 60.0, lighting: 58.0, pedestrian: 52.0, traffic: 62.0 },
-      geometry: { type: 'LineString', coordinates: fastestCoords },
-      steps: [
-        { instruction: `Proceed direct from ${origGeo.name.split(',')[0]} to ${destGeo.name.split(',')[0]}`, distance_meters: approxDist, street: 'Direct Route' }
-      ]
-    },
-    {
-      id: 'route-balanced',
-      name: `Balanced Route: ${origGeo.name.split(',')[0]} → ${destGeo.name.split(',')[0]}`,
-      type: 'balanced',
-      color: '#f59e0b',
-      distance_meters: Math.round(approxDist * 1.05),
-      duration_seconds: Math.round((approxDist * 1.05) / 8.8),
-      raw_rss: 71.0,
-      rss: 71.0,
-      risk_level: 'Moderate Safety',
-      reasons: [
-        'Optimal equilibrium between directness and safety scoring.',
-        'Minimizes detour length while avoiding major congestion nodes.'
-      ],
-      subscores: { accident: 70.0, emergency: 72.0, lighting: 70.0, pedestrian: 68.0, traffic: 73.0 },
-      geometry: { type: 'LineString', coordinates: balancedCoords },
-      steps: [
-        { instruction: `Navigate balanced route toward ${destGeo.name.split(',')[0]}`, distance_meters: Math.round(approxDist * 1.05), street: 'Balanced Route' }
-      ]
-    }
-  ];
-}
 
 export function App() {
   const [origin, setOrigin] = useState('Shivajinagar Station, Pune');
   const [destination, setDestination] = useState('Katraj (Katraj Chowk), Pune');
   const [originCoords, setOriginCoords] = useState<[number, number]>([73.8446, 18.5314]);
   const [destCoords, setDestCoords] = useState<[number, number]>([73.8553, 18.4529]);
-  const [isReversed, setIsReversed] = useState(false);
+  
   const [departureTime, setDepartureTime] = useState('21:30');
-  const [isWeekend, setIsWeekend] = useState(false);
+  const [departureDate, setDepartureDate] = useState(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }));
+  const day = new Date(`${departureDate}T12:00:00+05:30`).getUTCDay();
+  const isWeekend = day === 0 || day === 6 || (day === 5 && Number(departureTime.split(':')[0]) >= 20);
+  const requestSequence = React.useRef(0);
   const [selectedRouteId, setSelectedRouteId] = useState<string>('route-safest');
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
 
   // Dynamic raw routes loaded from live backend or pre-calibrated benchmark
-  const [rawRoutes, setRawRoutes] = useState<RouteData[]>(mockRoutesData.routes as unknown as RouteData[]);
+  const [rawRoutes, setRawRoutes] = useState<RouteData[]>([]);
   const [isLoadingRoutes, setIsLoadingRoutes] = useState(false);
   const [routeNotice, setRouteNotice] = useState<string | null>(null);
 
@@ -134,35 +41,7 @@ export function App() {
   const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
   const [isPinningMode, setIsPinningMode] = useState(false);
   const [pinnedLocation, setPinnedLocation] = useState<{ lat: number; lon: number } | null>(null);
-  const [incidents, setIncidents] = useState<IncidentReport[]>(() => {
-    try {
-      const saved = localStorage.getItem('saferoute_incidents');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return [
-      {
-        id: 'inc-1',
-        category: 'accident_prone',
-        severity: 4,
-        description: 'Navale Bridge sharp descent merge - multiple heavy vehicle brake failure incidents',
-        lat: 18.458,
-        lon: 73.828,
-        address: 'Navale Bridge, Katraj-Dehu Bypass',
-        timestamp: '20:15',
-      },
-      {
-        id: 'inc-2',
-        category: 'poor_lighting',
-        severity: 3,
-        description: 'Swargate flyover underpass LED array flickering, low visibility',
-        lat: 18.5015,
-        lon: 73.859,
-        address: 'Swargate Junction Underpass',
-        timestamp: '19:40',
-      }
-    ];
-  });
-
+  const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   // Backend Health check
   const [backendHealth, setBackendHealth] = useState<{ status: string; loadTime?: number; nodes?: number } | null>(null);
 
@@ -194,6 +73,8 @@ export function App() {
     async (origText: string, destText: string) => {
       if (!origText.trim() || !destText.trim()) return;
 
+      const sequence = ++requestSequence.current;
+      setRawRoutes([]);
       setIsLoadingRoutes(true);
       setRouteNotice(null);
 
@@ -203,6 +84,8 @@ export function App() {
           geocodeLocation(origText, API_BASE_URL),
           geocodeLocation(destText, API_BASE_URL),
         ]);
+
+        if (sequence !== requestSequence.current) return;
 
         // Guard: if geocoding failed to resolve either location, surface a clear error
         // instead of silently using (0,0) or stale previous coordinates.
@@ -230,39 +113,9 @@ export function App() {
         setOriginCoords(newOrigCoords);
         setDestCoords(newDestCoords);
 
-        // 2. Check identical origin and destination
-        const isIdentical =
-          (Math.abs(origGeo.lat - destGeo.lat) < 0.0003 && Math.abs(origGeo.lon - destGeo.lon) < 0.0003) ||
-          origGeo.name.toLowerCase().trim() === destGeo.name.toLowerCase().trim();
-
-        if (isIdentical) {
-          const zeroRoute: RouteData = {
-            id: 'route-identical',
-            name: `Immediate Destination (${origDisplayName.split(',')[0]})`,
-            type: 'safest',
-            color: '#2dd4bf',
-            distance_meters: 0,
-            duration_seconds: 0,
-            raw_rss: 100.0,
-            rss: 100.0,
-            risk_level: 'Safe Corridor',
-            reasons: [
-              `Origin and destination are identical (${origDisplayName.split(',')[0]}).`,
-              'Zero physical travel required with 0.0 meters road exposure.',
-              'Maximum safety score (100.0 RSS) due to absent vehicular and nocturnal hazard conflict.'
-            ],
-            subscores: { accident: 100, emergency: 100, lighting: 100, pedestrian: 100, traffic: 100 },
-            geometry: { type: 'LineString', coordinates: [newOrigCoords, newOrigCoords] },
-            steps: [{ instruction: `You are already at your destination: ${destDisplayName.split(',')[0]}.`, distance_meters: 0, street: destDisplayName.split(',')[0] }]
-          };
-          setRawRoutes([zeroRoute]);
-          setSelectedRouteId('route-identical');
-          setIsLoadingRoutes(false);
-          return;
-        }
-
         // 3. Query live backend multi-objective routing engine
         let backendSuccess = false;
+        let backendMessage = 'Road routing is unavailable. Retry when the backend is ready; no safety route has been calculated.';
         try {
           const res = await fetch(`${API_BASE_URL}/api/routes`, {
             method: 'POST',
@@ -270,13 +123,16 @@ export function App() {
             body: JSON.stringify({
               origin: { lat: origGeo.lat, lon: origGeo.lon, name: origDisplayName },
               destination: { lat: destGeo.lat, lon: destGeo.lon, name: destDisplayName },
-              departure_time: departureTime
+              departure_time: departureTime,
+              departure_date: departureDate
             }),
-            signal: AbortSignal.timeout(12000),
+            signal: AbortSignal.timeout(60000),
           });
 
+          if (!res.ok) { const error = await res.json(); backendMessage = error.message || backendMessage; }
           if (res.ok) {
             const data = await res.json();
+            if (sequence !== requestSequence.current) return;
             if (data && Array.isArray(data.routes) && data.routes.length > 0) {
               const styledRoutes = data.routes.map((r: RouteData) => ({
                 ...r,
@@ -287,7 +143,7 @@ export function App() {
               setSelectedRouteId(safest ? safest.id : styledRoutes[0].id);
               const srcLabel = `${origGeo.source === 'nominatim_online' ? '🌐' : origGeo.source === 'backend_geocoder' ? '🔍' : '📍'} ${origDisplayName.split(',')[0]}`;
               const dstLabel = `${destGeo.source === 'nominatim_online' ? '🌐' : destGeo.source === 'backend_geocoder' ? '🔍' : '📍'} ${destDisplayName.split(',')[0]}`;
-              setRouteNotice(`Calculated live across 56,036 Pune network nodes: ${srcLabel} → ${dstLabel}`);
+              setRouteNotice(`Road routes calculated: ${srcLabel} → ${dstLabel}. Scores are research estimates; traffic is simulated. Access to the snapped road: ${data.snap_distances_meters?.origin || 0} m at origin, ${data.snap_distances_meters?.destination || 0} m at destination.`);
               backendSuccess = true;
 
               // Snap marker coordinates to the exact road-network endpoints of the polyline
@@ -304,91 +160,47 @@ export function App() {
           console.warn('Backend route computation unavailable, using fallback:', backendErr);
         }
 
-        if (!backendSuccess) {
-          // Fallback if backend was unreachable
-          const fallbackRoutes = generateCorridorFallback(origGeo, destGeo);
-          setRawRoutes(fallbackRoutes);
-          setSelectedRouteId('route-safest');
-          setRouteNotice(`⚠️ Live road engine offline: Start backend server to trace full Pune road network.`);
+        if (!backendSuccess && sequence === requestSequence.current) {
+          setRawRoutes([]);
+          setRouteNotice(backendMessage);
         }
       } catch (err: any) {
+        if (sequence !== requestSequence.current) return;
         console.error('Route calculation error:', err);
         setRouteNotice('⚠️ Route calculation failed. Please check your connection and try again.');
       } finally {
-        setIsLoadingRoutes(false);
+        if (sequence === requestSequence.current) setIsLoadingRoutes(false);
       }
     },
-    [departureTime]
+    [departureTime, departureDate]
   );
 
-  // Automatically compute live road routes once backend server becomes ready
-  const initialFetchDoneRef = React.useRef(false);
   useEffect(() => {
-    if (backendHealth?.status === 'ready' && !initialFetchDoneRef.current) {
-      initialFetchDoneRef.current = true;
-      calculateCorridorRoutes(origin, destination);
-    }
-  }, [backendHealth?.status, origin, destination, calculateCorridorRoutes]);
+    if (backendHealth?.status === 'ready') calculateCorridorRoutes(origin, destination);
+  }, [backendHealth?.status, departureTime, departureDate]);
 
-  // Compute temporally-adjusted routes dynamically over active rawRoutes
-  const routes: RouteData[] = useMemo(() => {
-    const isIdentical =
-      origin.trim().toLowerCase() === destination.trim().toLowerCase() && origin.trim().length > 0;
+  const routes = rawRoutes;
 
-    if (isIdentical && rawRoutes.length === 1 && rawRoutes[0].id === 'route-identical') {
-      return rawRoutes;
-    }
+  const refreshIncidents = useCallback(async () => {
+    const response = await fetch(`${API_BASE_URL}/api/incidents`, { signal: AbortSignal.timeout(10000) });
+    if (!response.ok) throw new Error('Could not load community reports.');
+    const data = await response.json();
+    setIncidents(data.cells.map((cell: any) => ({
+      id: cell.cell_id, category: cell.incident_types[0], severity: cell.max_severity,
+      description: `${cell.incident_count} report(s), ${cell.status.replaceAll('_', ' ')}. Decayed hazard: ${cell.hazard_score}. Approximate 250 m cell.`,
+      lat: cell.center_lat, lon: cell.center_lon, timestamp: 'Active (expires after 12 hours)',
+    })));
+    return data;
+  }, []);
 
-    const { totalAdjustment, timeWindowLabel } = computeTemporalModifier(departureTime, isWeekend);
-
-    return rawRoutes.map((r) => {
-      const dynamicRss = Math.round(Math.max(0, Math.min(100, r.raw_rss + totalAdjustment)) * 10) / 10;
-      let riskLevel = r.risk_level;
-      if (dynamicRss >= 80) riskLevel = 'Safe Corridor';
-      else if (dynamicRss >= 65) riskLevel = 'Moderate Safety';
-      else riskLevel = 'High Risk';
-
-      const updatedAttribution = r.attribution
-        ? {
-            ...r.attribution,
-            temporal_adjustment: totalAdjustment,
-            final_rss: dynamicRss,
-          }
-        : undefined;
-
-      const updatedReasons = (r.reasons || []).map((reason) => {
-        if (reason.startsWith('RSS Attribution:')) {
-          const modText =
-            totalAdjustment !== 0
-              ? ` Temporal modifier of ${totalAdjustment > 0 ? '+' : ''}${totalAdjustment.toFixed(1)} pts results in a final ${dynamicRss.toFixed(1)} RSS.`
-              : ` Neutral temporal window (0.0 pts) results in a final ${dynamicRss.toFixed(1)} RSS.`;
-          return reason
-            .replace(/Temporal modifier of [+-]?\d+\.?\d* pts results in a final \d+\.?\d* RSS\./, modText)
-            .replace(/to the \d+\.?\d* base RSS\./, `to the ${r.raw_rss.toFixed(1)} base RSS.`);
-        }
-        if (reason.startsWith('Temporal Causation:')) {
-          return `Temporal Causation: At ${departureTime} (${timeWindowLabel}), ${r.name.split('(')[0].trim()} has a ${totalAdjustment >= 0 ? '+' : ''}${totalAdjustment.toFixed(1)} pts modifier (Base: ${r.raw_rss.toFixed(1)}, Final: ${dynamicRss.toFixed(1)} RSS). ${isWeekend ? 'Includes -3.0 weekend surge penalty.' : ''}`;
-        }
-        return reason;
-      });
-
-      const adjustedGeometry = isReversed
-        ? {
-            ...r.geometry,
-            coordinates: [...r.geometry.coordinates].reverse(),
-          }
-        : r.geometry;
-
-      return {
-        ...r,
-        rss: dynamicRss,
-        risk_level: riskLevel,
-        attribution: updatedAttribution,
-        reasons: updatedReasons,
-        geometry: adjustedGeometry,
-      };
-    });
-  }, [rawRoutes, departureTime, isWeekend, isReversed, origin, destination]);
+  useEffect(() => {
+    refreshIncidents().catch(() => {});
+    const timer = setInterval(() => {
+      refreshIncidents().catch(() => {});
+      if (backendHealth?.status === 'ready') calculateCorridorRoutes(origin, destination);
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [refreshIncidents, backendHealth?.status, calculateCorridorRoutes, origin, destination]);
 
   const selectedRoute = useMemo(() => {
     return routes.find((r) => r.id === selectedRouteId) || routes[0];
@@ -405,7 +217,7 @@ export function App() {
     setDestination(tempName);
     setOriginCoords(destCoords);
     setDestCoords(tempCoords);
-    setIsReversed((prev) => !prev);
+
     calculateCorridorRoutes(destination, origin);
   };
 
@@ -421,31 +233,30 @@ export function App() {
     }
   };
 
-  const handleAddIncident = (newReport: IncidentReport) => {
-    setIncidents((prev) => {
-      const updated = [newReport, ...prev];
-      try {
-        localStorage.setItem('saferoute_incidents', JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
+  const handleAddIncident = async (newReport: IncidentReport) => {
+    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      if (!navigator.geolocation) return reject(new Error('Location access is unavailable in this browser.'));
+      navigator.geolocation.getCurrentPosition(resolve, () => reject(new Error('Allow precise location access to report a hazard within 150 m.')), { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
     });
+    let sessionId = localStorage.getItem('saferoute_session');
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      localStorage.setItem('saferoute_session', sessionId);
+    }
+    const response = await fetch(`${API_BASE_URL}/api/post-incident`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latitude: newReport.lat, longitude: newReport.lon,
+        incident_type: newReport.category, severity: newReport.severity,
+        description: newReport.description, user_id_hash: sessionId,
+        reporter_lat: position.coords.latitude, reporter_lon: position.coords.longitude }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'The report was not accepted.');
     setPinnedLocation(null);
     setIsPinningMode(false);
-
-    fetch(`${API_BASE_URL}/api/post-incident`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        latitude: newReport.lat,
-        longitude: newReport.lon,
-        incident_type: newReport.category,
-        severity: newReport.severity,
-        description: newReport.description,
-        reported_by: 'citizen_web_client',
-        reporter_lat: newReport.lat,
-        reporter_lon: newReport.lon,
-      }),
-    }).catch(() => {});
+    await refreshIncidents().catch(() => {});
+    await calculateCorridorRoutes(origin, destination);
   };
 
   const handleStartPinning = () => {
@@ -503,7 +314,7 @@ export function App() {
                 ? `Engine Ready (${backendHealth.nodes?.toLocaleString()} nodes in ${backendHealth.loadTime}s)`
                 : backendHealth?.status === 'loading'
                 ? 'Initializing Pune Graph (Cold Start)...'
-                : 'Autonomous Graph Active (30 Crash Clusters)'}
+                : 'Road engine unavailable'}
             </span>
           </div>
 
@@ -540,7 +351,7 @@ export function App() {
 
         {/* Floating Google Maps Left Navigation Drawer */}
         <aside
-          className={`absolute top-4 left-4 bottom-4 z-20 w-full sm:w-[440px] md:w-[460px] flex flex-col bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden transition-all duration-300 ${
+          className={`absolute top-4 left-4 bottom-4 z-20 w-[calc(100%-2rem)] sm:w-[440px] md:w-[460px] flex flex-col bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden transition-all duration-300 ${
             isPanelCollapsed ? '-translate-x-[calc(100%+24px)] pointer-events-none' : 'translate-x-0 pointer-events-auto'
           }`}
         >
@@ -588,18 +399,21 @@ export function App() {
               departureTime={departureTime}
               isWeekend={isWeekend}
               onTimeChange={setDepartureTime}
-              onWeekendChange={setIsWeekend}
+              departureDate={departureDate}
+              onDateChange={setDepartureDate}
             />
 
             {/* 3. Radial Safety Gauge for Selected Route */}
-            <RadialGauge
+            {selectedRoute && <RadialGauge
               score={selectedRoute.rss}
               label={`${selectedRoute.name.split(':')[0]} Safety Score`}
               riskLevel={selectedRoute.risk_level}
               subscores={selectedRoute.subscores}
               timeModifier={temporalMod.timeModifier}
               weekendModifier={temporalMod.weekendModifier}
-            />
+            />}
+            {selectedRoute?.score_status === 'lower_bound' && <p className="text-sm text-amber-900 bg-amber-50 rounded-lg p-3">Estimated RSS range: {selectedRoute.rss}–{selectedRoute.rss_upper}. Accident data is unknown for {selectedRoute.unknown_accident_percentage}% of this route. The gauge shows the conservative lower bound.</p>}
+            {!selectedRoute && <p role="status" className="p-4 text-sm text-slate-700">{isLoadingRoutes ? 'Calculating routes on the Pune road network…' : 'Choose two Pune locations to calculate road routes.'}</p>}
 
             {/* 4. Comparison Cards for 3 Routes */}
             <RouteCards

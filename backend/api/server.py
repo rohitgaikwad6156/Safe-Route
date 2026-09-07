@@ -8,8 +8,11 @@ import os
 import sys
 import time
 import threading
+import json
+import math
+from werkzeug.exceptions import HTTPException
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Any
 
 # Ensure project root is in sys.path
@@ -18,6 +21,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from flask import Flask, request, jsonify
+from backend.scoring.context import pune_now, PUNE_TZ
 
 from backend.routing.validator import validate_coordinates, is_identical_location, build_zero_distance_route, PUNE_BBOX
 from backend.routing.graph_loader import get_graph_manager
@@ -30,6 +34,7 @@ app = Flask(__name__)
 # Preload graph into module-level memory at startup (per AGENTS.md Rule 2)
 _graph_mgr = get_graph_manager()
 _graph_mgr.load()
+_routing_engine = get_routing_engine()
 
 # Global rate limiter state: { ip: list_of_timestamps }
 _RATE_LIMITS: Dict[str, List[float]] = {}
@@ -65,6 +70,34 @@ def add_cors_headers(response):
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     return response
+
+
+@app.errorhandler(ValueError)
+@app.errorhandler(TypeError)
+@app.errorhandler(KeyError)
+@app.errorhandler(AttributeError)
+def invalid_input(error):
+    message = str(error) if 'graph coverage' in str(error) else 'Check coordinates, departure date/time and incident fields.'
+    return jsonify(error="invalid_request", message=message), 400
+
+
+@app.errorhandler(HTTPException)
+def http_error(error):
+    return jsonify(error=error.name, message=error.description), error.code
+
+
+@app.route('/api/map-data')
+def map_data():
+    data_dir = _ROOT / 'backend' / 'data'
+    with open(data_dir / 'risk_grid.json', encoding='utf-8') as f:
+        risk = json.load(f)
+    with open(data_dir / 'amenities.json', encoding='utf-8') as f:
+        amenities = json.load(f)
+    return jsonify(heatmap={'type': 'FeatureCollection', 'features': [
+        {'type': 'Feature', 'properties': {'wsi': value, 'intensity': min(1, value/35)},
+         'geometry': {'type': 'Point', 'coordinates': [float(key.split('_')[1]), float(key.split('_')[0])]}}
+        for key, value in risk.items()]}, amenities=amenities,
+        provenance='Committed research risk grid; spatially modelled WSI, not individual crash counts')
 
 
 @app.route("/health", methods=["GET"])
@@ -138,17 +171,10 @@ def get_routes_endpoint():
             "message": "Origin and destination are identical. Zero travel required."
         })
 
-    # 3. Parse optional departure time
-    dep_time_str = data.get("departure_time")
-    dep_dt = None
-    if dep_time_str:
-        try:
-            # Handle "HH:MM" format
-            parts = dep_time_str.split(":")
-            now = datetime.now()
-            dep_dt = now.replace(hour=int(parts[0]), minute=int(parts[1]), second=0, microsecond=0)
-        except Exception:
-            dep_dt = datetime.now()
+    # Use Pune calendar dates consistently on servers in any timezone.
+    dep_time_str = data.get('departure_time') or pune_now().strftime('%H:%M')
+    dep_date = data.get('departure_date') or pune_now().date().isoformat()
+    dep_dt = datetime.strptime(f'{dep_date} {dep_time_str}', '%Y-%m-%d %H:%M').replace(tzinfo=PUNE_TZ)
 
     # 4. Execute multi-objective A* search via RoutingEngine
     routing_engine = get_routing_engine()
@@ -173,7 +199,9 @@ def submit_incident_endpoint():
     and two-stage peer corroboration.
     """
     data = request.get_json() or {}
-    client_id = data.get("reported_by") or data.get("user_id") or request.remote_addr or "unknown_client"
+    client_id = data.get('user_id_hash') or data.get('reported_by') or data.get('user_id')
+    if not isinstance(client_id, str) or not 8 <= len(client_id) <= 128:
+        return jsonify(error='invalid_session', message='A valid anonymous session ID is required.'), 400
     is_allowed, retry_after = check_rate_limit(client_id)
 
     if not is_allowed:
@@ -194,16 +222,23 @@ def submit_incident_endpoint():
     reporter_lat = float(data["reporter_lat"]) if "reporter_lat" in data else None
     reporter_lon = float(data["reporter_lon"]) if "reporter_lon" in data else None
 
-    # Optional explicit timestamp parsing
-    reported_at = None
-    if "reported_at" in data and data["reported_at"]:
-        try:
-            reported_at = datetime.fromisoformat(str(data["reported_at"]))
-        except Exception:
-            try:
-                reported_at = datetime.strptime(str(data["reported_at"]), "%Y-%m-%d %H:%M:%S")
-            except Exception:
-                reported_at = None
+    if reporter_lat is None or reporter_lon is None:
+        return jsonify(error='gps_required', message='Allow browser location access to report a nearby hazard.'), 400
+    if not all(math.isfinite(v) for v in (lat, lon, reporter_lat, reporter_lon)):
+        raise ValueError('Non-finite coordinates')
+    valid, message = validate_coordinates(lat, lon)
+    if not valid:
+        return jsonify(error='out_of_bounds', message=message), 400
+    aliases = {'poor_lighting': 'broken_light', 'harassment_risk': 'unsafe_location',
+               'isolated_stretch': 'unsafe_location', 'accident_prone': 'accident',
+               'pothole_hazard': 'road_damage', 'road_hazard': 'road_damage'}
+    category = aliases.get(category, category)
+    if category not in {'accident', 'broken_light', 'road_damage', 'unsafe_location', 'traffic_problem'} or not 1 <= severity <= 5:
+        return jsonify(error='invalid_incident', message='Choose a supported category and severity from 1 to 5.'), 400
+    if not isinstance(description, str) or len(description) > 2000:
+        raise ValueError('Description too long')
+    # Receipt time is authoritative; user timestamps cannot bypass expiry/rate limits.
+    reported_at = pune_now().replace(tzinfo=None)
 
     result = submit_incident(
         latitude=lat,

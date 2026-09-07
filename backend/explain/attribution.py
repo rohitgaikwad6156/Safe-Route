@@ -65,11 +65,11 @@ def compute_attribution(
     for s in segments:
         length = s.get("length_meters", 10.0)
         sub = s.get("subscores", {})
-        weighted_sums["accident"] += length * float(sub.get("accident", 50.0))
-        weighted_sums["emergency"] += length * float(sub.get("emergency", 50.0))
-        weighted_sums["lighting"] += length * float(sub.get("lighting", 50.0))
-        weighted_sums["pedestrian"] += length * float(sub.get("pedestrian", 50.0))
-        weighted_sums["traffic"] += length * float(sub.get("traffic", 80.0))
+        weighted_sums["accident"] += length * float(sub.get("accident") or 0.0)
+        weighted_sums["emergency"] += length * float(sub.get("emergency") or 0.0)
+        weighted_sums["lighting"] += length * float(sub.get("lighting") or 0.0)
+        weighted_sums["pedestrian"] += length * float(sub.get("pedestrian") or 0.0)
+        weighted_sums["traffic"] += length * float(sub.get("traffic") or 0.0)
 
     # Calculate length-weighted means
     subscore_means = {k: v / total_length for k, v in weighted_sums.items()}
@@ -83,7 +83,8 @@ def compute_attribution(
         "traffic": round(w.traffic * subscore_means["traffic"], 4),
     }
 
-    raw_rss = round(sum(contributions.values()), 4)
+    community_adjustment = sum((sum(float(v or 0) * getattr(w, k) for k, v in seg.get('subscores', {}).items()) - seg['sss']) * seg['length_meters'] for seg in segments if 'sss' in seg) / total_length
+    raw_rss = round(sum(contributions.values()) - community_adjustment, 4)
 
     temporal_adj = 0.0
     if departure_time is not None:
@@ -104,11 +105,16 @@ def compute_attribution(
         f"Traffic flow contributes {contributions['traffic']:.1f} pts "
         f"(sub-score: {subscore_means['traffic']:.1f}) to the {raw_rss:.1f} base RSS."
     )
+    if community_adjustment:
+        explanation += f" Active community hazards deduct {community_adjustment:.2f} points (decayed at report time)."
+    if any(seg.get('wsi') is None for seg in segments):
+        explanation += " Accident data is incomplete: this is a conservative lower bound, with no safety credit for unknown accident data."
     if temporal_adj != 0.0:
         explanation += f" Temporal modifier of {temporal_adj:+.1f} pts results in a final {final_rss:.1f} RSS."
 
     return {
         "contributions": contributions,
+        "community_adjustment": round(community_adjustment, 4),
         "subscore_means": {k: round(v, 2) for k, v in subscore_means.items()},
         "weights": {"accident": w.accident, "emergency": w.emergency, "lighting": w.lighting, "pedestrian": w.pedestrian, "traffic": w.traffic},
         "raw_rss": raw_rss,

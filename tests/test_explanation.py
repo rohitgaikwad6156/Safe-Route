@@ -104,7 +104,8 @@ def test_counterfactual_detour_diffing():
     assert d["avoided_length_meters"] == 1200  # 650 + 550
     assert d["street_name"] == "NH-48 Navale Corridor"
     assert d["wsi_sum"] == 62.0  # 34 + 28
-    assert d["estimated_fatalities"] > 0
+    assert d["estimated_fatalities"] is None
+    assert "recorded serious/fatal crashes" not in d["explanation"]
     assert d["unlit_percentage"] == 100.0
     assert d["no_sidewalk_percentage"] == 100.0
     assert "accident" in d["dominant_hazard"].lower()
@@ -158,7 +159,8 @@ def test_honest_uncertainty_flagging():
     assert unc["lighting"]["confidence"] == "estimated"
     assert unc["lighting"]["verified_percentage"] == 20.0
     assert unc["lighting"]["fallback_source"] == "PMC Environment Status Report (ESR) Ward Density"
-    assert "Dhankawadi - Sahakarnagar" in unc["explanation"]
+    assert "ward/landmark proxies" in unc["explanation"]
+    assert unc["accident"]["confidence"] == "partial"
     assert "20.0%" in unc["explanation"]
 
 

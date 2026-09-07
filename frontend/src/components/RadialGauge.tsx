@@ -59,11 +59,11 @@ export const RadialGauge: React.FC<RadialGaugeProps> = ({
   const theme = getScoreTheme(score);
 
   // Weighted contributions for single compact attribution bar
-  const contribAccident = (subscores.accident || 50) * 0.30;
-  const contribEmergency = (subscores.emergency || 50) * 0.20;
-  const contribLighting = (subscores.lighting || 50) * 0.20;
-  const contribPedestrian = (subscores.pedestrian || 50) * 0.15;
-  const contribTraffic = (subscores.traffic || 50) * 0.15;
+  const contribAccident = (subscores.accident ?? 0) * 0.30;
+  const contribEmergency = (subscores.emergency ?? 0) * 0.20;
+  const contribLighting = (subscores.lighting ?? 0) * 0.20;
+  const contribPedestrian = (subscores.pedestrian ?? 0) * 0.15;
+  const contribTraffic = (subscores.traffic ?? 0) * 0.15;
   const totalContrib = contribAccident + contribEmergency + contribLighting + contribPedestrian + contribTraffic || 1;
 
   const pctAccident = (contribAccident / totalContrib) * 100;
@@ -146,7 +146,7 @@ export const RadialGauge: React.FC<RadialGaugeProps> = ({
             </div>
           </div>
           <p className="text-[11px] text-slate-500 leading-tight">
-            Multi-criteria SSS weighted by road geometry and PMC urban telemetry.
+            Multi-criteria SSS weighted by road geometry and research estimates.
           </p>
         </div>
       </div>
@@ -163,7 +163,7 @@ export const RadialGauge: React.FC<RadialGaugeProps> = ({
           <div
             style={{ width: `${pctAccident}%` }}
             className="h-full bg-rose-500 rounded-l-full"
-            title={`Accident Risk (30%): ${Math.round(subscores.accident)}`}
+            title={`Accident Risk (30%): ${subscores.accident == null ? 'Unknown' : Math.round(subscores.accident)}`}
           />
           <div
             style={{ width: `${pctEmergency}%` }}
@@ -183,14 +183,14 @@ export const RadialGauge: React.FC<RadialGaugeProps> = ({
           <div
             style={{ width: `${pctTraffic}%` }}
             className="h-full bg-blue-500 rounded-r-full"
-            title={`Traffic Telemetry (15%): ${Math.round(subscores.traffic)}`}
+            title={`Simulated Traffic (15%): ${Math.round(subscores.traffic)}`}
           />
         </div>
 
         {/* Compact Horizontal Legend Chips */}
         <div className="grid grid-cols-5 gap-1.5 text-center text-[10px]">
           <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
-            <span className="text-rose-600 block font-mono font-bold text-xs">{Math.round(subscores.accident)}</span>
+            <span className="text-rose-600 block font-mono font-bold text-xs">{subscores.accident == null ? 'Unknown' : Math.round(subscores.accident)}</span>
             <span className="text-slate-600 font-medium block truncate">Crash (30%)</span>
           </div>
           <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">

@@ -80,14 +80,16 @@ def evaluate_uncertainty(
     sw_status = "verified" if sw_verified_pct >= 70.0 else "estimated"
     overall_status = "verified" if overall_verified_pct >= 70.0 else "estimated"
 
+    known_accident_pct = round(100 * sum(s.get('length_meters', 0) for s in segments if s.get('wsi') is not None) / total_length_m, 1)
     explanation = (
         f"Data Provenance & Confidence: {overall_status.capitalize()} ({overall_verified_pct}% ground-truth verified). "
         f"Lighting is {lit_status} ({lit_verified_pct}% verified via OSM tags; {100.0 - lit_verified_pct:.1f}% "
-        f"[{fallback_lit_m/1000.0:.1f} km] inferred from PMC Ward density records for {ward_name}). "
+        f"[{fallback_lit_m/1000.0:.1f} km] estimated using ward/landmark proxies or a peripheral baseline, not observed illumination). "
         f"Pedestrian infrastructure is {sw_status} ({sw_verified_pct}% verified; {100.0 - sw_verified_pct:.1f}% "
         f"inferred from highway classification)."
     )
 
+    explanation += f" Accident-grid coverage: {known_accident_pct}%; remaining crash data is unknown. Grid values are modelled WSI; individual crash counts and source records are not available for audit. Emergency scores use road-network distance; traffic is simulated."
     if community_report_m > 0:
         explanation += f" Includes {int(community_report_m)} m of unverified community hazard reports."
 
@@ -109,8 +111,9 @@ def evaluate_uncertainty(
             "fallback_source": "OSM Highway Hierarchy Classifier"
         },
         "accident": {
-            "confidence": "verified",
-            "source": "iRAD / Pune Traffic Police Blackspot Spatial Grid (WSI)"
+            "confidence": "partial" if known_accident_pct < 100 else "modelled",
+            "coverage_percentage": known_accident_pct,
+            "source": "Committed research risk grid; record-level provenance unverified"
         },
         "community_reported_meters": int(round(community_report_m)),
         "explanation": explanation

@@ -17,6 +17,9 @@ import math
 import heapq
 import pickle
 import logging
+import hashlib
+import threading
+import re
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
@@ -37,6 +40,10 @@ from backend.scoring.traffic import calculate_traffic_score
 from backend.scoring.sss import calculate_sss
 from backend.scoring.rss import calculate_raw_rss, calculate_rss, RouteSegment
 from backend.scoring.temporal import get_weekend_modifier
+from backend.scoring.context import pune_now, traffic_context, night_risk_multiplier
+from backend.scoring.pedestrian import (calculate_pss, calculate_sidewalk_subscore,
+    calculate_crossing_subscore, calculate_road_class_subscore,
+    calculate_speed_regulation_subscore, calculate_width_exposure_subscore)
 from backend.explain.engine import ExplanationEngine
 
 
@@ -63,6 +70,15 @@ class CachedEdge:
     payload: Dict[str, Any]
 
 
+class RoutePath(list):
+    """Node sequence retaining the actual multigraph edges chosen by search."""
+    def __init__(self, nodes=(), edges=(), context=None, notice=None):
+        super().__init__(nodes)
+        self.edges = list(edges)
+        self.context = context
+        self.notice = notice
+
+
 class RoutingEngine:
     """Master routing engine providing cached edge weights, A* pathfinding, and explanation generation."""
 
@@ -73,6 +89,7 @@ class RoutingEngine:
         amenities: Optional[Dict[str, Any]] = None,
         ward_lighting: Optional[Dict[str, Any]] = None
     ):
+        self.use_disk_cache = manager is None and risk_grid is None and amenities is None and ward_lighting is None
         self.manager = manager or get_graph_manager()
         if not self.manager.is_ready:
             self.manager.load()
@@ -119,11 +136,21 @@ class RoutingEngine:
     def _build_edge_cache(self) -> None:
         """Precomputes SSS, subscores, severity, and hazard buffer status across all edges or loads from disk."""
         cache_path = DATA_DIR / "precomputed_sss.pkl"
-        if cache_path.exists():
+        digest = hashlib.sha256()
+        for file in [Path(__file__), *sorted((DATA_DIR.parent / 'scoring').glob('*.py')),
+                     DATA_DIR / 'pune_graph.pkl', DATA_DIR / 'risk_grid.json',
+                     DATA_DIR / 'amenities.json', DATA_DIR / 'ward_lighting.json', DATA_DIR / 'landmarks.json']:
+            if file.exists():
+                digest.update(file.read_bytes())
+        fingerprint = digest.hexdigest()
+        if self.use_disk_cache and cache_path.exists():
             try:
                 t0 = time.time()
                 with open(cache_path, "rb") as f:
-                    self.adj, self.adj_best = pickle.load(f)
+                    cached = pickle.load(f)
+                if not isinstance(cached, dict) or cached.get('fingerprint') != fingerprint:
+                    raise ValueError('Graph/data/scoring changed; rebuild cache')
+                self.adj, self.adj_best = cached['adj'], cached['adj_best']
                 logger.info(f"Loaded precomputed SSS edge cache in {time.time() - t0:.3f}s from {cache_path.name}")
                 return
             except Exception as e:
@@ -137,6 +164,15 @@ class RoutingEngine:
         }
         self.adj_best: Dict[Tuple[str, str], Tuple[float, float, float, Dict[str, Any]]] = {}
 
+        # Network distance toward help, respecting road direction (PDF p40).
+        help_nodes = {self.manager.snap_to_node(float(a['lat']), float(a['lon']))[0]
+                      for cat in ('hospitals', 'police', 'ecbs') for a in self.amenities.get(cat, [])}
+        help_distances = nx.multi_source_dijkstra_path_length(
+            graph.reverse(copy=False), help_nodes, weight=lambda u, v, ds: min(float(d.get('length', 10)) for d in ds.values())
+        ) if help_nodes else {}
+        with open(DATA_DIR / 'landmarks.json', encoding='utf-8') as f:
+            ward_points = [a for a in json.load(f).values() if a.get('ward')]
+        ward_tree = cKDTree([[a['lat'], a['lon']] for a in ward_points]) if ward_points else None
         edge_list = list(graph.edges(keys=True, data=True))
         if not edge_list:
             return
@@ -158,19 +194,37 @@ class RoutingEngine:
             length_m = float(d.get("length", 10.0))
             mid_lat, mid_lon = midpoints[i]
             cell_key = f"{mid_lat:.3f}_{mid_lon:.3f}"
-            wsi = float(self.risk_grid.get(cell_key, 0.0))
-
-            s_acc = calculate_accident_score(wsi)
-            s_em = calculate_emergency_score(em_dists_km[i])
-            s_light = calculate_lighting_score(d.get("lit"))
-            s_ped = calculate_pedestrian_score(d.get("sidewalk"), d.get("highway"))
+            wsi_value = self.risk_grid.get(cell_key)
+            wsi = float(wsi_value) if wsi_value is not None else None
+            # Unknown accident data is retained as null. Routing uses the lower
+            # endpoint of the SSS interval: zero credited accident-safety points.
+            s_acc = calculate_accident_score(wsi) if wsi is not None else None
+            distance_km = (length_m / 2 + help_distances.get(v, float('inf'))) / 1000
+            s_em = calculate_emergency_score(distance_km)
+            ward = d.get('ward')
+            ward_source = 'OSM ward tag' if ward else 'unavailable'
+            if not ward and ward_tree:
+                dist, wi = ward_tree.query([mid_lat, mid_lon])
+                if dist * 111000 <= 3000:
+                    ward = ward_points[wi]['ward']
+                    ward_source = 'estimated from nearest committed landmark; no ward polygons'
+            s_light = calculate_lighting_score(d.get('lit'), ward_name=ward, ward_lighting_map=self.ward_lighting)
+            def number(value):
+                match = re.search(r'\d+(?:\.\d+)?', str(value)) if value is not None else None
+                return float(match.group()) if match else None
+            crossing = d.get('crossing') or graph.nodes[v].get('crossing')
+            island = str(d.get('crossing:island', graph.nodes[v].get('crossing:island', 'no'))) == 'yes'
+            s_ped = calculate_pss(
+                calculate_sidewalk_subscore(d.get('sidewalk'), d.get('highway')),
+                calculate_crossing_subscore(crossing, island),
+                calculate_road_class_subscore(d.get('highway')), s_light / 100,
+                calculate_speed_regulation_subscore(number(d.get('maxspeed')), bool(d.get('traffic_calming'))),
+                calculate_width_exposure_subscore(number(d.get('width')), number(d.get('lanes'))),
+            )
             s_traf = calculate_traffic_score()
-
-            full_sss = calculate_sss(s_acc, s_em, s_light, s_ped, s_traf)
+            full_sss = calculate_sss(s_acc if s_acc is not None else 0, s_em, s_light, s_ped, s_traf)
             full_risk = 100.0 - full_sss
-
-            # Severity(v) normalized against MoRTH/IRC WSI_max = 35.0 (per AGENTS.md rule 4)
-            severity = min(1.0, wsi / 35.0)
+            severity = min(1.0, wsi / 35.0) if wsi is not None else 0.0
 
             # Check if within 500m buffer of high-severity blackspot clusters (Severity > 0.5)
             in_hazard_buffer = False
@@ -188,7 +242,13 @@ class RoutingEngine:
             }
 
             edge_payload = {
-                "id": f"{u_str}_{v_str}",
+                "id": f"{u_str}_{v_str}_{k}",
+                "key": str(k),
+                "accident_known": wsi is not None,
+                "ward": ward,
+                "ward_source": ward_source,
+                "emergency_distance_km": distance_km,
+                "cell_key": cell_key,
                 "u": u_str,
                 "v": v_str,
                 "name": d.get("name") or "unnamed",
@@ -223,258 +283,83 @@ class RoutingEngine:
 
         # Persist precomputed edge scores to disk for instant O(1) restarts
         try:
-            with open(cache_path, "wb") as f:
-                pickle.dump((self.adj, self.adj_best), f, protocol=pickle.HIGHEST_PROTOCOL)
+            if self.use_disk_cache:
+                temp_path = cache_path.with_suffix('.tmp')
+                with open(temp_path, "wb") as f:
+                    pickle.dump(dict(fingerprint=fingerprint, adj=self.adj, adj_best=self.adj_best), f, protocol=pickle.HIGHEST_PROTOCOL)
+                temp_path.replace(cache_path)
             logger.info(f"Persisted precomputed SSS edge cache ({len(self.adj_best)} edges) to {cache_path.name}")
         except Exception as e:
             logger.warning(f"Could not persist precomputed edge cache to {cache_path}: {e}")
 
-    def _route_fastest(self, source: str, target: str) -> List[str]:
-        """
-        Variant 1 - Fastest Route:
-        Cost function: C(u, v) = d(u, v) [pure distance/time, ignores risk R(v)].
-        Heuristic: Haversine distance in meters / d_norm.
-        Admissibility verification: Straight-line Haversine distance <= network road distance,
-        so h(u) <= h*(u). Never overestimates true remaining cost.
-        """
-        node_coords = self.manager.node_coords
-        t_lat, t_lon = node_coords[target]
+    def query_context(self, departure=None, snapshot=None):
+        from backend.scoring.corroboration import active_hazard_snapshot
+        departure = departure or pune_now()
+        return dict(departure=departure, traffic=traffic_context(departure),
+                    tau=night_risk_multiplier(departure),
+                    hazards=active_hazard_snapshot() if snapshot is None else snapshot, values={})
 
-        def h(u: str) -> float:
-            u_lat, u_lon = node_coords[u]
-            return haversine_distance_meters(u_lat, u_lon, t_lat, t_lon) / DEFAULT_D_NORM
+    def edge_values(self, edge, context):
+        key = edge.payload['id']
+        if key not in context['values']:
+            hazard = context['hazards'].score(edge.mid_lat, edge.mid_lon)
+            base = edge.sss + .15 * (context['traffic'][0] - 80.0)
+            lower = max(0.0, base - hazard)
+            upper = max(0.0, min(100.0, base + (30.0 if edge.payload['wsi'] is None else 0.0)) - hazard)
+            context['values'][key] = (lower, upper, hazard)
+        return context['values'][key]
 
-        open_set = [(h(source), 0.0, source)]
-        came_from: Dict[str, str] = {}
-        g_scores: Dict[str, float] = {source: 0.0}
-
-        while open_set:
-            f, g, u = heapq.heappop(open_set)
-            if u == target:
-                path = [u]
-                curr = u
-                while curr in came_from:
-                    curr = came_from[curr]
-                    path.append(curr)
-                path.reverse()
-                return path
-
-            if g > g_scores.get(u, float("inf")):
+    def _search(self, source, target, beta, context=None, inflate=False, prune=False):
+        context = context or self.query_context()
+        alpha = 1.0 - beta
+        target_lat, target_lon = self.manager.node_coords[target]
+        def heuristic(node):
+            lat, lon = self.manager.node_coords[node]
+            return alpha * haversine_distance_meters(lat, lon, target_lat, target_lon) / DEFAULT_D_NORM
+        pending = [(heuristic(source), 0.0, source)]
+        best = {source: 0.0}
+        previous = {}
+        while pending:
+            _, cost, u = heapq.heappop(pending)
+            if cost > best.get(u, math.inf):
                 continue
-
-            for edge in self.adj.get(u, []):
-                v = edge.target
-                cost_uv = edge.length_meters / DEFAULT_D_NORM
-                tentative_g = g + cost_uv
-
-                if tentative_g < g_scores.get(v, float("inf")):
-                    g_scores[v] = tentative_g
-                    came_from[v] = u
-                    heapq.heappush(open_set, (tentative_g + h(v), tentative_g, v))
-
-        return []
-
-    def _route_safest(self, source: str, target: str) -> List[str]:
-        """
-        Variant 2 - Safest Route:
-        Cost function: w'(u, v) = w(u, v) * (1 + Severity(v)) [multiplicative penalty inflation].
-        Base composite cost: w(u, v) = alpha * (d(u,v) / d_norm) + beta * (R(v) / 100.0).
-
-        # Sourced from docs/experiments/divergence_results.md:
-        # Empirical parameter sweep across 20 Pune OD pairs confirmed beta=0.90 (alpha=0.10)
-        # achieves optimal divergence while guaranteeing distance overhead <= 30%.
-        #
-        # NOTE: The research document's beta=0.70 / alpha=0.30 figure was explicitly
-        # superseded by the empirical sweep in docs/experiments/divergence_results.md.
-        # Do NOT 'fix' or revert this back to 0.70/0.30.
-        """
-        beta = 0.90
-        alpha = 0.10
-
-        node_coords = self.manager.node_coords
-        t_lat, t_lon = node_coords[target]
-
-        def h(u: str) -> float:
-            u_lat, u_lon = node_coords[u]
-            # Admissibility verification:
-            # Since w'(u, v) >= w(u, v) >= alpha * (d(u,v) / d_norm),
-            # h(u) = alpha * (haversine / d_norm) <= true remaining cost h*(u).
-            return alpha * (haversine_distance_meters(u_lat, u_lon, t_lat, t_lon) / DEFAULT_D_NORM)
-
-        open_set = [(h(source), 0.0, source)]
-        came_from: Dict[str, str] = {}
-        g_scores: Dict[str, float] = {source: 0.0}
-
-        while open_set:
-            f, g, u = heapq.heappop(open_set)
             if u == target:
-                path = [u]
-                curr = u
-                while curr in came_from:
-                    curr = came_from[curr]
-                    path.append(curr)
-                path.reverse()
-                return path
-
-            if g > g_scores.get(u, float("inf")):
-                continue
-
+                nodes, edges = [u], []
+                while u in previous:
+                    parent, edge = previous[u]
+                    edges.append(edge)
+                    nodes.append(parent)
+                    u = parent
+                return RoutePath(reversed(nodes), reversed(edges), context)
             for edge in self.adj.get(u, []):
-                v = edge.target
-                base_w = alpha * (edge.length_meters / DEFAULT_D_NORM) + beta * (edge.risk / 100.0)
-                cost_uv = base_w * (1.0 + edge.severity)
-                tentative_g = g + cost_uv
-
-                if tentative_g < g_scores.get(v, float("inf")):
-                    g_scores[v] = tentative_g
-                    came_from[v] = u
-                    heapq.heappush(open_set, (tentative_g + h(v), tentative_g, v))
-
-        return []
-
-    def _route_balanced(self, source: str, target: str) -> List[str]:
-        """
-        Variant 3 - Balanced Route:
-        Prunes nodes/edges where Severity(v) > 0.5 within a 500m buffer.
-        Then runs modified A* with f(n) = g(n) + h(n) + c(n) on the pruned graph,
-        where h(n) is the Haversine heuristic.
-
-        # Sourced from docs/experiments/divergence_results.md:
-        # Empirical parameter sweep across 20 Pune OD pairs confirmed beta=0.90 (alpha=0.10)
-        # achieves optimal divergence while guaranteeing distance overhead <= 30%.
-        #
-        # NOTE: The research document's beta=0.70 / alpha=0.30 figure was explicitly
-        # superseded by the empirical sweep in docs/experiments/divergence_results.md.
-        # Do NOT 'fix' or revert this back to 0.70/0.30.
-        """
-        # Balanced route: beta=0.50 (alpha=0.50) balances distance efficiency with safety weighting
-        beta = 0.50
-        alpha = 0.50
-
-        node_coords = self.manager.node_coords
-        s_lat, s_lon = node_coords[source]
-        t_lat, t_lon = node_coords[target]
-
-        def h(u: str) -> float:
-            u_lat, u_lon = node_coords[u]
-            # Admissibility verification:
-            # For any edge (u, v), edge_cost >= alpha * (d(u,v) / d_norm) because risk >= 0.
-            # Road network distance >= Haversine distance, so alpha * (haversine / d_norm)
-            # is strictly <= true remaining cost h*(n) on the road network.
-            # Therefore h(n) is mathematically guaranteed to be admissible and never overestimates.
-            return alpha * (haversine_distance_meters(u_lat, u_lon, t_lat, t_lon) / DEFAULT_D_NORM)
-
-        def is_pruned(edge: CachedEdge) -> bool:
-            # Prune if inside 500m hazard buffer and Severity > 0.5
-            if not edge.in_hazard_buffer and edge.severity <= 0.5:
-                return False
-            # Protect source and target connectivity:
-            # Do not prune edges within 500m of source or target to ensure trips originating
-            # or ending near blackspots (e.g. Navale Bridge, Katraj Chowk) can depart and arrive.
-            dist_to_src = haversine_distance_meters(edge.mid_lat, edge.mid_lon, s_lat, s_lon)
-            dist_to_tgt = haversine_distance_meters(edge.mid_lat, edge.mid_lon, t_lat, t_lon)
-            if dist_to_src <= 500.0 or dist_to_tgt <= 500.0:
-                return False
-            return True
-
-        def run_search(prune: bool) -> List[str]:
-            # Priority queue holds (f_score, g_score, u)
-            # f(n) = g(n) + h(n) + c(n)
-            open_set = [(h(source), 0.0, source)]
-            came_from: Dict[str, str] = {}
-            g_scores: Dict[str, float] = {source: 0.0}
-
-            while open_set:
-                f, g, u = heapq.heappop(open_set)
-                if u == target:
-                    path = [u]
-                    curr = u
-                    while curr in came_from:
-                        curr = came_from[curr]
-                        path.append(curr)
-                    path.reverse()
-                    return path
-
-                if g > g_scores.get(u, float("inf")):
+                if prune and edge.in_hazard_buffer:
                     continue
+                lower, _, _ = self.edge_values(edge, context) if beta else (0, 0, 0)
+                weight = alpha * edge.length_meters / DEFAULT_D_NORM + beta * context['tau'] * (100-lower)/100
+                if inflate:
+                    weight *= 1 + edge.severity
+                candidate = cost + weight
+                if candidate < best.get(edge.target, math.inf):
+                    best[edge.target] = candidate
+                    previous[edge.target] = (u, edge)
+                    heapq.heappush(pending, (candidate + heuristic(edge.target), candidate, edge.target))
+        return RoutePath(context=context, notice='No route satisfies the hazard exclusion.')
 
-                for edge in self.adj.get(u, []):
-                    if prune and is_pruned(edge):
-                        continue
+    def _route_fastest(self, source, target, context=None):
+        return self._search(source, target, 0.0, context)
 
-                    v = edge.target
-                    edge_cost = alpha * (edge.length_meters / DEFAULT_D_NORM) + beta * (edge.risk / 100.0)
-                    tentative_g = g + edge_cost
+    def _route_safest(self, source, target, context=None):
+        return self._search(source, target, 0.90, context, inflate=True)
 
-                    if tentative_g < g_scores.get(v, float("inf")):
-                        g_scores[v] = tentative_g
-                        came_from[v] = u
-                        # Contextual penalty c(n) = beta * (edge.risk / 100.0)
-                        # Modified A*: f(n) = g(n) + h(n) + c(n)
-                        c_n = beta * (edge.risk / 100.0)
-                        f_n = tentative_g + h(v) + c_n
-                        heapq.heappush(open_set, (f_n, tentative_g, v))
-
-            return []
-
-        # Attempt A* search on pruned graph first
-        path = run_search(prune=True)
+    def _route_balanced(self, source, target, context=None):
+        path = self._search(source, target, 0.50, context, prune=True)
         if not path:
-            # Fallback to unpruned search if pruning partitioned the network
-            path = run_search(prune=False)
-
+            path = self._search(source, target, 0.50, context)
+            path.notice = 'Strict 500 m hazard exclusion disconnects this trip. Showing an unpruned alternative.'
         return path
 
-    def _astar(
-        self,
-        source: str,
-        target: str,
-        beta: float,
-        d_norm: float = DEFAULT_D_NORM
-    ) -> List[str]:
-        """
-        Executes calibrated A* search with arbitrary beta.
-        Maintained for backwards compatibility.
-        """
-        node_coords = self.manager.node_coords
-        t_lat, t_lon = node_coords[target]
-        alpha = 1.0 - beta
-
-        def h(u: str) -> float:
-            u_lat, u_lon = node_coords[u]
-            return alpha * (haversine_distance_meters(u_lat, u_lon, t_lat, t_lon) / d_norm)
-
-        open_set = [(h(source), 0.0, source)]
-        came_from: Dict[str, str] = {}
-        g_scores: Dict[str, float] = {source: 0.0}
-
-        while open_set:
-            f, g, u = heapq.heappop(open_set)
-
-            if u == target:
-                path = [u]
-                curr = u
-                while curr in came_from:
-                    curr = came_from[curr]
-                    path.append(curr)
-                path.reverse()
-                return path
-
-            if g > g_scores.get(u, float("inf")):
-                continue
-
-            for edge in self.adj.get(u, []):
-                v = edge.target
-                cost_e = alpha * (edge.length_meters / d_norm) + beta * (edge.risk / 100.0)
-                tentative_g = g + cost_e
-
-                if tentative_g < g_scores.get(v, float("inf")):
-                    g_scores[v] = tentative_g
-                    came_from[v] = u
-                    heapq.heappush(open_set, (tentative_g + h(v), tentative_g, v))
-
-        return []
-
+    def _astar(self, source, target, beta, d_norm=DEFAULT_D_NORM):
+        return self._search(source, target, beta)
 
     def _build_route_data(
         self,
@@ -504,22 +389,23 @@ class RoutingEngine:
 
         for i in range(len(path) - 1):
             u, v = path[i], path[i + 1]
-            edge_info = self.adj_best.get((u, v))
-            if edge_info:
-                length_m, sss, risk, payload = edge_info
+            if isinstance(path, RoutePath):
+                edge = path.edges[i]
             else:
-                length_m, sss, risk = 10.0, 50.0, 50.0
-                payload = {"name": "unnamed", "highway": "residential", "subscores": {k: 50.0 for k in weighted_subscores}}
-
+                edge = min((e for e in self.adj[u] if e.target == v), key=lambda e: e.length_meters)
+            length_m, payload = edge.length_meters, edge.payload
+            context = getattr(path, 'context', None) or self.query_context(departure_time)
+            sss, upper_sss, hazard = self.edge_values(edge, context)
+            payload = dict(payload, subscores=dict(payload['subscores'], traffic=context['traffic'][0]))
             total_distance += length_m
             route_segments_rss.append(RouteSegment(length_meters=length_m, sss=sss))
 
             sub_dict = payload.get("subscores", {})
             for k in weighted_subscores:
-                weighted_subscores[k] += length_m * float(sub_dict.get(k, 50.0))
+                weighted_subscores[k] += length_m * float(sub_dict.get(k) or 0.0)
 
             segments.append({
-                "id": f"{u}_{v}",
+                "id": payload["id"],
                 "u": u,
                 "v": v,
                 "length_meters": length_m,
@@ -528,7 +414,12 @@ class RoutingEngine:
                 "highway": payload.get("highway") or "residential",
                 "lit": payload.get("lit") or "",
                 "sidewalk": payload.get("sidewalk") or "",
-                "wsi": payload.get("wsi", 0.0),
+                "wsi": payload.get("wsi"),
+                "cell_key": payload.get("cell_key"),
+                "sss": sss,
+                "upper_sss": upper_sss,
+                "community_hazard": hazard,
+                "ward_source": payload.get("ward_source"),
                 "subscores": sub_dict
             })
 
@@ -593,6 +484,9 @@ class RoutingEngine:
             if not coordinates or coordinates[-1] != [d_lon, d_lat]:
                 coordinates.append([d_lon, d_lat])
 
+        if not coordinates and path:
+            lat, lon = node_coords[path[0]]
+            coordinates = [[lon, lat], [lon, lat]]
         total_distance += extra_distance_m
 
         # Calculate mean subscores
@@ -602,9 +496,13 @@ class RoutingEngine:
 
         raw_rss = calculate_raw_rss(route_segments_rss)
         final_rss = calculate_rss(raw_rss, departure_time)
+        upper_raw = sum(seg['upper_sss'] * seg['length_meters'] for seg in segments) / max(1, total_distance)
+        unknown_pct = 100 * sum(seg['length_meters'] for seg in segments if seg['wsi'] is None) / max(1, total_distance)
+        if unknown_pct:
+            mean_subscores['accident'] = None
 
         # Duration estimate (mix of pedestrian and urban vehicle speed)
-        duration_seconds = int(round(total_distance / (DRIVE_SPEED_KMH * 1000.0 / 3600.0))) + extra_duration_s
+        duration_seconds = int(round(total_distance / (DRIVE_SPEED_KMH * 1000.0 / 3600.0) * traffic_context(departure_time or pune_now())[1])) + extra_duration_s
 
         # Risk level classification
         if final_rss >= 75.0:
@@ -631,6 +529,12 @@ class RoutingEngine:
             "distance_meters": int(round(total_distance)),
             "duration_seconds": duration_seconds,
             "raw_rss": round(raw_rss, 1),
+            "rss_upper": round(calculate_rss(upper_raw, departure_time), 1),
+            "unknown_accident_percentage": round(unknown_pct, 1),
+            "score_status": "lower_bound" if unknown_pct else "estimated",
+            "notice": getattr(path, 'notice', None),
+            "traffic_source": "Simulated hourly congestion (research p26); ETA uses 30 km/h reference speed",
+            "community_penalty": round(sum(seg['community_hazard'] * seg['length_meters'] for seg in segments) / max(1, total_distance), 2),
             "rss": round(final_rss, 1),
             "risk_level": risk_level,
             "reasons": [],
@@ -693,7 +597,7 @@ class RoutingEngine:
         strongly-connected component, guaranteeing A* has a valid source and target and
         a path always exists between them. No location-specific special-casing is used.
         """
-        t_dep = departure_time or datetime.now()
+        t_dep = departure_time or pune_now()
         is_weekend = get_weekend_modifier(t_dep) < 0.0
         time_str = t_dep.strftime("%H:%M")
 
@@ -702,6 +606,11 @@ class RoutingEngine:
         # mutually reachable, so A* always finds a path between any two snapped nodes.
         u_node, u_snap_lat, u_snap_lon = self.manager.snap_to_node(orig_lat, orig_lon)
         v_node, v_snap_lat, v_snap_lon = self.manager.snap_to_node(dest_lat, dest_lon)
+        for label, lat, lon, snap_lat, snap_lon in (
+            ('Origin', orig_lat, orig_lon, u_snap_lat, u_snap_lon),
+            ('Destination', dest_lat, dest_lon, v_snap_lat, v_snap_lon)):
+            if haversine_distance_meters(lat, lon, snap_lat, snap_lon) > 500:
+                raise ValueError(f'{label} is more than 500 m from the available connected road graph. Choose a location within current Pune graph coverage.')
 
         logger.info(
             "Routing %s -> %s | snapped: (%s,%s)->node %s@(%.5f,%.5f), (%s,%s)->node %s@(%.5f,%.5f)",
@@ -711,9 +620,24 @@ class RoutingEngine:
         )
 
         # --- Compute the three route variants ---
-        fastest_path = self._route_fastest(u_node, v_node)
-        safest_path  = self._route_safest(u_node, v_node)
-        balanced_path = self._route_balanced(u_node, v_node)
+        context = self.query_context(t_dep)
+        fastest_path = self._route_fastest(u_node, v_node, context)
+        safest_path = self._route_safest(u_node, v_node, context)
+        balanced_path = self._route_balanced(u_node, v_node, context)
+        if not fastest_path:
+            raise ValueError('No road route found between these locations')
+        base_distance = sum(e.length_meters for e in fastest_path.edges)
+        def mean_score(path):
+            return sum(e.length_meters * self.edge_values(e, context)[0] for e in path.edges) / max(1, sum(e.length_meters for e in path.edges))
+        if mean_score(safest_path) < mean_score(fastest_path):
+            safest_path = RoutePath(fastest_path, fastest_path.edges, context,
+                'The safety-weighted candidate did not improve the estimated RSS. Sharing the shortest road route.')
+        for path in (safest_path, balanced_path):
+            if not path or sum(e.length_meters for e in path.edges) > 1.30 * base_distance:
+                path[:] = fastest_path
+                path.edges = fastest_path.edges
+                path.context = context
+                path.notice = 'No candidate within the 30% distance allowance; shares the shortest road route.' 
 
         # Diagnostic: log path lengths and terminus coordinates to catch truncation
         for label, path in [("fastest", fastest_path), ("safest", safest_path), ("balanced", balanced_path)]:
@@ -735,8 +659,8 @@ class RoutingEngine:
             route_type="fastest",
             color="#3b82f6",
             departure_time=t_dep,
-            orig_pin=(orig_lat, orig_lon),
-            dest_pin=(dest_lat, dest_lon),
+            orig_pin=None,
+            dest_pin=None,
         )
 
         safest_route = self._build_route_data(
@@ -746,8 +670,8 @@ class RoutingEngine:
             route_type="safest",
             color="#10b981",
             departure_time=t_dep,
-            orig_pin=(orig_lat, orig_lon),
-            dest_pin=(dest_lat, dest_lon),
+            orig_pin=None,
+            dest_pin=None,
         )
 
         balanced_route = self._build_route_data(
@@ -757,12 +681,15 @@ class RoutingEngine:
             route_type="balanced",
             color="#f59e0b",
             departure_time=t_dep,
-            orig_pin=(orig_lat, orig_lon),
-            dest_pin=(dest_lat, dest_lon),
+            orig_pin=None,
+            dest_pin=None,
         )
 
         all_routes = [fastest_route, safest_route, balanced_route]
 
+        for route, path in zip(all_routes, (fastest_path, safest_path, balanced_path)):
+            route['distance_overhead_percentage'] = round(100 * (route['distance_meters'] / max(1, fastest_route['distance_meters']) - 1), 2)
+            route['shared_with_fastest'] = [e.payload['id'] for e in path.edges] == [e.payload['id'] for e in fastest_path.edges]
         # Generate grounded explanations via ExplanationEngine
         for route in all_routes:
             bundle = self.explanation_engine.generate_route_explanations(
@@ -777,26 +704,33 @@ class RoutingEngine:
             route["uncertainty"] = bundle.get("uncertainty")
             route["safe_havens"] = bundle.get("safe_havens")
 
-            # Clean internal segments from final API payload
-            if "segments" in route:
-                del route["segments"]
+        # All explanations must see all route segments before internal data is removed.
+        for route in all_routes:
+            route.pop('segments', None)
 
         return {
             "origin": {"name": orig_name, "lat": orig_lat, "lon": orig_lon},
             "destination": {"name": dest_name, "lat": dest_lat, "lon": dest_lon},
             "departure_time": time_str,
+            "departure_date": t_dep.date().isoformat(),
+            "snap_distances_meters": {
+                "origin": round(haversine_distance_meters(orig_lat, orig_lon, u_snap_lat, u_snap_lon)),
+                "destination": round(haversine_distance_meters(dest_lat, dest_lon, v_snap_lat, v_snap_lon))},
+            "model": "Research heuristic; no trained ML model or live traffic feed",
             "is_weekend": is_weekend,
             "routes": all_routes
         }
 
 
 _GLOBAL_ROUTING_ENGINE: Optional[RoutingEngine] = None
+_ENGINE_LOCK = threading.Lock()
 
 
 def get_routing_engine() -> RoutingEngine:
     """Singleton getter for RoutingEngine."""
     global _GLOBAL_ROUTING_ENGINE
-    if _GLOBAL_ROUTING_ENGINE is None:
-        _GLOBAL_ROUTING_ENGINE = RoutingEngine()
+    with _ENGINE_LOCK:
+        if _GLOBAL_ROUTING_ENGINE is None:
+            _GLOBAL_ROUTING_ENGINE = RoutingEngine()
     return _GLOBAL_ROUTING_ENGINE
 

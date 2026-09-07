@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import { RouteData, IncidentReport } from '../types';
-import heatmapsGeoJson from '../mocks/heatmaps.json';
+
 
 interface MapProps {
   routes: RouteData[];
@@ -41,15 +41,22 @@ export const Map: React.FC<MapProps> = ({
   const animationFrameRef = useRef<number | null>(null);
   const activeRouteLayerIdsRef = useRef<string[]>([]);
 
-  // Key Pune amenities for visual context
-  const keyAmenities = [
-    { name: 'Sancheti Trauma Hospital', lat: 18.5285, lon: 73.8505, type: 'hospital' },
-    { name: 'Deenanath Mangeshkar Hospital', lat: 18.5025, lon: 73.8325, type: 'hospital' },
-    { name: 'Bharati Hospital Katraj', lat: 18.4580, lon: 73.8540, type: 'hospital' },
-    { name: 'Shivajinagar Police Chowki', lat: 18.5310, lon: 73.8450, type: 'police' },
-    { name: 'Swargate Traffic Chowki', lat: 18.5015, lon: 73.8590, type: 'police' },
-    { name: 'Kothrud Police Station', lat: 18.5070, lon: 73.8050, type: 'police' },
-  ];
+  const [mapReady, setMapReady] = useState(false);
+  const [mapData, setMapData] = useState<any>(null);
+  const live = useRef({ isPinningMode, onMapClickPin, onSelectRoute });
+  live.current = { isPinningMode, onMapClickPin, onSelectRoute };
+  const keyAmenities: {name: string; lat: number; lon: number; type: string}[] = mapData ? Object.values(mapData.amenities).flat() as any : [];
+  useEffect(() => {
+    const base = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+    const refresh = () => fetch(`${base}/api/map-data`).then(r => { if (!r.ok) throw new Error('Map data unavailable'); return r.json(); }).then(setMapData).catch(() => {});
+    refresh();
+    const timer = setInterval(refresh, 60000);
+    return () => clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (mapReady && mapData && map) (map.getSource('risk-heatmap-src') as maplibregl.GeoJSONSource | undefined)?.setData(mapData.heatmap);
+  }, [mapData, mapReady]);
 
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
 
@@ -184,7 +191,7 @@ export const Map: React.FC<MapProps> = ({
     oEl.innerHTML = buildOriginHtml(originName);
     originMarkerRef.current = new maplibregl.Marker({ element: oEl, anchor: 'bottom' })
       .setLngLat([sLng, sLat])
-      .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<div class="font-bold text-xs text-emerald-700">🟢 Start: ${originName}</div>`))
+      .setPopup(new maplibregl.Popup({ offset: 25 }).setText(`Start: ${originName}`))
       .addTo(map);
 
     if (destMarkerRef.current) {
@@ -196,7 +203,7 @@ export const Map: React.FC<MapProps> = ({
     dEl.innerHTML = buildDestHtml(destName);
     destMarkerRef.current = new maplibregl.Marker({ element: dEl, anchor: 'bottom' })
       .setLngLat([dLng, dLat])
-      .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<div class="font-bold text-xs text-rose-700">🔴 End: ${destName}</div>`))
+      .setPopup(new maplibregl.Popup({ offset: 25 }).setText(`End: ${destName}`))
       .addTo(map);
   };
 
@@ -206,7 +213,7 @@ export const Map: React.FC<MapProps> = ({
     // 1. Add Risk Heatmap Source & Layer (Calibrated opacity so streets remain readable)
     map.addSource('risk-heatmap-src', {
       type: 'geojson',
-      data: heatmapsGeoJson as any,
+      data: { type: 'FeatureCollection', features: [] },
     });
 
     map.addLayer({
@@ -329,11 +336,7 @@ export const Map: React.FC<MapProps> = ({
           map.getCanvas().style.cursor = isPinningMode ? 'crosshair' : '';
         });
         map.on('click', lineId, (e) => {
-          if (isPinningMode && onMapClickPin) {
-            onMapClickPin({ lat: e.lngLat.lat, lon: e.lngLat.lng });
-          } else if (!isPinningMode) {
-            onSelectRoute(route.id);
-          }
+          if (!live.current.isPinningMode) live.current.onSelectRoute(route.id);
         });
       }
 
@@ -436,6 +439,7 @@ export const Map: React.FC<MapProps> = ({
 
     map.on('load', () => {
       setupMapContent(map);
+      setMapReady(true);
     });
 
     map.on('error', (e) => {
@@ -446,8 +450,8 @@ export const Map: React.FC<MapProps> = ({
     });
 
     map.on('click', (e) => {
-      if (isPinningMode && onMapClickPin) {
-        onMapClickPin({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+      if (live.current.isPinningMode && live.current.onMapClickPin) {
+        live.current.onMapClickPin({ lat: e.lngLat.lat, lon: e.lngLat.lng });
       }
     });
 
@@ -481,7 +485,7 @@ export const Map: React.FC<MapProps> = ({
     const map = mapInstance.current;
     if (!map || !map.isStyleLoaded()) return;
     syncRoutesOnMap(map, routes, selectedRouteId);
-  }, [routes, selectedRouteId]);
+  }, [routes, selectedRouteId, mapReady]);
 
   // Update Heatmap visibility
   useEffect(() => {
@@ -491,7 +495,7 @@ export const Map: React.FC<MapProps> = ({
     if (map.getLayer('risk-heatmap-layer')) {
       map.setLayoutProperty('risk-heatmap-layer', 'visibility', showHeatmap ? 'visible' : 'none');
     }
-  }, [showHeatmap]);
+  }, [showHeatmap, mapReady]);
 
   // Reactive marker synchronization whenever coordinates, names, or routes change
   useEffect(() => {
@@ -529,7 +533,7 @@ export const Map: React.FC<MapProps> = ({
         amenityMarkersRef.current.push(marker);
       });
     }
-  }, [showAmenities]);
+  }, [showAmenities, mapData, mapReady]);
 
   // Update Incident markers
   useEffect(() => {
@@ -553,20 +557,13 @@ export const Map: React.FC<MapProps> = ({
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([inc.lon, inc.lat])
         .setPopup(
-          new maplibregl.Popup({ offset: 12 }).setHTML(`
-            <div class="space-y-1 p-0.5">
-              <div class="text-xs font-bold text-rose-600 uppercase tracking-wide">Reported Hazard</div>
-              <div class="text-xs font-bold text-slate-800">${inc.category.replace('_', ' ')} (Sev: ${inc.severity}/5)</div>
-              <div class="text-[11px] text-slate-600">${inc.description}</div>
-              <div class="text-[10px] text-slate-400 font-mono">Logged at ${inc.timestamp}</div>
-            </div>
-          `)
+          new maplibregl.Popup({ offset: 12 }).setText(`${inc.category.replace(/_/g, ' ')} (severity ${inc.severity}/5). ${inc.description}`)
         )
         .addTo(map);
 
       incidentMarkersRef.current.push(marker);
     });
-  }, [incidents]);
+  }, [incidents, mapReady]);
 
   return (
     <div className="relative w-full h-full overflow-hidden">

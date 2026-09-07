@@ -251,7 +251,7 @@ def test_post_incident_api_endpoint_and_peer_corroboration():
     lat1, lon1 = 18.52000, 73.85000
     lat2, lon2 = 18.52135, 73.85000  # ~150m apart
     unique_suffix = time.time_ns()
-    unique_type = f"waterlogging_{unique_suffix}"
+    unique_type = "road_damage"
     user_1 = f"mobile_user_1_{unique_suffix}"
     user_2 = f"mobile_user_2_{unique_suffix}"
 

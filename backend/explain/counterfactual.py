@@ -82,21 +82,27 @@ def find_divergence_segments(
         street_name = max(set(names), key=names.count) if names else block[0].get("highway", "road corridor")
 
         # Total WSI and crash fatalities
-        wsi_sum = sum(float(e.get("wsi", 0.0)) for e in block)
+        wsi_sum = sum({e.get('cell_key', e.get('id')): float(e.get('wsi') or 0) for e in block}.values())
         # In Indian Road Congress WSI formulation, 1 fatal = 3 WSI points
-        fatalities = max(1, int(round(wsi_sum / 3.0))) if wsi_sum > 0.0 else 0
+        fatalities = None  # WSI cannot be inverted into fatalities or crash counts.
+
+        def normalised_tag(e: Dict[str, Any], key: str) -> str:
+            value = e.get(key)
+            if value is None:
+                return ""
+            return str(value).strip().lower()
 
         # Lighting coverage on avoided stretch
         unlit_length = sum(
             e.get("length_meters", 10.0) for e in block
-            if str(e.get("lit", "")).lower() in ("no", "none", "false", "0", "")
+            if normalised_tag(e, "lit") in ("no", "false", "0")
         )
         unlit_pct = round((unlit_length / block_length) * 100.0, 1) if block_length > 0 else 0.0
 
         # Sidewalk absence on avoided stretch
         no_sidewalk_length = sum(
             e.get("length_meters", 10.0) for e in block
-            if str(e.get("sidewalk", "")).lower() in ("no", "none", "") or not e.get("sidewalk")
+            if normalised_tag(e, "sidewalk") in ("no", "none")
         )
         no_sidewalk_pct = round((no_sidewalk_length / block_length) * 100.0, 1) if block_length > 0 else 0.0
 
@@ -104,7 +110,7 @@ def find_divergence_segments(
         subscore_sums = {"accident": 0.0, "lighting": 0.0, "pedestrian": 0.0}
         for e in block:
             subs = e.get("subscores", {})
-            subscore_sums["accident"] += float(subs.get("accident", 100.0))
+            subscore_sums["accident"] += float(subs.get("accident") or 0.0)
             subscore_sums["lighting"] += float(subs.get("lighting", 100.0))
             subscore_sums["pedestrian"] += float(subs.get("pedestrian", 100.0))
 
@@ -118,22 +124,22 @@ def find_divergence_segments(
 
         # Proportional extra time for this block
         block_fraction = block_length / max(1.0, sum(sum(b_e.get('length_meters', 10.0) for b_e in b) for b in divergent_blocks))
-        block_extra_min = max(0.5, round(net_extra_minutes * block_fraction, 1))
+        block_extra_min = round(net_extra_minutes * block_fraction, 1)
         block_extra_m = int(round(net_extra_distance * block_fraction))
 
         # Grounded counterfactual explanation
         infra_notes = []
         if wsi_sum > 0.0:
-            infra_notes.append(f"{wsi_sum:.1f} cumulative WSI ({fatalities} recorded serious/fatal crashes)")
+            infra_notes.append(f"{wsi_sum:.1f} modelled WSI across intersected grid cells (crash counts unknown)")
         if no_sidewalk_pct > 50.0:
             infra_notes.append("no continuous footpath")
         if unlit_pct > 50.0:
             infra_notes.append("unlit stretch")
 
-        infra_str = ", ".join(infra_notes) if infra_notes else "elevated arterial crash hazard"
+        infra_str = ", ".join(infra_notes) if infra_notes else "different infrastructure scores; missing tags remain unknown"
 
         sentence = (
-            f"Avoided a {int(round(block_length))} m stretch of {street_name} — "
+            f"Avoided a {int(round(block_length))} m stretch of {street_name}: "
             f"{infra_str}. "
             f"Bypass adds {block_extra_m} m (+{block_extra_min:.1f} min). "
             f"Primary avoidance factor: {dominant_hazard}."

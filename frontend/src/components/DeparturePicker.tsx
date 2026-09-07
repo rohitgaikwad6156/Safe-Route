@@ -6,14 +6,16 @@ interface DeparturePickerProps {
   departureTime: string;
   isWeekend: boolean;
   onTimeChange: (time: string) => void;
-  onWeekendChange: (isWeekend: boolean) => void;
+  departureDate: string;
+  onDateChange: (date: string) => void;
 }
 
 export const DeparturePicker: React.FC<DeparturePickerProps> = ({
   departureTime,
   isWeekend,
   onTimeChange,
-  onWeekendChange,
+  departureDate,
+  onDateChange,
 }) => {
   const temporal = computeTemporalModifier(departureTime, isWeekend);
 
@@ -34,9 +36,7 @@ export const DeparturePicker: React.FC<DeparturePickerProps> = ({
         </div>
         <div className="flex items-center space-x-1.5">
           <span className="text-[11px] text-slate-500">Weekend:</span>
-          <button
-            type="button"
-            onClick={() => onWeekendChange(!isWeekend)}
+          <span
             className={`px-2.5 py-0.5 rounded-full text-xs font-semibold transition-colors border ${
               isWeekend
                 ? 'bg-rose-50 text-rose-700 border-rose-300'
@@ -44,15 +44,18 @@ export const DeparturePicker: React.FC<DeparturePickerProps> = ({
             }`}
           >
             {isWeekend ? 'Active (-3)' : 'Weekday (0)'}
-          </button>
+          </span>
         </div>
       </div>
 
+      <label className="block text-sm text-slate-700">Departure date (Pune time)
+        <input aria-label="Departure date" type="date" value={departureDate} onChange={e => onDateChange(e.target.value)} className="block border rounded-lg p-2 w-full" />
+      </label>
       {/* Time input & Preset buttons */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[120px]">
           <input
-            type="time"
+            aria-label="Departure time" type="time"
             value={departureTime}
             onChange={(e) => onTimeChange(e.target.value)}
             className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-800 font-mono focus:outline-none focus:border-blue-500 transition-colors"

@@ -50,7 +50,7 @@ export const LayerControls: React.FC<LayerControlsProps> = ({
               ? 'bg-rose-50 text-rose-700 border border-rose-200 shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
-          title="Toggle Pune Accident Risk Heatmap (534 WSI Clusters)"
+          title="Toggle Pune Accident Risk Heatmap"
         >
           <Flame className={`w-4 h-4 ${showHeatmap ? 'text-rose-600 fill-rose-500/20' : ''}`} />
           <span>Risk Heatmap</span>
@@ -94,17 +94,17 @@ export const LayerControls: React.FC<LayerControlsProps> = ({
           <div className="flex items-center gap-2">
             <span className="w-3.5 h-1.5 bg-[#059669] rounded-full" />
             <span className="text-slate-800 font-medium">Safest Route</span>
-            <span className="text-[10px] font-mono font-bold text-emerald-700 ml-auto">RSS 82+</span>
+            <span className="text-[10px] font-mono font-bold text-emerald-700 ml-auto">Safety</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3.5 h-1.5 bg-[#1a73e8] rounded-full" />
             <span className="text-slate-800 font-medium">Fastest Route</span>
-            <span className="text-[10px] font-mono font-bold text-blue-700 ml-auto">RSS ~52</span>
+            <span className="text-[10px] font-mono font-bold text-blue-700 ml-auto">Distance</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3.5 h-1.5 bg-[#d97706] rounded-full" />
             <span className="text-slate-800 font-medium">Balanced Route</span>
-            <span className="text-[10px] font-mono font-bold text-amber-700 ml-auto">RSS ~75</span>
+            <span className="text-[10px] font-mono font-bold text-amber-700 ml-auto">Tradeoff</span>
           </div>
           {showHeatmap && (
             <div className="flex items-center gap-2 pt-1 border-t border-slate-100">

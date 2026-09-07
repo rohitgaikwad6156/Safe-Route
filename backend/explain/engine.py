@@ -57,12 +57,14 @@ class ExplanationEngine:
 
         # 3. Temporal Causation
         temporal_analysis = {}
-        if all_routes:
-            temporal_analysis = analyze_temporal_causation(
-                all_routes,
-                noon_time_str="12:00",
-                night_time_str=departure_time_str if departure_time_str else "23:00"
-            )
+        if departure_time:
+            from backend.scoring.context import night_risk_multiplier
+            temporal_analysis = {'explanation': (
+                f"Temporal Causation: At {departure_time_str} Pune time, the RSS modifier is "
+                f"{attrib['temporal_adjustment']:+.1f} points. Search uses a "
+                f"{night_risk_multiplier(departure_time):.1f}x risk multiplier. "
+                "Changing departure time recalculates the road routes with simulated traffic."
+            )}
 
         # 4. Honest Uncertainty
         uncertainty = evaluate_uncertainty(segments, ward_name=ward_name)

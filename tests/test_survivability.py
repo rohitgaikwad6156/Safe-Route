@@ -134,7 +134,7 @@ def test_incident_rate_limiting_spammed_50_times():
         for _ in range(10):
             res = client.post(
                 "/api/incidents",
-                json={"category": "hazard", "lat": 18.5, "lon": 73.8},
+                json={"category": "road_damage", "lat": 18.5, "lon": 73.8, "user_id_hash": spam_ip, "reporter_lat": 18.5, "reporter_lon": 73.8},
                 environ_overrides={"REMOTE_ADDR": spam_ip}
             )
             responses.append(res)

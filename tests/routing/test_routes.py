@@ -6,9 +6,9 @@ from backend.routing.engine import get_routing_engine, haversine_distance_meters
 
 
 OD_PAIRS = [
-    (18.5314, 73.8446, "Shivajinagar Station",  18.6520, 73.7615, "PCCOE Akurdi"),
+    (18.5314, 73.8446, "Shivajinagar Station", 18.4529, 73.8553, "Katraj Chowk"),
     (18.5090, 73.8076, "Kothrud Depot",          18.4580, 73.8280, "Katraj Chowk"),
-    (18.5923, 73.7387, "Hinjawadi Phase 1",      18.5018, 73.8586, "Swargate"),
+    (18.5602, 73.8078, "Aundh",                18.5018, 73.8586, "Swargate"),
     (18.5559, 73.7856, "Baner Road",             18.5089, 73.9259, "Hadapsar"),
     (18.5590, 73.8078, "Aundh Bremen Chowk",     18.5667, 73.9167, "Viman Nagar"),
 ]
@@ -94,3 +94,10 @@ def test_safest_rss_geq_fastest(engine, orig_lat, orig_lon, orig_name, dest_lat,
     assert safest_rss >= fastest_rss - 2.0, (
         f"Safest RSS ({safest_rss}) < Fastest RSS ({fastest_rss}) for {orig_name} -> {dest_name}"
     )
+
+
+def test_outside_connected_graph_is_not_a_fabricated_connector(engine):
+    with pytest.raises(ValueError, match='graph coverage'):
+        _compute_all(engine, 18.5314, 73.8446, 'Shivajinagar', 18.6520, 73.7615, 'PCCOE Akurdi')
+    with pytest.raises(ValueError, match='graph coverage'):
+        _compute_all(engine, 18.5923, 73.7387, 'Hinjawadi Phase 1', 18.5018, 73.8586, 'Swargate')

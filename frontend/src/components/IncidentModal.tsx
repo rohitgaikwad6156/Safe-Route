@@ -5,7 +5,7 @@ import { IncidentReport } from '../types';
 interface IncidentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (report: IncidentReport) => void;
+  onSubmit: (report: IncidentReport) => Promise<void>;
   pinnedLocation: { lat: number; lon: number } | null;
   onStartPinning: () => void;
 }
@@ -17,11 +17,12 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
   pinnedLocation,
   onStartPinning,
 }) => {
-  const [category, setCategory] = useState<IncidentReport['category']>('poor_lighting');
+  const [category, setCategory] = useState<IncidentReport['category']>('broken_light');
   const [severity, setSeverity] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('Katraj - Swargate Junction, Pune');
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
   const recentSubmissionsRef = React.useRef<number[]>([]);
@@ -42,58 +43,43 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
 
   const categories = [
     {
-      id: 'poor_lighting',
+      id: 'broken_light',
       label: 'Broken / Poor Lighting',
       icon: <LightbulbOff className="w-4 h-4 text-amber-400" />,
       desc: 'Dark road stretches, non-functioning street lamps',
     },
     {
-      id: 'harassment_risk',
+      id: 'unsafe_location',
       label: 'Harassment / Safety Risk',
       icon: <ShieldAlert className="w-4 h-4 text-rose-400" />,
       desc: 'Unsafe gathering, eve-teasing, deserted area',
     },
     {
-      id: 'accident_prone',
+      id: 'accident',
       label: 'Accident Blackspot',
       icon: <AlertTriangle className="w-4 h-4 text-red-500" />,
       desc: 'Dangerous blind turns, frequent vehicle collisions',
     },
     {
-      id: 'pothole_hazard',
+      id: 'road_damage',
       label: 'Severe Road Hazard',
       icon: <Construction className="w-4 h-4 text-orange-400" />,
       desc: 'Deep potholes, unpaved road, open manhole',
     },
     {
-      id: 'isolated_stretch',
-      label: 'Isolated Stretch',
+      id: 'traffic_problem',
+      label: 'Traffic Problem',
       icon: <EyeOff className="w-4 h-4 text-purple-400" />,
-      desc: 'Zero pedestrian footfall, no surveillance',
+      desc: 'Gridlock, dangerous merging or blocked traffic',
     },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const now = Date.now();
-    const windowMs = 30000;
-    const maxSubmissions = 3;
-
-    // Sliding window: filter submissions to the last 30s
-    recentSubmissionsRef.current = recentSubmissionsRef.current.filter((t) => now - t < windowMs);
-
-    if (recentSubmissionsRef.current.length >= maxSubmissions) {
-      const oldest = recentSubmissionsRef.current[0];
-      const waitSeconds = Math.max(1, Math.ceil((windowMs - (now - oldest)) / 1000));
-      setRateLimitError(
-        `Rate Limit Exceeded: Maximum ${maxSubmissions} hazard reports allowed per 30 seconds to prevent crowdsourced spam. Please wait ${waitSeconds}s before submitting another report.`
-      );
-      return;
-    }
-
-    recentSubmissionsRef.current.push(now);
+    if (isSubmitting) return;
+    if (!pinnedLocation) { setRateLimitError('Pin the incident on the map first. Your live GPS must be within 150 m.'); return; }
     setRateLimitError(null);
-
+    setIsSubmitting(true);
     const newReport: IncidentReport = {
       id: `incident-${Date.now()}`,
       category,
@@ -105,12 +91,16 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    onSubmit(newReport);
-    setIsSuccess(true);
+    try {
+      await onSubmit(newReport);
+      setIsSuccess(true);
     setTimeout(() => {
       setIsSuccess(false);
       onClose();
-    }, 1200);
+    }, 1800);
+    } catch (error) {
+      setRateLimitError(error instanceof Error ? error.message : 'Report failed. Please retry.');
+    } finally { setIsSubmitting(false); }
   };
 
   return (
@@ -156,7 +146,7 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
             </div>
             <h3 className="text-lg font-bold text-slate-900">Hazard Reported Successfully</h3>
             <p className="text-xs text-slate-500 max-w-xs">
-              Incident pinned to live Pune safety map. RSS scores will recalculate for this corridor.
+              Report accepted. The public map shows an approximate 250 m cell. Routes have been recalculated with its decaying hazard impact.
             </p>
           </div>
         ) : (
@@ -282,10 +272,10 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
                 Cancel
               </button>
               <button
-                type="submit"
+                type="submit" disabled={isSubmitting}
                 className="px-5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md transition-all active:scale-95"
               >
-                Submit Hazard Report
+                {isSubmitting ? 'Checking location and submitting…' : 'Submit Hazard Report'}
               </button>
             </div>
           </form>

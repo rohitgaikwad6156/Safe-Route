@@ -1,7 +1,7 @@
 export type RouteType = 'fastest' | 'safest' | 'balanced';
 
 export interface RouteSubscores {
-  accident: number;
+  accident: number | null;
   emergency: number;
   lighting: number;
   pedestrian: number;
@@ -34,7 +34,7 @@ export interface CounterfactualDetour {
   avoided_length_meters: number;
   street_name: string;
   wsi_sum: number;
-  estimated_fatalities: number;
+  estimated_fatalities: number | null;
   unlit_percentage: number;
   no_sidewalk_percentage: number;
   dominant_hazard: string;
@@ -81,6 +81,14 @@ export interface RouteData {
   distance_meters: number;
   duration_seconds: number;
   raw_rss: number;
+  score_status?: string;
+  rss_upper?: number;
+  unknown_accident_percentage?: number;
+  community_penalty?: number;
+  distance_overhead_percentage?: number;
+  shared_with_fastest?: boolean;
+  notice?: string;
+  traffic_source?: string;
   rss: number;
   risk_level: 'Safe Corridor' | 'Moderate Safety' | 'Elevated Risk' | 'High Risk';
   reasons: string[];
@@ -140,7 +148,7 @@ export interface HeatmapFeature {
 
 export interface IncidentReport {
   id: string;
-  category: 'poor_lighting' | 'harassment_risk' | 'pothole_hazard' | 'accident_prone' | 'isolated_stretch';
+  category: 'broken_light' | 'unsafe_location' | 'road_damage' | 'accident' | 'traffic_problem';
   severity: 1 | 2 | 3 | 4 | 5;
   description: string;
   lat: number;

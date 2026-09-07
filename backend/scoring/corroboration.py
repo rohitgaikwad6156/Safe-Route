@@ -15,6 +15,7 @@ Implements the research document's incident verification architecture:
 """
 import math
 import sqlite3
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
@@ -27,11 +28,47 @@ PEER_WINDOW_MINUTES: float = 30.0
 PROXIMITY_GATE_METERS: float = 150.0
 EXPIRY_HOURS: float = 12.0
 
-DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent / "data" / "incidents.db"
+DEFAULT_DB_PATH = Path(os.environ.get('SAFEROUTE_INCIDENT_DB', str(Path(__file__).resolve().parent.parent / "data" / "incidents.db")))
 
 
 # Reuse canonical Haversine helper from validator.py (no duplication)
 from backend.routing.validator import haversine_distance_meters
+from backend.scoring.context import pune_now
+
+
+class HazardSnapshot:
+    """One read per route request, with indexed nearby hazard queries in memory."""
+    def __init__(self, records=(), now=None):
+        from scipy.spatial import cKDTree
+        self.records = list(records)
+        self.now = now or pune_now().replace(tzinfo=None)
+        self.tree = cKDTree([(r[0] * 111000, r[1] * 105000) for r in self.records]) if self.records else None
+
+    def score(self, lat, lon):
+        if self.tree is None:
+            return 0.0
+        total = 0.0
+        for i in self.tree.query_ball_point((lat * 111000, lon * 105000), 255):
+            rlat, rlon, severity, status, timestamp = self.records[i]
+            if haversine_distance_meters(lat, lon, rlat, rlon) > 250:
+                continue
+            elapsed = (self.now - datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')).total_seconds() / 60
+            if 0 <= elapsed < 720:
+                impact = 1.0 if status in ('preliminary_verified', 'verified') else .2
+                total += severity * impact * math.exp(-DEFAULT_DECAY_LAMBDA * elapsed)
+        return total
+
+
+def active_hazard_snapshot(db_path=None, now=None):
+    now = now or pune_now().replace(tzinfo=None)
+    path = db_path or DEFAULT_DB_PATH
+    if not path.exists():
+        return HazardSnapshot(now=now)
+    with sqlite3.connect(str(path)) as conn:
+        records = conn.execute('''SELECT latitude, longitude, severity, status, reported_at
+            FROM community_incidents WHERE reported_at > ? AND reported_at <= ? AND status != 'expired' ''',
+            ((now-timedelta(hours=12)).strftime('%Y-%m-%d %H:%M:%S'), now.strftime('%Y-%m-%d %H:%M:%S'))).fetchall()
+    return HazardSnapshot(records, now)
 
 
 def init_incident_db(db_path: Optional[Path] = None) -> None:
@@ -83,7 +120,10 @@ def submit_incident(
     path = db_path or DEFAULT_DB_PATH
     init_incident_db(path)
 
-    now = reported_at or datetime.now()
+    if not all(math.isfinite(v) for v in (latitude, longitude)) or not (1 <= severity <= 5):
+        return {'status': 'rejected', 'reason': 'invalid_input', 'message': 'Valid coordinates and severity 1â€“5 are required.'}
+
+    now = reported_at or pune_now().replace(tzinfo=None)
     now_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
     # 1. Proximity gating: Reporter must be within 150m of reported incident coordinate
@@ -97,6 +137,7 @@ def submit_incident(
             }
 
     with sqlite3.connect(str(path)) as conn:
+        conn.execute('BEGIN IMMEDIATE')
         cursor = conn.cursor()
 
         # 2. Flooding Defense: Max 5 reports per user per 60 minutes
@@ -120,8 +161,10 @@ def submit_incident(
             FROM community_incidents
             WHERE incident_type = ? 
               AND reported_at >= ?
+              AND reported_at <= ?
+              AND reported_by != ?
               AND status != 'expired'
-        """, (incident_type, thirty_mins_ago))
+        """, (incident_type, thirty_mins_ago, now_str, reported_by))
         candidates = cursor.fetchall()
 
         is_corroborated = False
@@ -192,7 +235,7 @@ def calculate_dynamic_hazard(
     if not path.exists():
         return {"hazard_score": 0.0, "active_incidents": 0, "incidents": []}
 
-    now = current_time or datetime.now()
+    now = current_time or pune_now().replace(tzinfo=None)
     twelve_hours_ago = (now - timedelta(hours=EXPIRY_HOURS)).strftime("%Y-%m-%d %H:%M:%S")
 
     total_hazard = 0.0
@@ -203,8 +246,8 @@ def calculate_dynamic_hazard(
         cursor.execute("""
             SELECT id, latitude, longitude, incident_type, severity, status, reported_at
             FROM community_incidents
-            WHERE reported_at >= ?
-        """, (twelve_hours_ago,))
+            WHERE reported_at >= ? AND reported_at <= ? AND status != 'expired'
+        """, (twelve_hours_ago, now.strftime('%Y-%m-%d %H:%M:%S')))
         records = cursor.fetchall()
 
     for inc_id, lat, lon, inc_type, severity, status, rep_str in records:
@@ -267,7 +310,7 @@ def get_privacy_aggregated_incidents(
     if not path.exists():
         return []
 
-    now = current_time or datetime.now()
+    now = current_time or pune_now().replace(tzinfo=None)
     twelve_hours_ago = (now - timedelta(hours=expiry_hours)).strftime("%Y-%m-%d %H:%M:%S")
 
     with sqlite3.connect(str(path)) as conn:
@@ -275,8 +318,8 @@ def get_privacy_aggregated_incidents(
         cursor.execute("""
             SELECT id, latitude, longitude, incident_type, severity, status, reported_at
             FROM community_incidents
-            WHERE reported_at >= ? AND status != 'expired'
-        """, (twelve_hours_ago,))
+            WHERE reported_at >= ? AND reported_at <= ? AND status != 'expired'
+        """, (twelve_hours_ago, now.strftime('%Y-%m-%d %H:%M:%S')))
         records = cursor.fetchall()
 
     if not records:
@@ -320,4 +363,3 @@ def get_privacy_aggregated_incidents(
         })
 
     return aggregated_cells
-

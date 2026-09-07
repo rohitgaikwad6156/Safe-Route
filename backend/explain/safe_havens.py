@@ -148,12 +148,12 @@ def evaluate_safe_havens(
     sample_end = band_results[-1]
 
     explanation = (
-        f"Safe Haven Position-Band Coverage: Continuous emergency access verified across {len(band_results)} journey bands. "
-        f"Nearest trauma facility never exceeds {int(round(max_hosp_dist))} m "
+        f"Safe Haven Position-Band Coverage: Nearby facilities sampled across {len(band_results)} journey bands. "
+        f"Largest sampled straight-line hospital distance is {int(round(max_hosp_dist))} m "
         f"(accessible: {sample1['hospital']['name']} at {sample1['hospital']['distance_meters']} m; "
         f"{sample_mid['hospital']['name']} at {sample_mid['hospital']['distance_meters']} m; "
         f"{sample_end['hospital']['name']} at {sample_end['hospital']['distance_meters']} m). "
-        f"Police chowki proximity is maintained within {int(round(max_police_dist))} m."
+        f"Largest sampled straight-line police distance is {int(round(max_police_dist))} m. These are sampled straight-line distances, not response times or continuous coverage guarantees."
     )
 
     return {
