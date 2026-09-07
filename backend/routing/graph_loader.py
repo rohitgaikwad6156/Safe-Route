@@ -63,15 +63,19 @@ class PuneGraphManager:
         self.total_edges = len(self.graph.edges)
 
         # Detect directed disconnected components and isolate the largest for guaranteed reachability
-        components = list(nx.strongly_connected_components(self.graph))
-        self.components_count = len(components)
-        largest_comp_nodes = max(components, key=len)
-        self.largest_component_nodes = len(largest_comp_nodes)
+        if source_type == "raw_graphml_cold_start":
+            components = list(nx.strongly_connected_components(self.graph))
+            self.components_count = len(components)
+            largest_comp_nodes = max(components, key=len)
+            self.largest_component_nodes = len(largest_comp_nodes)
+            disconnected = set(self.graph.nodes) - largest_comp_nodes
+            if disconnected:
+                self.graph.remove_nodes_from(disconnected)
+        else:
+            # Pre-pruned binary pickle is guaranteed strongly connected
+            self.components_count = 1
+            self.largest_component_nodes = len(self.graph.nodes)
 
-        # In-place isolation of largest connected component to avoid duplicating 56k nodes / 130k edges in RAM
-        disconnected = set(self.graph.nodes) - largest_comp_nodes
-        if disconnected:
-            self.graph.remove_nodes_from(disconnected)
         self.largest_component_graph = self.graph
 
         # Build KDTree on largest component nodes for guaranteed routing reachability
