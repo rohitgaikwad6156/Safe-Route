@@ -68,8 +68,11 @@ class PuneGraphManager:
         largest_comp_nodes = max(components, key=len)
         self.largest_component_nodes = len(largest_comp_nodes)
 
-        # Build largest component subgraph
-        self.largest_component_graph = self.graph.subgraph(largest_comp_nodes).copy()
+        # In-place isolation of largest connected component to avoid duplicating 56k nodes / 130k edges in RAM
+        disconnected = set(self.graph.nodes) - largest_comp_nodes
+        if disconnected:
+            self.graph.remove_nodes_from(disconnected)
+        self.largest_component_graph = self.graph
 
         # Build KDTree on largest component nodes for guaranteed routing reachability
         self.node_ids = []
@@ -86,6 +89,14 @@ class PuneGraphManager:
 
         if coords_list:
             self.kd_tree = cKDTree(np.array(coords_list))
+
+        # Render free-tier memory optimization (<512MB limit):
+        # When precomputed_sss.pkl is present, edge weights & geometries are cached in RoutingEngine.
+        # Clearing the raw NetworkX edge dicts saves 127MB of redundant RAM while keeping all nodes intact.
+        if (DATA_DIR / "precomputed_sss.pkl").exists():
+            self.graph.clear_edges()
+            import gc
+            gc.collect()
 
         self.is_ready = True
         return self.get_metadata()

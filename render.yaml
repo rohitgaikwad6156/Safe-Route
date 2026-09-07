@@ -4,10 +4,8 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120 backend.api.server:app
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 180 backend.api.server:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
-      - key: PORT
-        value: 8000
     healthCheckPath: /health
