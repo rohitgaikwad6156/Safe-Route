@@ -16,6 +16,17 @@
       "Pimpri Chinchwad College"
     ]
   },
+  "Wagholi (Primary Health Center)": {
+    "lat": 18.5799477,
+    "lon": 73.9827968,
+    "category": "healthcare",
+    "ward": "Wagholi",
+    "aliases": [
+      "Wagholi",
+      "Wagholi Pune",
+      "Primary Health Center Wagholi"
+    ]
+  },
   "Hinjewadi Phase 1": {
     "lat": 18.5913,
     "lon": 73.7389,

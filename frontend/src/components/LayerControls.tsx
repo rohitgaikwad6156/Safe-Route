@@ -1,11 +1,15 @@
 import React from 'react';
-import { Flame, Hospital, RotateCcw, AlertTriangle, Layers, Info } from 'lucide-react';
+import { Flame, Hospital, RotateCcw, AlertTriangle, Layers } from 'lucide-react';
+
+export type AmenityFilters = Record<'hospitals' | 'police' | 'fire' | 'streetlights' | 'crossings' | 'signals' | 'safe_places', boolean>;
 
 interface LayerControlsProps {
   showHeatmap: boolean;
   onToggleHeatmap: () => void;
-  showAmenities: boolean;
-  onToggleAmenities: () => void;
+  amenityFilters: AmenityFilters;
+  onToggleAmenity: (key: keyof AmenityFilters) => void;
+  showCommunity: boolean;
+  onToggleCommunity: () => void;
   onResetView: () => void;
   isPinningMode: boolean;
   onCancelPinning: () => void;
@@ -14,8 +18,10 @@ interface LayerControlsProps {
 export const LayerControls: React.FC<LayerControlsProps> = ({
   showHeatmap,
   onToggleHeatmap,
-  showAmenities,
-  onToggleAmenities,
+  amenityFilters,
+  onToggleAmenity,
+  showCommunity,
+  onToggleCommunity,
   onResetView,
   isPinningMode,
   onCancelPinning,
@@ -56,20 +62,14 @@ export const LayerControls: React.FC<LayerControlsProps> = ({
           <span>Risk Heatmap</span>
         </button>
 
-        {/* Emergency Amenities Toggle */}
-        <button
-          type="button"
-          onClick={onToggleAmenities}
-          className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-            showAmenities
-              ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-          title="Toggle Hospitals, Police Chowkis & ECBs"
-        >
-          <Hospital className={`w-4 h-4 ${showAmenities ? 'text-blue-600' : ''}`} />
-          <span>Safety Amenities</span>
-        </button>
+        <details className="relative">
+          <summary className="list-none cursor-pointer px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-slate-600 hover:bg-slate-100"><Hospital className="w-4 h-4"/>Safety amenities</summary>
+          <div className="absolute right-0 mt-2 w-60 bg-white border border-slate-200 shadow-xl rounded-xl p-3 grid grid-cols-1 gap-2">
+            {Object.entries({hospitals:'Hospitals / clinics',police:'Police stations',fire:'Fire stations',streetlights:'Streetlights',crossings:'Crossings',signals:'Traffic signals',safe_places:'Safe places / help'}).map(([key,label]) => <label key={key} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={amenityFilters[key as keyof AmenityFilters]} onChange={() => onToggleAmenity(key as keyof AmenityFilters)}/>{label}</label>)}
+            <label className="flex items-center gap-2 text-xs pt-2 border-t"><input type="checkbox" checked={showCommunity} onChange={onToggleCommunity}/>Community reports</label>
+            <p className="text-[9px] text-slate-400">Layers are opt-in and capped for performance.</p>
+          </div>
+        </details>
 
         <div className="w-[1px] h-5 bg-slate-200 mx-1" />
 

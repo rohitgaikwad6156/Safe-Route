@@ -184,7 +184,11 @@ def test_safe_haven_position_band_sampling(real_data):
         assert "ecb" in band and "name" in band["ecb"]
         assert band["hospital"]["distance_meters"] > 0
         assert band["police"]["distance_meters"] > 0
-        assert band["ecb"]["distance_meters"] > 0
+        if band["ecb"]["available"]:
+            assert band["ecb"]["distance_meters"] > 0
+        else:
+            assert band["ecb"]["distance_meters"] is None
+            assert "No mapped" in band["ecb"]["name"]
 
     assert havens["max_hospital_distance_meters"] > 0
     assert "Safe Haven Position-Band Coverage" in havens["explanation"]

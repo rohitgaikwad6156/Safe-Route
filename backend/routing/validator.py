@@ -8,10 +8,10 @@ import math
 
 # Pune Metropolitan Calibrated Bounding Box (docs/contracts/data.md)
 PUNE_BBOX = {
-    "min_lat": 18.380,  # Katraj / Kondhwa / Jambhulwadi / Saswad road
-    "max_lat": 18.680,  # PCMC / Akurdi / Bhosari / Pune Airport
-    "min_lon": 73.700,  # Hinjewadi / Wakad / Bavdhan / Pirangut
-    "max_lon": 74.020,  # Hadapsar / Wagholi / Kharadi / Manjari
+    "min_lat": 18.350,
+    "max_lat": 18.800,
+    "min_lon": 73.650,
+    "max_lon": 74.100,
 }
 
 SUPPORTED_AREAS_TEXT = "Shivajinagar, Katraj, Kothrud, Aundh, Swargate, Hadapsar, Baner, Hinjawadi, and Viman Nagar"

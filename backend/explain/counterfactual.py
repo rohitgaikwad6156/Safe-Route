@@ -77,9 +77,25 @@ def find_divergence_segments(
             # Skip tiny micro-turn jitters if larger stretches exist
             continue
 
-        # Prominent street name
-        names = [e.get("name") for e in block if e.get("name") and e.get("name") != "unnamed"]
-        street_name = max(set(names), key=names.count) if names else block[0].get("highway", "road corridor")
+        # OSM can encode multilingual/alternate values as lists. Explanations need
+        # a stable, hashable display value rather than assuming every tag is text.
+        def display_tag(value: Any, fallback: str) -> str:
+            if isinstance(value, (list, tuple, set)):
+                values = [str(item).strip() for item in value if str(item).strip()]
+                return " / ".join(values) if values else fallback
+            text = str(value).strip() if value is not None else ""
+            return text if text and text.lower() != "unnamed" else fallback
+
+        names = [
+            display_tag(e.get("name"), "")
+            for e in block
+            if display_tag(e.get("name"), "")
+        ]
+        street_name = (
+            max(set(names), key=names.count)
+            if names
+            else display_tag(block[0].get("highway"), "road corridor")
+        )
 
         # Total WSI and crash fatalities
         wsi_sum = sum({e.get('cell_key', e.get('id')): float(e.get('wsi') or 0) for e in block}.values())

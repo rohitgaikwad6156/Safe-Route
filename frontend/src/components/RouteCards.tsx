@@ -2,17 +2,24 @@ import React, { useState } from 'react';
 import { Clock, Navigation2, CheckCircle2, AlertCircle, ChevronDown, ChevronUp, Zap, Shield, Scale, MapPin, HeartPulse, Lightbulb, Footprints, AlertTriangle, Info, Hospital } from 'lucide-react';
 import { RouteData } from '../types';
 import { formatDistance, formatDuration, getScoreColor } from '../lib/utils';
+import { WeatherContext } from './TripConditions';
 
 interface RouteCardsProps {
   routes: RouteData[];
   selectedRouteId: string;
   onSelectRoute: (routeId: string) => void;
+  departureTime: string;
+  isWeekend: boolean;
+  weather: WeatherContext;
 }
 
 export const RouteCards: React.FC<RouteCardsProps> = ({
   routes,
   selectedRouteId,
   onSelectRoute,
+  departureTime,
+  isWeekend,
+  weather,
 }) => {
   const [expandedReasons, setExpandedReasons] = useState<Record<string, boolean>>({
     'route-safest': true,
@@ -252,6 +259,23 @@ export const RouteCards: React.FC<RouteCardsProps> = ({
                 {/* Detailed Breakdown for Selected Route */}
                 {isSelected && (
                   <>
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 space-y-2">
+                      <div className="flex items-center justify-between"><span className="text-xs font-bold text-emerald-900">Human safety summary</span>{route.profile_recommended && <span className="text-[9px] uppercase font-bold bg-emerald-700 text-white px-2 py-1 rounded-full">Profile pick</span>}</div>
+                      <p className="text-[11px] leading-relaxed text-emerald-900">{route.profile_explanation || 'Profile explanation has limited data.'}</p>
+                      <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                        <span className="bg-white border rounded-lg p-2"><b>Profile fit</b><br/>{route.profile_score == null ? 'Limited data' : `${route.profile_score}/100`}</span>
+                        <span className="bg-white border rounded-lg p-2"><b>Travel context</b><br/>{Number(departureTime.split(':')[0]) >= 19 || Number(departureTime.split(':')[0]) < 6 ? 'Night' : 'Day'} · {isWeekend ? 'Weekend' : 'Weekday'}</span>
+                        <span className="bg-white border rounded-lg p-2"><b>Nearest care</b><br/>{route.safe_havens?.nearest_hospital?.name || 'Limited data'}</span>
+                        <span className="bg-white border rounded-lg p-2"><b>Nearest police</b><br/>{route.safe_havens?.nearest_police?.name || 'Limited data'}</span>
+                        <span className="bg-white border rounded-lg p-2"><b>Weather</b><br/>{weather.label}</span>
+                        <span className="bg-white border rounded-lg p-2"><b>Known risk zones</b><br/>{route.warnings?.some(w => w.type === 'blackspot') ? 'Encountered — see warning' : 'No higher-WSI cells encountered'}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-600">Data limit: {route.profile_limitation || 'Coverage varies by street.'}</p>
+                    </div>
+                    {!!route.warnings?.length && <div className="space-y-1.5" aria-label="Unsafe segment warnings">
+                      {route.warnings.map((warning, index) => <div key={`${warning.type}-${index}`} className="flex gap-2 p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-[11px] text-rose-900"><AlertTriangle className="w-4 h-4 shrink-0"/><span>{warning.message}</span></div>)}
+                    </div>}
+                    {(weather.rainMm || (weather.visibilityKm != null && weather.visibilityKm < 3)) && <p className="text-[11px] bg-amber-50 border border-amber-200 text-amber-900 p-2.5 rounded-lg">Poor-weather caution: {weather.rainMm ? `${weather.rainMm} mm rain forecast` : 'low visibility forecast'}. Weather is advisory and does not alter the RSS.</p>}
                     {route.notice && <p className="p-3 text-sm bg-amber-50 text-amber-900 rounded-lg">{route.notice}</p>}
                     <p className="text-sm text-slate-600">{route.distance_overhead_percentage ?? 0}% additional distance · {route.shared_with_fastest ? 'Shares shortest route' : 'Alternative road path'}. {route.traffic_source}</p>
                     {!!route.community_penalty && <p className="text-sm text-rose-700">Active community hazards: −{route.community_penalty} RSS points.</p>}

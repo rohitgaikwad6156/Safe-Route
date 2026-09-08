@@ -72,6 +72,29 @@ class ExplanationEngine:
         # 5. Safe Haven Context
         safe_havens = evaluate_safe_havens(lat_lon_coords, self.amenities, num_bands=4)
 
+        route_length = sum(float(s.get("length_meters", 0)) for s in segments) or 1.0
+        blackspot_m = sum(float(s.get("length_meters", 0)) for s in segments
+                          if s.get("wsi") is not None and float(s["wsi"]) > 17.5)
+        low_light_m = sum(float(s.get("length_meters", 0)) for s in segments
+                          if float(s.get("subscores", {}).get("lighting") or 0) < 60)
+        weak_help_m = sum(float(s.get("length_meters", 0)) for s in segments
+                          if float(s.get("subscores", {}).get("emergency") or 0) < 50)
+        community_m = sum(float(s.get("length_meters", 0)) for s in segments
+                          if float(s.get("community_hazard") or 0) > 0)
+        warnings = []
+        if blackspot_m:
+            warnings.append({"type": "blackspot", "severity": "high",
+                "message": f"Caution: {blackspot_m / 1000:.1f} km passes through higher modelled crash-risk cells (WSI > 17.5/35)."})
+        if low_light_m:
+            warnings.append({"type": "lighting", "severity": "medium",
+                "message": f"Low-light confidence: {100 * low_light_m / route_length:.0f}% of route length has a lighting subscore below 60/100."})
+        if weak_help_m:
+            warnings.append({"type": "emergency", "severity": "medium",
+                "message": f"Emergency access is weaker on {100 * weak_help_m / route_length:.0f}% of route length (subscore below 50/100)."})
+        if community_m:
+            warnings.append({"type": "community", "severity": "medium",
+                "message": f"Community reports affect {community_m / 1000:.1f} km of this route; these are separate from official datasets and may be unverified."})
+
         # 6. Assemble Grounded Reasons Array
         reasons = []
 
@@ -109,5 +132,6 @@ class ExplanationEngine:
             "counterfactual_detours": detours,
             "temporal_causation": temporal_analysis,
             "uncertainty": uncertainty,
-            "safe_havens": safe_havens
+            "safe_havens": safe_havens,
+            "warnings": warnings
         }

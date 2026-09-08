@@ -45,12 +45,14 @@ from backend.scoring.pedestrian import (calculate_pss, calculate_sidewalk_subsco
     calculate_crossing_subscore, calculate_road_class_subscore,
     calculate_speed_regulation_subscore, calculate_width_exposure_subscore)
 from backend.explain.engine import ExplanationEngine
+from backend.scoring.profiles import apply_profile, normalize_profile
 
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DEFAULT_D_NORM = 100.0  # Characteristic street normalization denominator (meters)
 WALK_SPEED_MPS = 1.3    # Standard pedestrian walking speed (m/s)
 DRIVE_SPEED_KMH = 30.0  # Urban Pune reference speed (km/h)
+EDGE_CACHE_SCHEMA_VERSION = 2
 
 
 # Reuse canonical Haversine helper from validator.py (no duplication)
@@ -114,7 +116,8 @@ class RoutingEngine:
 
         # Build emergency amenities KDTree
         em_pts = []
-        for cat in ["hospitals", "police", "ecbs"]:
+        for cat in ["hospitals", "clinics", "police", "fire_stations", "ecbs",
+                    "emergency_access_points", "defibrillators", "ambulance_stations"]:
             for item in self.amenities.get(cat, []):
                 em_pts.append([float(item["lat"]), float(item["lon"])])
         self.em_tree = cKDTree(np.array(em_pts)) if em_pts else None
@@ -148,7 +151,16 @@ class RoutingEngine:
                 t0 = time.time()
                 with open(cache_path, "rb") as f:
                     cached = pickle.load(f)
-                if not isinstance(cached, dict) or cached.get('fingerprint') != fingerprint:
+                graph_node_count = len(self.manager.largest_component_graph.nodes)
+                graph_edge_count = self.manager.largest_component_graph.number_of_edges()
+                if (
+                    not isinstance(cached, dict)
+                    or cached.get('fingerprint') != fingerprint
+                    or cached.get('schema_version') != EDGE_CACHE_SCHEMA_VERSION
+                    or cached.get('node_count') != graph_node_count
+                    or cached.get('edge_count') != graph_edge_count
+                    or not cached.get('adj_best')
+                ):
                     raise ValueError('Graph/data/scoring changed; rebuild cache')
                 self.adj, self.adj_best = cached['adj'], cached['adj_best']
                 logger.info(f"Loaded precomputed SSS edge cache in {time.time() - t0:.3f}s from {cache_path.name}")
@@ -166,7 +178,9 @@ class RoutingEngine:
 
         # Network distance toward help, respecting road direction (PDF p40).
         help_nodes = {self.manager.snap_to_node(float(a['lat']), float(a['lon']))[0]
-                      for cat in ('hospitals', 'police', 'ecbs') for a in self.amenities.get(cat, [])}
+                      for cat in ('hospitals', 'clinics', 'police', 'fire_stations', 'ecbs',
+                                  'emergency_access_points', 'defibrillators', 'ambulance_stations')
+                      for a in self.amenities.get(cat, [])}
         help_distances = nx.multi_source_dijkstra_path_length(
             graph.reverse(copy=False), help_nodes, weight=lambda u, v, ds: min(float(d.get('length', 10)) for d in ds.values())
         ) if help_nodes else {}
@@ -286,7 +300,14 @@ class RoutingEngine:
             if self.use_disk_cache:
                 temp_path = cache_path.with_suffix('.tmp')
                 with open(temp_path, "wb") as f:
-                    pickle.dump(dict(fingerprint=fingerprint, adj=self.adj, adj_best=self.adj_best), f, protocol=pickle.HIGHEST_PROTOCOL)
+                    pickle.dump(dict(
+                        fingerprint=fingerprint,
+                        schema_version=EDGE_CACHE_SCHEMA_VERSION,
+                        node_count=len(graph.nodes),
+                        edge_count=graph.number_of_edges(),
+                        adj=self.adj,
+                        adj_best=self.adj_best,
+                    ), f, protocol=pickle.HIGHEST_PROTOCOL)
                 temp_path.replace(cache_path)
             logger.info(f"Persisted precomputed SSS edge cache ({len(self.adj_best)} edges) to {cache_path.name}")
         except Exception as e:
@@ -587,7 +608,8 @@ class RoutingEngine:
         dest_lon: float,
         orig_name: str = "Origin",
         dest_name: str = "Destination",
-        departure_time: Optional[datetime] = None
+        departure_time: Optional[datetime] = None,
+        profile_id: str = "student"
     ) -> Dict[str, Any]:
         """
         Calculates Fastest (beta=0.0), Safest (beta=0.90), and Balanced (beta=0.50) routes
@@ -598,6 +620,7 @@ class RoutingEngine:
         a path always exists between them. No location-specific special-casing is used.
         """
         t_dep = departure_time or pune_now()
+        profile_id = normalize_profile(profile_id)
         is_weekend = get_weekend_modifier(t_dep) < 0.0
         time_str = t_dep.strftime("%H:%M")
 
@@ -703,6 +726,16 @@ class RoutingEngine:
             route["counterfactual_detours"] = bundle.get("counterfactual_detours", [])
             route["uncertainty"] = bundle.get("uncertainty")
             route["safe_havens"] = bundle.get("safe_havens")
+            route["warnings"] = bundle.get("warnings", [])
+            apply_profile(route, profile_id)
+
+        recommended = max(all_routes, key=lambda item: (
+            item.get('profile_score') or -1,
+            1 if item.get('type') == 'safest' else 0,
+        ))
+        for route in all_routes:
+            route['profile_recommended'] = route['id'] == recommended['id']
+            route['reasons'].insert(0, route['profile_explanation'])
 
         # All explanations must see all route segments before internal data is removed.
         for route in all_routes:
@@ -718,6 +751,8 @@ class RoutingEngine:
                 "destination": round(haversine_distance_meters(dest_lat, dest_lon, v_snap_lat, v_snap_lon))},
             "model": "Research heuristic; no trained ML model or live traffic feed",
             "is_weekend": is_weekend,
+            "profile": recommended["profile"],
+            "profile_recommended_route_id": recommended["id"],
             "routes": all_routes
         }
 

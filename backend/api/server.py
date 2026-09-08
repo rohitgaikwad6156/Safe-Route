@@ -27,6 +27,7 @@ from backend.routing.validator import validate_coordinates, is_identical_locatio
 from backend.routing.graph_loader import get_graph_manager
 from backend.routing.engine import get_routing_engine
 from backend.scoring.corroboration import submit_incident, get_privacy_aggregated_incidents
+from backend.scoring.profiles import profile_catalog, normalize_profile
 from backend.api.geocoder import geocode_location
 
 app = Flask(__name__)
@@ -98,6 +99,20 @@ def map_data():
          'geometry': {'type': 'Point', 'coordinates': [float(key.split('_')[1]), float(key.split('_')[0])]}}
         for key, value in risk.items()]}, amenities=amenities,
         provenance='Committed research risk grid; spatially modelled WSI, not individual crash counts')
+
+
+@app.route('/api/datasets', methods=['GET'])
+def dataset_registry():
+    """Returns the data card shown in the UI; no raw incident records are exposed."""
+    registry_path = _ROOT / 'backend' / 'data' / 'dataset_registry.json'
+    with open(registry_path, encoding='utf-8') as registry_file:
+        registry = json.load(registry_file)
+    return jsonify(registry)
+
+
+@app.route('/api/profiles', methods=['GET'])
+def safety_profiles():
+    return jsonify({"profiles": profile_catalog()})
 
 
 @app.route("/health", methods=["GET"])
@@ -175,6 +190,7 @@ def get_routes_endpoint():
     dep_time_str = data.get('departure_time') or pune_now().strftime('%H:%M')
     dep_date = data.get('departure_date') or pune_now().date().isoformat()
     dep_dt = datetime.strptime(f'{dep_date} {dep_time_str}', '%Y-%m-%d %H:%M').replace(tzinfo=PUNE_TZ)
+    profile = normalize_profile(str(data.get('profile') or 'student'))
 
     # 4. Execute multi-objective A* search via RoutingEngine
     routing_engine = get_routing_engine()
@@ -185,7 +201,8 @@ def get_routes_endpoint():
         dest_lon=dest_lon,
         orig_name=orig.get("name", "Origin"),
         dest_name=dest.get("name", "Destination"),
-        departure_time=dep_dt
+        departure_time=dep_dt,
+        profile_id=profile
     )
 
     return jsonify(routes_payload)
@@ -219,8 +236,9 @@ def submit_incident_endpoint():
     reporter_id = client_id
 
     # Optional reporter GPS coordinate for proximity gating (within 150m)
-    reporter_lat = float(data["reporter_lat"]) if "reporter_lat" in data else None
-    reporter_lon = float(data["reporter_lon"]) if "reporter_lon" in data else None
+    demo_mode = data.get('demo_mode') is True
+    reporter_lat = float(data["reporter_lat"]) if "reporter_lat" in data else (lat if demo_mode else None)
+    reporter_lon = float(data["reporter_lon"]) if "reporter_lon" in data else (lon if demo_mode else None)
 
     if reporter_lat is None or reporter_lon is None:
         return jsonify(error='gps_required', message='Allow browser location access to report a nearby hazard.'), 400
@@ -231,15 +249,18 @@ def submit_incident_endpoint():
         return jsonify(error='out_of_bounds', message=message), 400
     aliases = {'poor_lighting': 'broken_light', 'harassment_risk': 'unsafe_location',
                'isolated_stretch': 'unsafe_location', 'accident_prone': 'accident',
-               'pothole_hazard': 'road_damage', 'road_hazard': 'road_damage'}
+               'pothole_hazard': 'road_damage', 'road_hazard': 'road_damage',
+               'road_blocked': 'traffic_problem'}
     category = aliases.get(category, category)
-    if category not in {'accident', 'broken_light', 'road_damage', 'unsafe_location', 'traffic_problem'} or not 1 <= severity <= 5:
+    if category not in {'accident', 'broken_light', 'road_damage', 'unsafe_location', 'traffic_problem', 'helpful_safe_place'} or not 1 <= severity <= 5:
         return jsonify(error='invalid_incident', message='Choose a supported category and severity from 1 to 5.'), 400
     if not isinstance(description, str) or len(description) > 2000:
         raise ValueError('Description too long')
     # Receipt time is authoritative; user timestamps cannot bypass expiry/rate limits.
     reported_at = pune_now().replace(tzinfo=None)
 
+    if demo_mode:
+        description = f"[DEMO community report] {description}".strip()
     result = submit_incident(
         latitude=lat,
         longitude=lon,
@@ -256,6 +277,7 @@ def submit_incident_endpoint():
         status_code = 403 if result.get("reason") == "proximity_gating_failed" else 429
         return jsonify(result), status_code
 
+    result['demo_mode'] = demo_mode
     return jsonify(result), 201
 
 

@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import { RouteData, IncidentReport } from '../types';
+import { AmenityFilters } from './LayerControls';
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!));
+}
 
 
 interface MapProps {
@@ -8,7 +13,8 @@ interface MapProps {
   selectedRouteId: string;
   onSelectRoute: (routeId: string) => void;
   showHeatmap: boolean;
-  showAmenities: boolean;
+  amenityFilters: AmenityFilters;
+  showCommunity: boolean;
   incidents: IncidentReport[];
   isPinningMode: boolean;
   onMapClickPin?: (coords: { lat: number; lon: number }) => void;
@@ -23,7 +29,8 @@ export const Map: React.FC<MapProps> = ({
   selectedRouteId,
   onSelectRoute,
   showHeatmap,
-  showAmenities,
+  amenityFilters,
+  showCommunity,
   incidents,
   isPinningMode,
   onMapClickPin,
@@ -47,7 +54,7 @@ export const Map: React.FC<MapProps> = ({
   live.current = { isPinningMode, onMapClickPin, onSelectRoute };
   const keyAmenities: {name: string; lat: number; lon: number; type: string}[] = mapData ? Object.values(mapData.amenities).flat() as any : [];
   useEffect(() => {
-    const base = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+    const base = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? '' : 'http://127.0.0.1:8000')).replace(/\/$/, '');
     const refresh = () => fetch(`${base}/api/map-data`).then(r => { if (!r.ok) throw new Error('Map data unavailable'); return r.json(); }).then(setMapData).catch(() => {});
     refresh();
     const timer = setInterval(refresh, 60000);
@@ -111,7 +118,7 @@ export const Map: React.FC<MapProps> = ({
   };
 
   const buildOriginHtml = (name: string) => {
-    const cleanName = (name || 'Origin').split(',')[0].trim();
+    const cleanName = escapeHtml((name || 'Origin').split(',')[0].trim());
     return `
       <div class="relative flex flex-col items-center group cursor-pointer select-none" style="z-index: 50;">
         <div class="mb-1.5 px-3 py-1 rounded-full bg-white border-2 border-emerald-600 shadow-xl flex items-center gap-1.5 text-xs font-bold text-slate-800 pointer-events-none whitespace-nowrap">
@@ -137,7 +144,7 @@ export const Map: React.FC<MapProps> = ({
   };
 
   const buildDestHtml = (name: string) => {
-    const cleanName = (name || 'Destination').split(',')[0].trim();
+    const cleanName = escapeHtml((name || 'Destination').split(',')[0].trim());
     return `
       <div class="relative flex flex-col items-center group cursor-pointer select-none" style="z-index: 50;">
         <div class="mb-1.5 px-3 py-1 rounded-full bg-white border-2 border-rose-600 shadow-xl flex items-center gap-1.5 text-xs font-bold text-slate-800 pointer-events-none whitespace-nowrap">
@@ -252,6 +259,14 @@ export const Map: React.FC<MapProps> = ({
     if (!map.getStyle()) return;
 
     const currentLayerIds = new Set<string>();
+    // Remove geometries from the previous request, including when the new request fails.
+    const retainedLayers = new Set(routeList.flatMap(r => [`route-casing-${r.id}`, `route-line-${r.id}`]));
+    for (const id of activeRouteLayerIdsRef.current) {
+      if (!retainedLayers.has(id) && map.getLayer(id)) map.removeLayer(id);
+    }
+    for (const id of Object.keys(map.getStyle().sources)) {
+      if (id.startsWith('route-source-') && !routeList.some(r => id === `route-source-${r.id}`) && map.getSource(id)) map.removeSource(id);
+    }
 
     // 1. Ensure all sources and layers exist
     routeList.forEach((route) => {
@@ -512,10 +527,17 @@ export const Map: React.FC<MapProps> = ({
     amenityMarkersRef.current.forEach((m) => m.remove());
     amenityMarkersRef.current = [];
 
-    if (showAmenities) {
-      keyAmenities.forEach((item) => {
+    const visibleTypes: Record<string, boolean> = {
+      hospital: amenityFilters.hospitals, clinic: amenityFilters.hospitals, police: amenityFilters.police,
+      fire_station: amenityFilters.fire, street_lamp: amenityFilters.streetlights, crossing: amenityFilters.crossings,
+      traffic_signals: amenityFilters.signals, ecb: amenityFilters.safe_places,
+      emergency_access_point: amenityFilters.safe_places, defibrillator: amenityFilters.safe_places, ambulance_station: amenityFilters.safe_places,
+    };
+    const visibleAmenities = keyAmenities.filter(item => visibleTypes[item.type]).slice(0, 350);
+    if (visibleAmenities.length) {
+      visibleAmenities.forEach((item) => {
         const el = document.createElement('div');
-        const isHosp = item.type === 'hospital';
+        const isHosp = item.type === 'hospital' || item.type === 'clinic';
         el.className = 'amenity-marker';
         el.innerHTML = `
           <div class="px-2.5 py-1 rounded-full text-[11px] font-bold border shadow-md flex items-center gap-1.5 bg-white/95 backdrop-blur-md ${
@@ -523,17 +545,18 @@ export const Map: React.FC<MapProps> = ({
               ? 'text-rose-700 border-rose-200'
               : 'text-blue-700 border-blue-200'
           }">
-            <span>${isHosp ? '🏥' : '🚓'}</span>
-            <span>${item.name}</span>
+            <span>${isHosp ? '🏥' : item.type === 'police' ? '🚓' : item.type === 'fire_station' ? '🚒' : item.type === 'ambulance_station' ? '🚑' : item.type === 'defibrillator' ? '❤️' : item.type === 'ecb' || item.type === 'emergency_access_point' ? '☎' : item.type === 'street_lamp' ? '💡' : item.type === 'crossing' ? '🚶' : '🚦'}</span>
           </div>
         `;
         const marker = new maplibregl.Marker({ element: el })
           .setLngLat([item.lon, item.lat])
+          .setPopup(new maplibregl.Popup({ offset: 12 }).setText(`${item.name} — ${item.type.replace(/_/g, ' ')} (mapped facility; availability unconfirmed)`))
           .addTo(map);
+        el.title = item.name;
         amenityMarkersRef.current.push(marker);
       });
     }
-  }, [showAmenities, mapData, mapReady]);
+  }, [amenityFilters, mapData, mapReady]);
 
   // Update Incident markers
   useEffect(() => {
@@ -543,6 +566,7 @@ export const Map: React.FC<MapProps> = ({
     incidentMarkersRef.current.forEach((m) => m.remove());
     incidentMarkersRef.current = [];
 
+    if (!showCommunity) return;
     incidents.forEach((inc) => {
       const el = document.createElement('div');
       el.className = 'incident-marker';
@@ -563,7 +587,7 @@ export const Map: React.FC<MapProps> = ({
 
       incidentMarkersRef.current.push(marker);
     });
-  }, [incidents, mapReady]);
+  }, [incidents, showCommunity, mapReady]);
 
   return (
     <div className="relative w-full h-full overflow-hidden">

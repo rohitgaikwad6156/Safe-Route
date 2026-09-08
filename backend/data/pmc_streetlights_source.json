@@ -1,0 +1,26 @@
+{
+  "source_url": "https://data.opencity.in/dataset/pune-streetlights/resource/24458e14-2139-4348-ab4c-0df81dfb5bb0",
+  "credit": "Pune Municipal Corporation / OpenCity.in",
+  "license": "Other (Public Domain), as declared by publisher",
+  "retrieved_on": "2026-09-08",
+  "observation_year": null,
+  "note": "Source ward spelling preserved. Reported density differs from poles divided by road km; do not silently substitute either value into routing. Publication update date is not observation date.",
+  "columns": ["ward", "poles", "led_bulbs", "non_led_poles", "road_km", "reported_lights_per_km"],
+  "rows": [
+    ["Nagar Road",8138,9042,81,146,62],
+    ["Dhole Patil",5389,5988,54,97,62],
+    ["Yewada",7462,8291,75,134,62],
+    ["Aundh",5539,6154,55,100,62],
+    ["Ghole Road",6125,6806,61,110,62],
+    ["Kotharud Bawadhan",4897,5441,49,88,62],
+    ["Dhankawadi",7464,8293,75,134,62],
+    ["Sihagad Road",4588,5098,46,83,61],
+    ["Warje Karveroad",6549,7277,65,118,62],
+    ["Hadapsar",6694,7438,67,120,62],
+    ["Wanvadi Ramtekadi",6177,6863,62,111,62],
+    ["Kondhawa Yewalewadi",1834,2038,18,33,62],
+    ["Kasba Vishrambaugh",4112,4569,41,74,62],
+    ["Bhawani Peth",2562,2847,26,46,62],
+    ["Bibvewadi",3093,3437,30,56,61]
+  ]
+}

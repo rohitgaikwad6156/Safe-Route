@@ -1,6 +1,6 @@
 """
 Safe Haven Context Module.
-Samples emergency service coverage (hospitals, police chowkis, Smart City ECBs)
+Samples emergency service coverage (hospitals/clinics, police, and mapped ECBs)
 at evenly spaced position bands along a route path, preventing endpoint clustering.
 """
 from typing import Dict, List, Any, Tuple
@@ -99,8 +99,9 @@ def evaluate_safe_havens(
             "explanation": "No coordinates to sample."
         }
 
-    hospitals = amenities.get("hospitals", [])
+    hospitals = amenities.get("hospitals", []) + amenities.get("clinics", [])
     police = amenities.get("police", [])
+    fire_stations = amenities.get("fire_stations", [])
     ecbs = amenities.get("ecbs", [])
 
     band_results = []
@@ -126,20 +127,48 @@ def evaluate_safe_havens(
         pol_dist = int(round(haversine_m(lat, lon, float(nearest_pol["lat"]), float(nearest_pol["lon"]))))
         max_police_dist = max(max_police_dist, pol_dist)
 
-        # Nearest ECB
+        nearest_fire = min(
+            fire_stations,
+            key=lambda f: haversine_m(lat, lon, float(f["lat"]), float(f["lon"])),
+            default=None
+        )
+        fire = ({
+            "name": nearest_fire.get("name", "Fire station"),
+            "distance_meters": int(round(haversine_m(lat, lon, float(nearest_fire["lat"]), float(nearest_fire["lon"])))),
+            "available": True,
+        } if nearest_fire is not None else {
+            "name": "No mapped fire station", "distance_meters": None, "available": False,
+        })
+
+        # Never fabricate a zero-distance call box when the source contains none.
         nearest_ecb = min(
             ecbs,
             key=lambda e: haversine_m(lat, lon, float(e["lat"]), float(e["lon"])),
-            default={"name": "Smart City ECB", "lat": lat, "lon": lon}
+            default=None
         )
-        ecb_dist = int(round(haversine_m(lat, lon, float(nearest_ecb["lat"]), float(nearest_ecb["lon"]))))
+        ecb = (
+            {
+                "name": nearest_ecb.get("name", "Emergency call box"),
+                "distance_meters": int(round(haversine_m(
+                    lat, lon, float(nearest_ecb["lat"]), float(nearest_ecb["lon"])
+                ))),
+                "available": True,
+            }
+            if nearest_ecb is not None
+            else {
+                "name": "No mapped emergency call box",
+                "distance_meters": None,
+                "available": False,
+            }
+        )
 
         band_results.append({
             "band_name": b_name,
             "sample_coordinates": [round(lat, 5), round(lon, 5)],
             "hospital": {"name": nearest_hosp.get("name", "Hospital"), "distance_meters": hosp_dist},
             "police": {"name": nearest_pol.get("name", "Police Chowki"), "distance_meters": pol_dist},
-            "ecb": {"name": nearest_ecb.get("name", "Smart City ECB"), "distance_meters": ecb_dist}
+            "ecb": ecb,
+            "fire": fire
         })
 
     # Grounded narrative citing real facilities
@@ -156,9 +185,17 @@ def evaluate_safe_havens(
         f"Largest sampled straight-line police distance is {int(round(max_police_dist))} m. These are sampled straight-line distances, not response times or continuous coverage guarantees."
     )
 
+    nearest_hospital = min((b["hospital"] for b in band_results), key=lambda item: item["distance_meters"])
+    nearest_police = min((b["police"] for b in band_results), key=lambda item: item["distance_meters"])
+    available_fire = [b["fire"] for b in band_results if b["fire"]["available"]]
+    nearest_fire = min(available_fire, key=lambda item: item["distance_meters"]) if available_fire else {
+        "name": "No mapped fire station", "distance_meters": None, "available": False}
     return {
         "bands": band_results,
         "max_hospital_distance_meters": int(round(max_hosp_dist)),
         "max_police_distance_meters": int(round(max_police_dist)),
+        "nearest_hospital": nearest_hospital,
+        "nearest_police": nearest_police,
+        "nearest_fire": nearest_fire,
         "explanation": explanation
     }

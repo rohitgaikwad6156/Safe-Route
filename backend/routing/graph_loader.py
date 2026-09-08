@@ -1,6 +1,6 @@
 """
 SafeRoute AI: Graph Loader & Disconnected Component Manager
-Loads the 56k-node, 130k-edge Pune road network graph, measures cold-start time,
+Loads the 163k-node, 381k-edge Pune metropolitan road network graph, measures cold-start time,
 detects disconnected components, and isolates the largest component for guaranteed reachability.
 """
 import os
@@ -62,19 +62,15 @@ class PuneGraphManager:
         self.total_nodes = len(self.graph.nodes)
         self.total_edges = len(self.graph.edges)
 
-        # Detect directed disconnected components and isolate the largest for guaranteed reachability
-        if source_type == "raw_graphml_cold_start":
-            components = list(nx.strongly_connected_components(self.graph))
-            self.components_count = len(components)
-            largest_comp_nodes = max(components, key=len)
-            self.largest_component_nodes = len(largest_comp_nodes)
-            disconnected = set(self.graph.nodes) - largest_comp_nodes
-            if disconnected:
-                self.graph.remove_nodes_from(disconnected)
-        else:
-            # Pre-pruned binary pickle is guaranteed strongly connected
-            self.components_count = 1
-            self.largest_component_nodes = len(self.graph.nodes)
+        # A pickle can contain either a raw graph or an already pruned graph.
+        # Inspect it in both cases so route reachability and health metadata remain accurate.
+        components = list(nx.strongly_connected_components(self.graph))
+        self.components_count = len(components)
+        largest_comp_nodes = max(components, key=len)
+        self.largest_component_nodes = len(largest_comp_nodes)
+        disconnected = set(self.graph.nodes) - largest_comp_nodes
+        if disconnected:
+            self.graph.remove_nodes_from(disconnected)
 
         self.largest_component_graph = self.graph
 
@@ -93,14 +89,6 @@ class PuneGraphManager:
 
         if coords_list:
             self.kd_tree = cKDTree(np.array(coords_list))
-
-        # Render free-tier memory optimization (<512MB limit):
-        # When precomputed_sss.pkl is present, edge weights & geometries are cached in RoutingEngine.
-        # Clearing the raw NetworkX edge dicts saves 127MB of redundant RAM while keeping all nodes intact.
-        if (DATA_DIR / "precomputed_sss.pkl").exists():
-            self.graph.clear_edges()
-            import gc
-            gc.collect()
 
         self.is_ready = True
         return self.get_metadata()

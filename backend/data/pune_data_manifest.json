@@ -1,0 +1,26 @@
+{
+  "bbox": [73.65, 18.35, 74.10, 18.80],
+  "retrieved_at": "2026-09-07T19:36:31.401972+00:00",
+  "source": "OpenStreetMap contributors",
+  "license": "ODbL 1.0",
+  "graph": {
+    "nodes": 163829,
+    "directed_edges": 381045,
+    "largest_strong_component_nodes": 163684,
+    "coverage_percentage": 99.91
+  },
+  "amenity_counts": {
+    "hospitals": 831,
+    "clinics": 486,
+    "police": 79,
+    "fire_stations": 25,
+    "street_lamps": 127,
+    "crossings": 590,
+    "traffic_signals": 550,
+    "emergency_access_points": 0,
+    "ecbs": 0,
+    "defibrillators": 0,
+    "ambulance_stations": 0
+  },
+  "limitations": "Counts describe mapped OSM features in this snapshot, not current operating status, service availability, or complete real-world inventory. Zero-count categories are reported as unmapped and are never synthesized."
+}

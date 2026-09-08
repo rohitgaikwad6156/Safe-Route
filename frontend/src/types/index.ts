@@ -1,4 +1,5 @@
 export type RouteType = 'fastest' | 'safest' | 'balanced';
+export type SafetyProfileId = 'student' | 'woman_alone' | 'elderly' | 'night_commuter' | 'disability' | 'emergency_helper';
 
 export interface RouteSubscores {
   accident: number | null;
@@ -48,8 +49,11 @@ export interface SafeHavenBand {
   sample_coordinates: [number, number];
   hospital: { name: string; distance_meters: number };
   police: { name: string; distance_meters: number };
-  ecb: { name: string; distance_meters: number };
+  ecb: { name: string; distance_meters: number | null; available: boolean };
+  fire?: { name: string; distance_meters: number | null; available: boolean };
 }
+
+export interface RouteWarning { type: 'blackspot' | 'lighting' | 'emergency' | 'community'; severity: string; message: string; }
 
 export interface UncertaintyData {
   overall_confidence: 'verified' | 'estimated';
@@ -85,6 +89,11 @@ export interface RouteData {
   rss_upper?: number;
   unknown_accident_percentage?: number;
   community_penalty?: number;
+  profile_score?: number;
+  profile_recommended?: boolean;
+  profile_explanation?: string;
+  profile_limitation?: string;
+  warnings?: RouteWarning[];
   distance_overhead_percentage?: number;
   shared_with_fastest?: boolean;
   notice?: string;
@@ -105,6 +114,9 @@ export interface RouteData {
     bands: SafeHavenBand[];
     max_hospital_distance_meters: number;
     max_police_distance_meters: number;
+    nearest_hospital?: { name: string; distance_meters: number };
+    nearest_police?: { name: string; distance_meters: number };
+    nearest_fire?: { name: string; distance_meters: number | null; available: boolean };
     explanation: string;
   };
 }
@@ -148,11 +160,12 @@ export interface HeatmapFeature {
 
 export interface IncidentReport {
   id: string;
-  category: 'broken_light' | 'unsafe_location' | 'road_damage' | 'accident' | 'traffic_problem';
+  category: 'broken_light' | 'unsafe_location' | 'road_damage' | 'accident' | 'traffic_problem' | 'helpful_safe_place';
   severity: 1 | 2 | 3 | 4 | 5;
   description: string;
   lat: number;
   lon: number;
   timestamp: string;
   address?: string;
+  demo_mode?: boolean;
 }

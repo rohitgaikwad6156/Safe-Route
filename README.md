@@ -8,17 +8,17 @@ SafeRoute AI is a multi-objective urban routing and safety navigation engine des
 ## 🚀 Key Architectural Highlights
 
 1. **Custom Open-Source Routing Engine (Zero Commercial Directions APIs)**:
-   - Evaluates multi-criteria costs directly over Pune's road network graph (56,036 nodes and 130,343 edges).
+   - Evaluates multi-criteria costs directly over the expanded Pune metropolitan road network (163,829 nodes and 381,045 directed edges; snapshot bbox 18.350–18.800°N, 73.650–74.100°E).
    - Commercial directions APIs forbid custom edge-weighting; SafeRoute AI's entire pathfinding algorithm runs locally in memory via custom A* search variants.
 
 2. **Single Startup Graph Loading (`PuneGraphManager`)**:
-   - The road network graph (`pune_graph.graphml` / `pune_graph.pkl`) loads once at server startup into module-level memory in under 1 second.
+   - The road network graph (`pune_graph.pkl`) loads once at server startup into module-level memory in about one second.
    - Zero per-request graph fetching or bounding-box network downloads.
 
 3. **Empirically Calibrated Composite Edge Cost**:
    - Calibrated over 20 real Pune OD corridors (`scripts/sweep_divergence.py`):
      $$\text{cost}(e) = (1 - \beta) \cdot \left(\frac{d(e)}{d_{\text{norm}}}\right) + \beta \cdot \left(\frac{100 - SSS(e)}{100}\right) \quad (d_{\text{norm}} = 100\text{ m})$$
-   - Production default **$\beta = 0.90$** guarantees $\le 30\%$ distance overhead (empirically $8.5\%$ mean overhead) with a **$+2.00$ RSS gain** and $217\text{ ms}$ p95 query latency.
+   - Production default **$\beta = 0.90$** is retained from the calibrated study. On the expanded graph, the latest 20-corridor raw-candidate sweep measured 9.20% mean overhead; the production route selector enforces the $\le 30\%$ overhead guard. See `docs/experiments/research_alignment_sweep.md` for the full, signed results.
    - Generates three distinct route variants: **Fastest** ($\beta = 0.0$), **Safest** ($\beta = 0.90$ with multiplicative blackspot penalties), and **Balanced** ($\beta = 0.50$ with selective blackspot pruning).
 
 4. **Authentic Ground-Truth Accident Provenance**:
@@ -28,7 +28,7 @@ SafeRoute AI is a multi-objective urban routing and safety navigation engine des
 5. **Multi-Criteria Segment Safety Score ($SSS$)**:
    - Evaluates five weighted urban attributes:
      $$SSS_i = 0.30 \cdot S_{\text{accident},i} + 0.20 \cdot S_{\text{light},i} + 0.15 \cdot S_{\text{traffic},i} + 0.15 \cdot S_{\text{pedestrian},i} + 0.20 \cdot S_{\text{emergency},i}$$
-   - Includes PMC ward lighting density fallback and spatial exponential decay to emergency hospitals, police chowkis, and Smart City Emergency Call Boxes (ECBs).
+   - Includes PMC ward lighting density fallback and spatial exponential decay to mapped emergency facilities. The current OSM snapshot includes hospitals, clinics, police and fire stations; it does not claim an ECB exists where none is publicly mapped.
 
 6. **Length-Weighted Route Safety Score ($RSS$)**:
    - Aggregates segment scores by length to prevent the "hidden 500m hazard corridor" problem:
@@ -56,7 +56,7 @@ Safe-Route/
 ├── frontend/            # React + TypeScript + MapLibre GL UI dashboard
 ├── docs/                # Contracts, experiments, and divergence tradeoff analysis
 ├── scripts/             # Empirical sweep, demo checks, and diagnostic tools
-└── tests/               # 77 comprehensive unit and integration tests (100% pass)
+└── tests/               # 109 unit and integration tests
 ```
 
 ---
@@ -84,7 +84,7 @@ Open `http://localhost:5173/` in your browser.
 
 ### 3. Running Automated Tests
 ```bash
-# Run the complete test suite across all 77 tests
+# Run the complete test suite
 pytest tests/ -v
 ```
 

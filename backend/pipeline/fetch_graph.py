@@ -1,6 +1,6 @@
 """
 Downloads and constructs the multimodal (walk + drive) road network graph for Pune
-covering Shivajinagar, Kothrud, Katraj, Aundh, and Hadapsar.
+covering the Pune and PCMC urban service area.
 Saves the result as backend/data/pune_graph.graphml.
 Schema strictly conforms to docs/contracts/data.md.
 """
@@ -15,10 +15,10 @@ OUTPUT_FILE = DATA_DIR / "pune_graph.graphml"
 
 # Geographic bounding box covering Shivajinagar, Kothrud, Katraj, Aundh, Hadapsar
 # OSMnx 2.x bbox format: (left, bottom, right, top) = (min_lon, min_lat, max_lon, max_lat)
-BBOX_WEST = 73.785   # West: Kothrud / Baner / Chandani Chowk
-BBOX_SOUTH = 18.445  # South: Katraj / Navale Bridge
-BBOX_EAST = 73.945   # East: Hadapsar / Magarpatta
-BBOX_NORTH = 18.575  # North: Aundh / Sangvi / Khadki
+BBOX_WEST = 73.650
+BBOX_SOUTH = 18.350
+BBOX_EAST = 74.100
+BBOX_NORTH = 18.800
 
 
 def generate():

@@ -66,7 +66,8 @@ def active_hazard_snapshot(db_path=None, now=None):
         return HazardSnapshot(now=now)
     with sqlite3.connect(str(path)) as conn:
         records = conn.execute('''SELECT latitude, longitude, severity, status, reported_at
-            FROM community_incidents WHERE reported_at > ? AND reported_at <= ? AND status != 'expired' ''',
+            FROM community_incidents WHERE reported_at > ? AND reported_at <= ?
+            AND status != 'expired' AND incident_type != 'helpful_safe_place' ''',
             ((now-timedelta(hours=12)).strftime('%Y-%m-%d %H:%M:%S'), now.strftime('%Y-%m-%d %H:%M:%S'))).fetchall()
     return HazardSnapshot(records, now)
 
@@ -247,6 +248,7 @@ def calculate_dynamic_hazard(
             SELECT id, latitude, longitude, incident_type, severity, status, reported_at
             FROM community_incidents
             WHERE reported_at >= ? AND reported_at <= ? AND status != 'expired'
+              AND incident_type != 'helpful_safe_place'
         """, (twelve_hours_ago, now.strftime('%Y-%m-%d %H:%M:%S')))
         records = cursor.fetchall()
 

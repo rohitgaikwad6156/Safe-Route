@@ -23,6 +23,7 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
   const [address, setAddress] = useState('Katraj - Swargate Junction, Pune');
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [demoMode, setDemoMode] = useState(true);
 
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
   const recentSubmissionsRef = React.useRef<number[]>([]);
@@ -50,15 +51,15 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
     },
     {
       id: 'unsafe_location',
-      label: 'Harassment / Safety Risk',
+      label: 'Harassment / Isolated Safety Risk',
       icon: <ShieldAlert className="w-4 h-4 text-rose-400" />,
       desc: 'Unsafe gathering, eve-teasing, deserted area',
     },
     {
       id: 'accident',
-      label: 'Accident Blackspot',
+      label: 'Accident-prone Zone',
       icon: <AlertTriangle className="w-4 h-4 text-red-500" />,
-      desc: 'Dangerous blind turns, frequent vehicle collisions',
+      desc: 'A hazardous turn or modelled high-risk cell; no crash count is claimed',
     },
     {
       id: 'road_damage',
@@ -71,6 +72,12 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
       label: 'Traffic Problem',
       icon: <EyeOff className="w-4 h-4 text-purple-400" />,
       desc: 'Gridlock, dangerous merging or blocked traffic',
+    },
+    {
+      id: 'helpful_safe_place',
+      label: 'Helpful Safe Place',
+      icon: <Check className="w-4 h-4 text-emerald-500" />,
+      desc: 'A staffed or visible place where someone could seek help',
     },
   ];
 
@@ -89,6 +96,7 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
       lon: pinnedLocation ? pinnedLocation.lon : 73.828,
       address,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      demo_mode: demoMode,
     };
 
     try {
@@ -261,6 +269,11 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors resize-none"
               />
             </div>
+
+            <label className="flex items-start gap-2 p-3 rounded-xl bg-violet-50 border border-violet-200 text-xs text-violet-900">
+              <input type="checkbox" checked={demoMode} onChange={e => setDemoMode(e.target.checked)} className="mt-0.5" />
+              <span><b>Hackathon demo report</b><br/><span className="text-[10px] text-violet-700">Stores a clearly labelled local, unverified report without requesting live GPS. Turn off for proximity-gated community reporting.</span></span>
+            </label>
 
             {/* Actions */}
             <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">

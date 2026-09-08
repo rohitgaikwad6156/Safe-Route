@@ -31,7 +31,7 @@ def normalize_location_text(text: str) -> str:
     return re.sub(r"\s+", " ", cleaned).strip().lower()
 
 
-def geocode_location(query: str, timeout_seconds: float = 1.0) -> Dict[str, Any]:
+def geocode_location(query: str, timeout_seconds: float = 5.0) -> Dict[str, Any]:
     """
     Geocodes a location query.
     1. Tries normalized matching against committed landmarks (instant, 0ms).
@@ -52,6 +52,10 @@ def geocode_location(query: str, timeout_seconds: float = 1.0) -> Dict[str, Any]
     """
     q_clean = query.strip()
     landmarks = load_committed_landmarks()
+    amenities_path = DATA_DIR / 'amenities.json'
+    if amenities_path.exists():
+        amenities = json.loads(amenities_path.read_text(encoding='utf-8'))
+        landmarks += [a for group in amenities.values() for a in group if a.get('name')]
     q_lower = q_clean.lower()
     q_norm = normalize_location_text(q_clean)
     q_words = [w for w in q_norm.split() if w not in {"the", "in", "near", "at"}]
@@ -113,7 +117,8 @@ def geocode_location(query: str, timeout_seconds: float = 1.0) -> Dict[str, Any]
     try:
         url = "https://nominatim.openstreetmap.org/search"
         headers = {"User-Agent": "SafeRouteAI-Demo/1.0"}
-        params = {"q": f"{q_clean}, Pune, India", "format": "json", "limit": 1}
+        params = {"q": f"{q_clean}, Pune, India", "format": "json", "limit": 1,
+                  "viewbox": "73.65,18.80,74.10,18.35", "bounded": 1, "countrycodes": "in"}
         resp = requests.get(url, params=params, headers=headers, timeout=timeout_seconds)
         if resp.status_code == 200:
             data = resp.json()
@@ -166,19 +171,7 @@ def geocode_location(query: str, timeout_seconds: float = 1.0) -> Dict[str, Any]
                 "offline_fallback": True
             }
 
-    # 3. Default safe centroid (Shivajinagar Station) if unrecognized
-    default_lm = landmarks[0] if landmarks else {
-        "name": "Shivajinagar Station, Pune",
-        "lat": 18.5314,
-        "lon": 73.8446,
-        "ward": "Shivajinagar"
-    }
     return {
-        "name": default_lm["name"],
-        "lat": float(default_lm["lat"]),
-        "lon": float(default_lm["lon"]),
-        "ward": default_lm.get("ward", "Shivajinagar"),
-        "source": "offline_landmark_registry_default",
-        "offline_fallback": True,
-        "unrecognized_query": q_clean
+        "name": q_clean, "found": False, "source": "not_found",
+        "message": "Location not found. Use a full address, nearby mapped landmark, or latitude, longitude."
     }

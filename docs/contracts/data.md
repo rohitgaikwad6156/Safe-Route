@@ -10,10 +10,10 @@ This document defines the strict, unchangeable data contracts for all data artif
 - **Generator:** `backend/pipeline/fetch_graph.py` (via OSMnx / NetworkX).
 - **Coverage Mode:** `all` (walkable + drivable physical street infrastructure).
 - **Spatial Extent:** Pune Metropolitan Bounding Box:
-  - North: `18.580` (Aundh / Sangvi / Khadki)
-  - South: `18.440` (Katraj / Navale Bridge / Jambhulwadi)
-  - West: `73.780` (Kothrud / Bavdhan / Baner)
-  - East: `73.950` (Hadapsar / Magarpatta / Malwadi)
+  - North: `18.800` (northern PCMC)
+  - South: `18.350` (southern Pune fringe)
+  - West: `73.650` (western Hinjawadi/Pirangut fringe)
+  - East: `74.100` (eastern Wagholi fringe)
 - **Coordinate Reference System (CRS):** EPSG:4326 (WGS84).
 
 ### Node Attributes (Schema)
@@ -94,11 +94,16 @@ This document defines the strict, unchangeable data contracts for all data artif
   "required": ["hospitals", "police", "ecbs", "street_lamps", "crossings", "traffic_signals"],
   "properties": {
     "hospitals": { "$ref": "#/definitions/amenity_list" },
+    "clinics": { "$ref": "#/definitions/amenity_list" },
     "police": { "$ref": "#/definitions/amenity_list" },
+    "fire_stations": { "$ref": "#/definitions/amenity_list" },
     "ecbs": { "$ref": "#/definitions/amenity_list" },
     "street_lamps": { "$ref": "#/definitions/amenity_list" },
     "crossings": { "$ref": "#/definitions/amenity_list" },
-    "traffic_signals": { "$ref": "#/definitions/amenity_list" }
+    "traffic_signals": { "$ref": "#/definitions/amenity_list" },
+    "emergency_access_points": { "$ref": "#/definitions/amenity_list" },
+    "defibrillators": { "$ref": "#/definitions/amenity_list" },
+    "ambulance_stations": { "$ref": "#/definitions/amenity_list" }
   },
   "definitions": {
     "amenity_list": {

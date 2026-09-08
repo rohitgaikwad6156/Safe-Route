@@ -7,10 +7,10 @@ import landmarksData from '../mocks/landmarks.json';
 import { Landmark } from '../types';
 
 export const PUNE_BBOX = {
-  minLat: 18.380, // Katraj / Kondhwa / Jambhulwadi / Saswad road
-  maxLat: 18.680, // PCMC / Akurdi / Bhosari / Pune Airport
-  minLon: 73.700, // Hinjewadi / Wakad / Bavdhan / Pirangut
-  maxLon: 74.020, // Hadapsar / Wagholi / Kharadi / Manjari
+  minLat: 18.350,
+  maxLat: 18.800,
+  minLon: 73.650,
+  maxLon: 74.100,
 };
 
 export const SUPPORTED_AREAS = [
@@ -214,12 +214,9 @@ export async function geocodeLocation(
 
   // 2. Query backend geocoder endpoint (always — backend uses Nominatim server-side)
   try {
-    const backendBase = (typeof window !== 'undefined'
-      ? (import.meta as any).env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
-      : apiBaseUrl || 'http://127.0.0.1:8000'
-    ).replace(/\/$/, '');
+    const backendBase = (apiBaseUrl ?? import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? '' : 'http://127.0.0.1:8000')).replace(/\/$/, '');
     const url = `${backendBase}/api/geocode?q=${encodeURIComponent(qClean)}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
     if (res.ok) {
       const data = await res.json();
       if (data && typeof data.lat === 'number' && typeof data.lon === 'number') {

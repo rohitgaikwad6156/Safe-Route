@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.0",
+  "city": "Pune Metropolitan Area",
+  "last_reviewed": "2026-09-08",
+  "datasets": [
+    {
+      "id": "pmc_source_rows",
+      "name": "PMC / OpenCity published streetlight table (15 wards)",
+      "used_for": ["interactive ward lighting explorer"],
+      "status": "included_snapshot",
+      "source_url": "https://data.opencity.in/dataset/pune-streetlights/resource/24458e14-2139-4348-ab4c-0df81dfb5bb0",
+      "limitations": "Observation year unavailable; reported lights/km and calculated poles/km are shown separately."
+    },
+    {
+      "id": "open_meteo",
+      "name": "Open-Meteo Pune departure forecast",
+      "used_for": ["pre-trip precipitation and visibility"],
+      "status": "runtime_generated",
+      "source_url": "https://open-meteo.com/en/docs",
+      "limitations": "City-centre forecast; requires internet and a departure within the returned forecast range. No RSS impact."
+    },
+    {
+      "id": "osm_network",
+      "name": "OpenStreetMap road and pedestrian network",
+      "used_for": ["custom routing graph", "road class", "sidewalk/crossing/signal features", "hospitals", "clinics", "police", "fire stations", "street lamps"],
+      "status": "included_snapshot",
+      "snapshot_bbox": "18.350–18.800°N, 73.650–74.100°E",
+      "snapshot_counts": "163,829 nodes; 381,045 directed edges; 831 hospitals; 486 clinics; 79 police; 25 fire stations; 127 street lamps; 590 crossings; 550 traffic signals",
+      "refresh": "Rebuild offline before a demo or release; never fetch a graph during a route request.",
+      "source_url": "https://www.openstreetmap.org/copyright",
+      "license": "ODbL 1.0 - attribution required",
+      "limitations": "Completeness varies by neighbourhood; tags are not a safety guarantee. No ECB, defibrillator, ambulance-station, or emergency-access-point features were returned by this snapshot, so the UI must report those categories as unmapped rather than fabricate them."
+    },
+    {
+      "id": "pmc_esr_lighting",
+      "name": "PMC Environment Status Report / ward lighting context",
+      "used_for": ["ward-level lighting fallback"],
+      "status": "included_aggregate_context",
+      "refresh": "Verify against the newest publicly released PMC report before production use.",
+      "source_url": "https://opendata.pmc.gov.in/opendata/PMCReports/ESR_2021-22.pdf",
+      "license": "Public municipal report; confirm reuse terms before redistribution.",
+      "limitations": "Ward aggregates do not prove that an individual lamp is working."
+    },
+    {
+      "id": "crash_history",
+      "name": "Historical crash-risk grid",
+      "used_for": ["historical crash-risk component", "map heat layer"],
+      "status": "modelled_aggregate",
+      "refresh": "Only regenerate from auditable iRAD / Pune Traffic Police / PMC source records with a dated source file and methodology log.",
+      "source_url": "https://morth.nic.in/road-accident-in-india",
+      "license": "Source access and reuse must be confirmed with the record owner.",
+      "limitations": "The bundled grid is a modelled risk surface, not incident-level public data and not a count of crashes on a street."
+    },
+    {
+      "id": "community_reports",
+      "name": "Anonymous, corroborated community hazard reports",
+      "used_for": ["short-lived routing penalty", "current hazard layer"],
+      "status": "runtime_generated",
+      "refresh": "Expires automatically; two nearby independent reports are required for full impact.",
+      "source_url": "internal://privacy-aggregated-reports",
+      "license": "Not exported; privacy aggregated to 250 m cells.",
+      "limitations": "Reports are not emergency dispatch data. Unverified reports receive reduced weight."
+    },
+    {
+      "id": "future_authoritative_feeds",
+      "name": "Production data integration backlog",
+      "used_for": ["future validation and refresh"],
+      "status": "not_yet_integrated",
+      "refresh": "Obtain written data-sharing permission and add a reproducible importer before enabling in routing.",
+      "source_url": "https://morth.nic.in/road-accident-in-india",
+      "license": "To be determined per provider agreement.",
+      "limitations": "Do not represent planned feeds as live data. Priority: audited crash records, street-light maintenance, and temporary road closures."
+    }
+  ]
+}

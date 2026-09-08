@@ -44,7 +44,7 @@ If not using Blueprints:
 
 > [!TIP]
 > Why `--workers 1 --threads 4`?
-> Pune's 130,343-edge graph is stored once in module-level memory (`PuneGraphManager`). Single-process multi-threading allows all concurrent requests to share the in-memory graph without duplicating memory footprint on Render's free tier.
+> Pune's 381,045-edge graph is stored once in module-level memory (`PuneGraphManager`). Single-process multi-threading allows all concurrent requests to share the in-memory graph without duplicating memory footprint across workers.
 
 ---
 
@@ -84,9 +84,9 @@ Vercel provides edge hosting and CDN delivery for the React + MapLibre GL UI.
    {
      "is_ready": true,
      "status": "ready",
-     "total_nodes": 56036,
-     "total_edges": 130343,
-     "coverage_percentage": 99.57
+     "total_nodes": 163829,
+     "total_edges": 381045,
+     "coverage_percentage": 99.91
    }
    ```
 
@@ -94,6 +94,6 @@ Vercel provides edge hosting and CDN delivery for the React + MapLibre GL UI.
    - Visit your Vercel deployment URL (e.g., `https://safe-route.vercel.app`).
    - Look at the top navigation bar:
      - When connected to Render, the green badge displays:
-       `LIVE ENGINE READY (56,036 NODES)`.
+       `LIVE ENGINE READY (163,829 NODES)`.
      - If Render is still waking up from spin-down (cold start), SafeRoute AI gracefully shows:
        `OFFLINE LANDMARK REGISTRY` and preserves route rendering via offline heuristics.

@@ -96,8 +96,9 @@ def test_safest_rss_geq_fastest(engine, orig_lat, orig_lon, orig_name, dest_lat,
     )
 
 
-def test_outside_connected_graph_is_not_a_fabricated_connector(engine):
-    with pytest.raises(ValueError, match='graph coverage'):
-        _compute_all(engine, 18.5314, 73.8446, 'Shivajinagar', 18.6520, 73.7615, 'PCCOE Akurdi')
-    with pytest.raises(ValueError, match='graph coverage'):
-        _compute_all(engine, 18.5923, 73.7387, 'Hinjawadi Phase 1', 18.5018, 73.8586, 'Swargate')
+def test_expanded_graph_connects_outer_pune_destinations(engine):
+    """PCCOE and Hinjawadi are now first-class graph locations, not connectors."""
+    pccoe = _compute_all(engine, 18.5314, 73.8446, 'Shivajinagar', 18.6520, 73.7615, 'PCCOE Akurdi')
+    hinjawadi = _compute_all(engine, 18.5923, 73.7387, 'Hinjawadi Phase 1', 18.5018, 73.8586, 'Swargate')
+    assert len(pccoe["routes"]) == 3
+    assert len(hinjawadi["routes"]) == 3

@@ -1,18 +1,33 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Shield, Navigation, AlertTriangle, Sparkles, Layers, Sliders, MapPin, Compass, CheckCircle2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Shield, Navigation, AlertTriangle, Compass, ChevronLeft, ChevronRight, Siren } from 'lucide-react';
 import { RoutePlanner } from './components/RoutePlanner';
 import { DeparturePicker } from './components/DeparturePicker';
 import { RadialGauge } from './components/RadialGauge';
 import { RouteCards } from './components/RouteCards';
-import { LayerControls } from './components/LayerControls';
+import { LayerControls, AmenityFilters } from './components/LayerControls';
 import { IncidentModal } from './components/IncidentModal';
 import { Map } from './components/Map';
-import { RouteData, IncidentReport, Landmark } from './types';
+import { DataReadiness, DatasetCard } from './components/DataReadiness';
+import { TripConditions } from './components/TripConditions';
+import { WeatherContext } from './components/TripConditions';
+import { ProfileSelector } from './components/ProfileSelector';
+import { SosPanel } from './components/SosPanel';
+import { RouteData, IncidentReport, Landmark, SafetyProfileId } from './types';
 
-import { adjustRouteRSS, computeTemporalModifier } from './lib/temporal';
-import { geocodeLocation, GeocodeResult } from './lib/geocoding';
+import { computeTemporalModifier } from './lib/temporal';
+import { geocodeLocation } from './lib/geocoding';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? '' : 'http://127.0.0.1:8000')).replace(/\/$/, '');
+
+// Keeps the research/disclosure panel available when the local Python API is offline.
+// The API registry is authoritative when it is reachable.
+const OFFLINE_DATASETS: DatasetCard[] = [
+  { id: 'osm_network', name: 'OpenStreetMap road and pedestrian network', status: 'included_snapshot', limitations: 'Completeness varies by neighbourhood; map tags are not a safety guarantee.', source_url: 'https://www.openstreetmap.org/copyright' },
+  { id: 'pmc_esr_lighting', name: 'PMC ward lighting context', status: 'included_aggregate_context', limitations: 'Ward aggregates do not prove that an individual lamp is working.', source_url: 'https://opendata.pmc.gov.in/opendata/PMCReports/ESR_2021-22.pdf' },
+  { id: 'crash_history', name: 'Historical crash-risk grid', status: 'modelled_aggregate', limitations: 'A modelled risk surface, not incident-level data or a count of crashes on a street.', source_url: 'https://morth.nic.in/road-accident-in-india' },
+  { id: 'community_reports', name: 'Anonymous community hazard reports', status: 'runtime_generated', limitations: 'Privacy aggregated; unverified reports receive reduced weight.', source_url: 'internal://privacy-aggregated-reports' },
+  { id: 'future_authoritative_feeds', name: 'Authoritative lighting, closure and crash feeds', status: 'not_yet_integrated', limitations: 'Planned only - requires data-sharing permission and a reproducible importer.', source_url: 'https://morth.nic.in/road-accident-in-india' },
+];
 
 export function App() {
   const [origin, setOrigin] = useState('Shivajinagar Station, Pune');
@@ -35,7 +50,13 @@ export function App() {
 
   // Map layer states
   const [showHeatmap, setShowHeatmap] = useState<boolean>(true);
-  const [showAmenities, setShowAmenities] = useState<boolean>(true);
+  // The complete OSM snapshot contains thousands of features. Keep it opt-in so
+  // route interaction stays responsive on hackathon/demo laptops.
+  const [amenityFilters, setAmenityFilters] = useState<AmenityFilters>({ hospitals: false, police: false, fire: false, streetlights: false, crossings: false, signals: false, safe_places: false });
+  const [showCommunity, setShowCommunity] = useState(true);
+  const [profile, setProfile] = useState<SafetyProfileId>('student');
+  const [weatherContext, setWeatherContext] = useState<WeatherContext>({ label: 'Forecast unavailable', rainMm: null, visibilityKm: null, available: false });
+  const [isSosOpen, setIsSosOpen] = useState(false);
 
   // Incident reporting state with localStorage persistence
   const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
@@ -44,6 +65,14 @@ export function App() {
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   // Backend Health check
   const [backendHealth, setBackendHealth] = useState<{ status: string; loadTime?: number; nodes?: number } | null>(null);
+  const [datasets, setDatasets] = useState<DatasetCard[]>(OFFLINE_DATASETS);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/datasets`, { signal: AbortSignal.timeout(5000) })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('Dataset registry unavailable')))
+      .then((payload) => setDatasets(Array.isArray(payload.datasets) ? payload.datasets : []))
+      .catch(() => setDatasets(OFFLINE_DATASETS));
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -124,7 +153,8 @@ export function App() {
               origin: { lat: origGeo.lat, lon: origGeo.lon, name: origDisplayName },
               destination: { lat: destGeo.lat, lon: destGeo.lon, name: destDisplayName },
               departure_time: departureTime,
-              departure_date: departureDate
+              departure_date: departureDate,
+              profile
             }),
             signal: AbortSignal.timeout(60000),
           });
@@ -139,15 +169,15 @@ export function App() {
                 color: r.type === 'safest' ? '#059669' : r.type === 'balanced' ? '#d97706' : '#1a73e8'
               }));
               setRawRoutes(styledRoutes);
-              const safest = styledRoutes.find((r: RouteData) => r.type === 'safest');
-              setSelectedRouteId(safest ? safest.id : styledRoutes[0].id);
+              const recommended = styledRoutes.find((r: RouteData) => r.profile_recommended) || styledRoutes.find((r: RouteData) => r.type === 'safest');
+              setSelectedRouteId(recommended ? recommended.id : styledRoutes[0].id);
               const srcLabel = `${origGeo.source === 'nominatim_online' ? '🌐' : origGeo.source === 'backend_geocoder' ? '🔍' : '📍'} ${origDisplayName.split(',')[0]}`;
               const dstLabel = `${destGeo.source === 'nominatim_online' ? '🌐' : destGeo.source === 'backend_geocoder' ? '🔍' : '📍'} ${destDisplayName.split(',')[0]}`;
               setRouteNotice(`Road routes calculated: ${srcLabel} → ${dstLabel}. Scores are research estimates; traffic is simulated. Access to the snapped road: ${data.snap_distances_meters?.origin || 0} m at origin, ${data.snap_distances_meters?.destination || 0} m at destination.`);
               backendSuccess = true;
 
               // Snap marker coordinates to the exact road-network endpoints of the polyline
-              const primaryRoute = safest || styledRoutes[0];
+              const primaryRoute = recommended || styledRoutes[0];
               if (primaryRoute && primaryRoute.geometry?.coordinates?.length >= 2) {
                 const firstCoord = primaryRoute.geometry.coordinates[0];
                 const lastCoord = primaryRoute.geometry.coordinates[primaryRoute.geometry.coordinates.length - 1];
@@ -172,12 +202,12 @@ export function App() {
         if (sequence === requestSequence.current) setIsLoadingRoutes(false);
       }
     },
-    [departureTime, departureDate]
+    [departureTime, departureDate, profile]
   );
 
   useEffect(() => {
     if (backendHealth?.status === 'ready') calculateCorridorRoutes(origin, destination);
-  }, [backendHealth?.status, departureTime, departureDate]);
+  }, [backendHealth?.status, departureTime, departureDate, profile]);
 
   const routes = rawRoutes;
 
@@ -234,7 +264,7 @@ export function App() {
   };
 
   const handleAddIncident = async (newReport: IncidentReport) => {
-    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+    const position = newReport.demo_mode ? null : await new Promise<GeolocationPosition>((resolve, reject) => {
       if (!navigator.geolocation) return reject(new Error('Location access is unavailable in this browser.'));
       navigator.geolocation.getCurrentPosition(resolve, () => reject(new Error('Allow precise location access to report a hazard within 150 m.')), { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
     });
@@ -248,7 +278,8 @@ export function App() {
       body: JSON.stringify({ latitude: newReport.lat, longitude: newReport.lon,
         incident_type: newReport.category, severity: newReport.severity,
         description: newReport.description, user_id_hash: sessionId,
-        reporter_lat: position.coords.latitude, reporter_lon: position.coords.longitude }),
+        reporter_lat: position?.coords.latitude, reporter_lon: position?.coords.longitude,
+        demo_mode: newReport.demo_mode === true }),
       signal: AbortSignal.timeout(15000),
     });
     const data = await response.json();
@@ -273,6 +304,7 @@ export function App() {
   const handleResetView = () => {
     setSelectedRouteId('route-safest');
   };
+  const handleWeatherContext = useCallback((value: WeatherContext) => setWeatherContext(value), []);
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-100 text-slate-900 font-sans">
@@ -320,6 +352,11 @@ export function App() {
 
           <button
             type="button"
+            onClick={() => setIsSosOpen(true)}
+            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-sm"
+          ><Siren className="w-4 h-4"/><span className="hidden sm:inline">Share Safe Trip</span></button>
+          <button
+            type="button"
             onClick={() => setIsIncidentModalOpen(true)}
             className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-all active:scale-95"
           >
@@ -338,7 +375,8 @@ export function App() {
             selectedRouteId={selectedRouteId}
             onSelectRoute={setSelectedRouteId}
             showHeatmap={showHeatmap}
-            showAmenities={showAmenities}
+            amenityFilters={amenityFilters}
+            showCommunity={showCommunity}
             incidents={incidents}
             isPinningMode={isPinningMode}
             onMapClickPin={handleMapClickPin}
@@ -403,6 +441,11 @@ export function App() {
               onDateChange={setDepartureDate}
             />
 
+            <ProfileSelector value={profile} onChange={setProfile} />
+
+            {datasets.length > 0 && <DataReadiness datasets={datasets} />}
+            <TripConditions date={departureDate} time={departureTime} onConditionChange={handleWeatherContext} />
+
             {/* 3. Radial Safety Gauge for Selected Route */}
             {selectedRoute && <RadialGauge
               score={selectedRoute.rss}
@@ -420,6 +463,9 @@ export function App() {
               routes={routes}
               selectedRouteId={selectedRouteId}
               onSelectRoute={setSelectedRouteId}
+              departureTime={departureTime}
+              isWeekend={isWeekend}
+              weather={weatherContext}
             />
           </div>
         </aside>
@@ -442,8 +488,10 @@ export function App() {
           <LayerControls
             showHeatmap={showHeatmap}
             onToggleHeatmap={() => setShowHeatmap(!showHeatmap)}
-            showAmenities={showAmenities}
-            onToggleAmenities={() => setShowAmenities(!showAmenities)}
+            amenityFilters={amenityFilters}
+            onToggleAmenity={(key) => setAmenityFilters(current => ({ ...current, [key]: !current[key] }))}
+            showCommunity={showCommunity}
+            onToggleCommunity={() => setShowCommunity(value => !value)}
             onResetView={handleResetView}
             isPinningMode={isPinningMode}
             onCancelPinning={() => setIsPinningMode(false)}
@@ -459,6 +507,7 @@ export function App() {
         pinnedLocation={pinnedLocation}
         onStartPinning={handleStartPinning}
       />
+      <SosPanel open={isSosOpen} onClose={() => setIsSosOpen(false)} origin={origin} destination={destination} route={selectedRoute} />
     </div>
   );
 }
