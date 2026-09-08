@@ -66,8 +66,15 @@ def run_experiment():
                 exceeds_cap=sd > fd*1.30))
         print(f'Finished beta={beta:.2f}', flush=True)
     out=ROOT/'docs/experiments'
+    routing_sources = [
+        ROOT / 'backend/routing/engine.py',
+        ROOT / 'backend/routing/travel_modes.py',
+    ]
     output = {'departure':'2026-09-07 14:00 Asia/Kolkata', 'incidents':'empty snapshot for reproducibility',
-        'source_sha256':hashlib.sha256((ROOT/'backend/routing/engine.py').read_bytes()).hexdigest(), 'rows':rows}
+        'source_sha256': {
+            str(path.relative_to(ROOT)).replace('\\', '/'): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in routing_sources
+        }, 'rows':rows}
     (out/'research_alignment_sweep.json').write_text(json.dumps(output,indent=2))
     lines=['# Research alignment: production cost sweep', '',
         'Raw candidates before the 30% guard. Signed RSS changes are retained. All scores are conservative model estimates, not observed safety outcomes.', '',

@@ -234,7 +234,7 @@ export const RouteCards: React.FC<RouteCardsProps> = ({
                     </span>
                   </div>
                   <div className="border-x border-slate-200">
-                    <span className="text-[10px] text-slate-500 uppercase font-medium block">Est. time</span>
+                    <span className="text-[10px] text-slate-500 uppercase font-medium block">Estimated time</span>
                     <span className="text-xs font-mono font-bold text-slate-800 flex items-center justify-center gap-1">
                       <Clock className="w-3 h-3 text-blue-600 inline" />
                       {formatDuration(route.duration_seconds)}

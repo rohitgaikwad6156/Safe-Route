@@ -20,6 +20,8 @@ import logging
 import hashlib
 import threading
 import re
+import copy
+from collections import OrderedDict
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
@@ -46,13 +48,17 @@ from backend.scoring.pedestrian import (calculate_pss, calculate_sidewalk_subsco
     calculate_speed_regulation_subscore, calculate_width_exposure_subscore)
 from backend.explain.engine import ExplanationEngine
 from backend.scoring.profiles import apply_profile, normalize_profile
+from backend.routing.travel_modes import (
+    edge_is_allowed, estimate_duration_seconds, get_travel_mode_profile, mode_safety_score,
+    traversal_impedance,
+)
 
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DEFAULT_D_NORM = 100.0  # Characteristic street normalization denominator (meters)
 WALK_SPEED_MPS = 1.3    # Standard pedestrian walking speed (m/s)
 DRIVE_SPEED_KMH = 30.0  # Urban Pune reference speed (km/h)
-EDGE_CACHE_SCHEMA_VERSION = 2
+EDGE_CACHE_SCHEMA_VERSION = 3
 
 
 # Reuse canonical Haversine helper from validator.py (no duplication)
@@ -113,6 +119,9 @@ class RoutingEngine:
         self.ward_lighting = ward_lighting
 
         self.explanation_engine = ExplanationEngine(amenities=self.amenities, risk_grid=self.risk_grid)
+        self._route_result_cache = OrderedDict()
+        self._route_result_cache_lock = threading.Lock()
+        self._mode_edge_cache = {}
 
         # Build emergency amenities KDTree
         em_pts = []
@@ -273,6 +282,21 @@ class RoutingEngine:
                 "in_hazard_buffer": in_hazard_buffer,
                 "lit": d.get("lit") or "",
                 "sidewalk": d.get("sidewalk") or "",
+                "crossing": crossing or "",
+                "junction": d.get("junction") or graph.nodes[v].get("junction") or "",
+                "junction_degree": int(graph.degree(v)),
+                "node_highway": graph.nodes[v].get("highway") or "",
+                "maxspeed": d.get("maxspeed") or "",
+                "traffic_calming": d.get("traffic_calming") or "",
+                "surface": d.get("surface") or "",
+                "smoothness": d.get("smoothness") or "",
+                "tracktype": d.get("tracktype") or "",
+                "access": d.get("access") or "",
+                "foot": d.get("foot") or "",
+                "motorroad": d.get("motorroad") or "",
+                "motor_vehicle": d.get("motor_vehicle") or "",
+                "motorcycle": d.get("motorcycle") or "",
+                "motorcar": d.get("motorcar") or "",
                 "subscores": subscores,
                 "geometry": d.get("geometry")
             }
@@ -313,30 +337,58 @@ class RoutingEngine:
         except Exception as e:
             logger.warning(f"Could not persist precomputed edge cache to {cache_path}: {e}")
 
-    def query_context(self, departure=None, snapshot=None):
+    def query_context(self, departure=None, snapshot=None, travel_mode="walking"):
         from backend.scoring.corroboration import active_hazard_snapshot
         departure = departure or pune_now()
+        get_travel_mode_profile(travel_mode)
         return dict(departure=departure, traffic=traffic_context(departure),
-                    tau=night_risk_multiplier(departure),
+                    tau=night_risk_multiplier(departure), travel_mode=travel_mode,
                     hazards=active_hazard_snapshot() if snapshot is None else snapshot, values={})
 
     def edge_values(self, edge, context):
-        key = edge.payload['id']
+        travel_mode = context.get('travel_mode', 'walking')
+        profile = get_travel_mode_profile(travel_mode)
+        key = (edge.payload['id'], travel_mode)
         if key not in context['values']:
             hazard = context['hazards'].score(edge.mid_lat, edge.mid_lon)
-            base = edge.sss + .15 * (context['traffic'][0] - 80.0)
-            lower = max(0.0, base - hazard)
-            upper = max(0.0, min(100.0, base + (30.0 if edge.payload['wsi'] is None else 0.0)) - hazard)
+            subscores = edge.payload.get('subscores') or {}
+            if {'accident', 'emergency', 'lighting', 'pedestrian'} <= set(subscores):
+                _, _, static_safety = self._mode_edge_properties(edge, travel_mode)
+                base = static_safety + profile.safety_weights['traffic'] * context['traffic'][0]
+            else:
+                # Compatibility for old/test cache entries that only carry the
+                # already-composed SSS instead of its full factor breakdown.
+                base = edge.sss + .15 * (context['traffic'][0] - 80.0)
+            penalty = hazard * profile.community_hazard_multiplier
+            lower = max(0.0, base - penalty)
+            upper = max(0.0, min(100.0, base + (30.0 if edge.payload['wsi'] is None else 0.0)) - penalty)
             context['values'][key] = (lower, upper, hazard)
         return context['values'][key]
 
+    def _mode_edge_properties(self, edge, travel_mode):
+        cache = getattr(self, '_mode_edge_cache', None)
+        if cache is None:
+            cache = self._mode_edge_cache = {}
+        key = (edge.payload['id'], travel_mode)
+        properties = cache.get(key)
+        if properties is None:
+            properties = (
+                edge_is_allowed(edge.payload, travel_mode),
+                traversal_impedance(edge.payload, travel_mode),
+                mode_safety_score(edge.payload, travel_mode, 0.0),
+            )
+            cache[key] = properties
+        return properties
+
     def _search(self, source, target, beta, context=None, inflate=False, prune=False):
         context = context or self.query_context()
+        travel_mode = context.get('travel_mode', 'walking')
         alpha = 1.0 - beta
         target_lat, target_lon = self.manager.node_coords[target]
         def heuristic(node):
             lat, lon = self.manager.node_coords[node]
-            return alpha * haversine_distance_meters(lat, lon, target_lat, target_lon) / DEFAULT_D_NORM
+            min_impedance = .75 if beta else 1.0
+            return alpha * min_impedance * haversine_distance_meters(lat, lon, target_lat, target_lon) / DEFAULT_D_NORM
         pending = [(heuristic(source), 0.0, source)]
         best = {source: 0.0}
         previous = {}
@@ -351,12 +403,27 @@ class RoutingEngine:
                     edges.append(edge)
                     nodes.append(parent)
                     u = parent
-                return RoutePath(reversed(nodes), reversed(edges), context)
+                path = RoutePath(reversed(nodes), reversed(edges), context)
+                if travel_mode == 'walking' and any(
+                    not self._mode_edge_properties(edge, travel_mode)[0] for edge in path.edges
+                ):
+                    path.notice = (
+                        'The connected graph has no practical fully pedestrian-permitted path; '
+                        'restricted road segments were heavily penalized and used only where required.'
+                    )
+                return path
             for edge in self.adj.get(u, []):
+                allowed, mode_impedance, _ = self._mode_edge_properties(edge, travel_mode)
+                if not allowed and travel_mode != 'walking':
+                    continue
                 if prune and edge.in_hazard_buffer:
                     continue
                 lower, _, _ = self.edge_values(edge, context) if beta else (0, 0, 0)
-                weight = alpha * edge.length_meters / DEFAULT_D_NORM + beta * context['tau'] * (100-lower)/100
+                impedance = 1.0 if beta == 0 else mode_impedance
+                if not allowed:
+                    impedance *= 8.0
+                distance_cost = edge.length_meters * impedance / DEFAULT_D_NORM
+                weight = alpha * distance_cost + beta * context['tau'] * (100-lower)/100
                 if inflate:
                     weight *= 1 + edge.severity
                 candidate = cost + weight
@@ -364,7 +431,7 @@ class RoutingEngine:
                     best[edge.target] = candidate
                     previous[edge.target] = (u, edge)
                     heapq.heappush(pending, (candidate + heuristic(edge.target), candidate, edge.target))
-        return RoutePath(context=context, notice='No route satisfies the hazard exclusion.')
+        return RoutePath(context=context, notice='No route satisfies the mode/access constraints.')
 
     def _route_fastest(self, source, target, context=None):
         return self._search(source, target, 0.0, context)
@@ -523,7 +590,10 @@ class RoutingEngine:
             mean_subscores['accident'] = None
 
         # Duration estimate (mix of pedestrian and urban vehicle speed)
-        duration_seconds = int(round(total_distance / (DRIVE_SPEED_KMH * 1000.0 / 3600.0) * traffic_context(departure_time or pune_now())[1])) + extra_duration_s
+        travel_mode = (getattr(path, 'context', None) or {}).get('travel_mode', 'walking')
+        mode_profile = get_travel_mode_profile(travel_mode)
+        congestion_factor = 1.0 if travel_mode == 'walking' else traffic_context(departure_time or pune_now())[1]
+        duration_seconds = estimate_duration_seconds(total_distance, travel_mode, congestion_factor) + extra_duration_s
 
         # Risk level classification
         if final_rss >= 75.0:
@@ -554,7 +624,12 @@ class RoutingEngine:
             "unknown_accident_percentage": round(unknown_pct, 1),
             "score_status": "lower_bound" if unknown_pct else "estimated",
             "notice": getattr(path, 'notice', None),
-            "traffic_source": "Simulated hourly congestion (research p26); ETA uses 30 km/h reference speed",
+            "duration_label": "Estimated time",
+            "reference_speed_kmh": mode_profile.reference_speed_kmh,
+            "traffic_source": (
+                f"Estimated time uses a {mode_profile.reference_speed_kmh:g} km/h {travel_mode.replace('_', '-')} "
+                "reference speed and a simulated hourly congestion schedule; it is not live traffic."
+            ),
             "community_penalty": round(sum(seg['community_hazard'] * seg['length_meters'] for seg in segments) / max(1, total_distance), 2),
             "rss": round(final_rss, 1),
             "risk_level": risk_level,
@@ -609,7 +684,8 @@ class RoutingEngine:
         orig_name: str = "Origin",
         dest_name: str = "Destination",
         departure_time: Optional[datetime] = None,
-        profile_id: str = "student"
+        profile_id: str = "student",
+        travel_mode: str = "walking",
     ) -> Dict[str, Any]:
         """
         Calculates Fastest (beta=0.0), Safest (beta=0.90), and Balanced (beta=0.50) routes
@@ -621,6 +697,7 @@ class RoutingEngine:
         """
         t_dep = departure_time or pune_now()
         profile_id = normalize_profile(profile_id)
+        get_travel_mode_profile(travel_mode)
         is_weekend = get_weekend_modifier(t_dep) < 0.0
         time_str = t_dep.strftime("%H:%M")
 
@@ -643,7 +720,24 @@ class RoutingEngine:
         )
 
         # --- Compute the three route variants ---
-        context = self.query_context(t_dep)
+        context = self.query_context(t_dep, travel_mode=travel_mode)
+        hazard_snapshot = context['hazards']
+        hazard_signature = (
+            hazard_snapshot.now.strftime('%Y-%m-%dT%H:%M'),
+            tuple(tuple(record) for record in hazard_snapshot.records),
+        )
+        cache_key = (
+            round(orig_lat, 6), round(orig_lon, 6), orig_name,
+            round(dest_lat, 6), round(dest_lon, 6), dest_name,
+            t_dep.strftime('%Y-%m-%dT%H:%M'), profile_id, travel_mode,
+            hazard_signature,
+        )
+        with self._route_result_cache_lock:
+            cached_result = self._route_result_cache.get(cache_key)
+            if cached_result is not None:
+                self._route_result_cache.move_to_end(cache_key)
+                return copy.deepcopy(cached_result)
+
         fastest_path = self._route_fastest(u_node, v_node, context)
         safest_path = self._route_safest(u_node, v_node, context)
         balanced_path = self._route_balanced(u_node, v_node, context)
@@ -741,11 +835,12 @@ class RoutingEngine:
         for route in all_routes:
             route.pop('segments', None)
 
-        return {
+        result = {
             "origin": {"name": orig_name, "lat": orig_lat, "lon": orig_lon},
             "destination": {"name": dest_name, "lat": dest_lat, "lon": dest_lon},
             "departure_time": time_str,
             "departure_date": t_dep.date().isoformat(),
+            "travel_mode": travel_mode,
             "snap_distances_meters": {
                 "origin": round(haversine_distance_meters(orig_lat, orig_lon, u_snap_lat, u_snap_lon)),
                 "destination": round(haversine_distance_meters(dest_lat, dest_lon, v_snap_lat, v_snap_lon))},
@@ -755,6 +850,12 @@ class RoutingEngine:
             "profile_recommended_route_id": recommended["id"],
             "routes": all_routes
         }
+        with self._route_result_cache_lock:
+            self._route_result_cache[cache_key] = copy.deepcopy(result)
+            self._route_result_cache.move_to_end(cache_key)
+            while len(self._route_result_cache) > 24:
+                self._route_result_cache.popitem(last=False)
+        return result
 
 
 _GLOBAL_ROUTING_ENGINE: Optional[RoutingEngine] = None

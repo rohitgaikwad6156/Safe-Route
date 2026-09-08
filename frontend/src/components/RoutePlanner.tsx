@@ -28,9 +28,13 @@ interface RoutePlannerProps {
   onSwap: () => void;
   onSelectLandmark?: (landmark: Landmark, target: 'origin' | 'destination') => void;
   onCalculateRoute?: (originText: string, destText: string) => void;
+  onUseMyLocation?: () => void;
+  isLocatingOrigin?: boolean;
+  locationError?: string | null;
   isLoading?: boolean;
   originCoords?: [number, number];
   destCoords?: [number, number];
+  compact?: boolean;
 }
 
 const POPULAR_HUBS = [
@@ -53,9 +57,13 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
   onSwap,
   onSelectLandmark,
   onCalculateRoute,
+  onUseMyLocation,
+  isLocatingOrigin = false,
+  locationError,
   isLoading = false,
   originCoords,
   destCoords,
+  compact = false,
 }) => {
   const [activeField, setActiveField] = useState<'origin' | 'destination' | null>(null);
   const [originQuery, setOriginQuery] = useState(origin);
@@ -195,39 +203,61 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
           {/* Inputs */}
           <div className="flex-1 space-y-2">
             {/* Origin (Source) Input */}
-            <div className="relative flex items-center">
-              <span className="absolute left-3 text-emerald-600 pointer-events-none flex items-center">
-                <MapPin className="w-3.5 h-3.5" />
-              </span>
-              <input
-                type="text"
-                value={originQuery}
-                onFocus={() => setActiveField('origin')}
-                onChange={(e) => {
-                  setOriginQuery(e.target.value);
-                  onOriginChange(e.target.value);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSubmit();
-                  }
-                }}
-                placeholder="Starting point (e.g. PCCOE, Kothrud, Baner)..."
-                className="w-full bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 focus:border-blue-500 rounded-xl pl-8 pr-8 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner focus:shadow-none"
-              />
-              {originQuery && (
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="relative flex items-center">
+                <span className="absolute left-3 text-emerald-600 pointer-events-none flex items-center">
+                  <MapPin className="w-3.5 h-3.5" />
+                </span>
+                <input
+                  type="text"
+                  value={originQuery}
+                  onFocus={() => setActiveField('origin')}
+                  onChange={(e) => {
+                    setOriginQuery(e.target.value);
+                    onOriginChange(e.target.value);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSubmit();
+                    }
+                  }}
+                  placeholder="Starting point (e.g. PCCOE, Kothrud, Baner)..."
+                  aria-label="Source"
+                  className="min-h-11 w-full bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 focus:border-blue-500 rounded-xl pl-8 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner focus:shadow-none"
+                />
+                {originQuery && (
+                  <button
+                    type="button"
+                    aria-label="Clear source"
+                    onClick={() => {
+                      setOriginQuery('');
+                      onOriginChange('');
+                    }}
+                    className="absolute right-0 top-0 flex h-11 w-10 items-center justify-center text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              {onUseMyLocation ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    setOriginQuery('');
-                    onOriginChange('');
-                  }}
-                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                  onClick={onUseMyLocation}
+                  disabled={isLocatingOrigin}
+                  aria-busy={isLocatingOrigin}
+                  className="flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-100 disabled:cursor-wait disabled:opacity-70"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  {isLocatingOrigin ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
+                  <span>{isLocatingOrigin ? 'Locating…' : 'Use My Location'}</span>
                 </button>
-              )}
+              ) : null}
             </div>
+
+            {locationError ? (
+              <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm leading-5 text-amber-900">
+                {locationError}
+              </p>
+            ) : null}
 
             {/* Destination Input */}
             <div className="relative flex items-center">
@@ -248,7 +278,8 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
                   }
                 }}
                 placeholder="Destination (e.g. Shivajinagar, Hinjawadi)..."
-                className="w-full bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 focus:border-rose-500 rounded-xl pl-8 pr-8 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-rose-500/20 transition-all shadow-inner focus:shadow-none"
+                aria-label="Destination"
+                className="min-h-11 w-full bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 focus:border-rose-500 rounded-xl pl-8 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-rose-500/20 transition-all shadow-inner focus:shadow-none"
               />
               {destQuery && (
                 <button
@@ -257,7 +288,8 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
                     setDestQuery('');
                     onDestinationChange('');
                   }}
-                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                  aria-label="Clear destination"
+                  className="absolute right-0 top-0 flex h-11 w-10 items-center justify-center text-slate-400 hover:text-slate-600"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -299,7 +331,7 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
       </form>
 
       {/* Quick Select Popular Pune Hubs */}
-      <div className="mt-3 pt-2.5 border-t border-slate-100">
+      {!compact ? <div className="mt-3 pt-2.5 border-t border-slate-100">
         <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-500 mb-1.5 flex items-center gap-1">
           <Sparkles className="w-3 h-3 text-amber-500" />
           <span>Popular Pune Corridors</span>
@@ -316,10 +348,10 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
             </button>
           ))}
         </div>
-      </div>
+      </div> : null}
 
       {/* Coordinates feedback */}
-      {(originCoords || destCoords) && (
+      {!compact && (originCoords || destCoords) && (
         <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono text-slate-500">
           {originCoords && (
             <div className="flex items-center gap-1 text-emerald-700 font-medium">

@@ -26,6 +26,7 @@ from backend.scoring.context import pune_now, PUNE_TZ
 from backend.routing.validator import validate_coordinates, is_identical_location, build_zero_distance_route, PUNE_BBOX
 from backend.routing.graph_loader import get_graph_manager
 from backend.routing.engine import get_routing_engine
+from backend.routing.travel_modes import SUPPORTED_TRAVEL_MODES
 from backend.scoring.corroboration import submit_incident, get_privacy_aggregated_incidents
 from backend.scoring.profiles import profile_catalog, normalize_profile
 from backend.api.geocoder import geocode_location
@@ -145,6 +146,15 @@ def get_routes_endpoint():
     with spatial bounds validation, identical node handling, and full grounded explanations.
     """
     data = request.get_json() or {}
+    requested_travel_mode = data.get('travel_mode')
+    travel_mode = 'walking' if requested_travel_mode is None else requested_travel_mode
+    if not isinstance(travel_mode, str) or travel_mode not in SUPPORTED_TRAVEL_MODES:
+        return jsonify({
+            'error': 'invalid_travel_mode',
+            'message': 'Travel mode must be one of: walking, two_wheeler, car.',
+            'supported_travel_modes': sorted(SUPPORTED_TRAVEL_MODES),
+        }), 400
+
     orig = data.get("origin", {})
     dest = data.get("destination", {})
 
@@ -182,6 +192,7 @@ def get_routes_endpoint():
             "routes": [zero_route],
             "origin": orig,
             "destination": dest,
+            "travel_mode": travel_mode,
             "is_identical": True,
             "message": "Origin and destination are identical. Zero travel required."
         })
@@ -202,7 +213,8 @@ def get_routes_endpoint():
         orig_name=orig.get("name", "Origin"),
         dest_name=dest.get("name", "Destination"),
         departure_time=dep_dt,
-        profile_id=profile
+        profile_id=profile,
+        travel_mode=travel_mode,
     )
 
     return jsonify(routes_payload)

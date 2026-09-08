@@ -1,23 +1,33 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Shield, Navigation, AlertTriangle, Compass, ChevronLeft, ChevronRight, Siren } from 'lucide-react';
-import { RoutePlanner } from './components/RoutePlanner';
-import { DeparturePicker } from './components/DeparturePicker';
-import { RadialGauge } from './components/RadialGauge';
-import { RouteCards } from './components/RouteCards';
+import { Shield, AlertTriangle, Siren } from 'lucide-react';
 import { LayerControls, AmenityFilters } from './components/LayerControls';
 import { IncidentModal } from './components/IncidentModal';
 import { Map } from './components/Map';
-import { DataReadiness, DatasetCard } from './components/DataReadiness';
-import { TripConditions } from './components/TripConditions';
+import { DatasetCard } from './components/DataReadiness';
 import { WeatherContext } from './components/TripConditions';
-import { ProfileSelector } from './components/ProfileSelector';
+import { NavigationPanel } from './components/NavigationPanel';
+import { BottomSheetState } from './components/MobileBottomSheet';
 import { SosPanel } from './components/SosPanel';
-import { RouteData, IncidentReport, Landmark, SafetyProfileId } from './types';
+import { RouteData, IncidentReport, Landmark, RouteRequest, RoutesResponse, SafetyProfileId, TravelMode } from './types';
 
 import { computeTemporalModifier } from './lib/temporal';
-import { geocodeLocation } from './lib/geocoding';
+import { GeocodeResult, geocodeLocation, validateBBox } from './lib/geocoding';
+import { useLiveLocation } from './hooks/useLiveLocation';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? '' : 'http://127.0.0.1:8000')).replace(/\/$/, '');
+const TRAVEL_MODE_STORAGE_KEY = 'saferoute_travel_mode';
+const TRAVEL_MODES: TravelMode[] = ['walking', 'two_wheeler', 'car'];
+
+interface ExactEndpoint {
+  lat: number;
+  lon: number;
+  name: string;
+}
+
+interface EndpointOverrides {
+  origin: ExactEndpoint | null;
+  destination: ExactEndpoint | null;
+}
 
 // Keeps the research/disclosure panel available when the local Python API is offline.
 // The API registry is authoritative when it is reachable.
@@ -40,8 +50,11 @@ export function App() {
   const day = new Date(`${departureDate}T12:00:00+05:30`).getUTCDay();
   const isWeekend = day === 0 || day === 6 || (day === 5 && Number(departureTime.split(':')[0]) >= 20);
   const requestSequence = React.useRef(0);
+  const sourceLocationRequestSequence = React.useRef(0);
+  const endpointOverrides = React.useRef<EndpointOverrides>({ origin: null, destination: null });
   const [selectedRouteId, setSelectedRouteId] = useState<string>('route-safest');
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [mobileSheetState, setMobileSheetState] = useState<BottomSheetState>('collapsed');
 
   // Dynamic raw routes loaded from live backend or pre-calibrated benchmark
   const [rawRoutes, setRawRoutes] = useState<RouteData[]>([]);
@@ -55,8 +68,19 @@ export function App() {
   const [amenityFilters, setAmenityFilters] = useState<AmenityFilters>({ hospitals: false, police: false, fire: false, streetlights: false, crossings: false, signals: false, safe_places: false });
   const [showCommunity, setShowCommunity] = useState(true);
   const [profile, setProfile] = useState<SafetyProfileId>('student');
+  const [travelMode, setTravelMode] = useState<TravelMode>(() => {
+    const storedMode = localStorage.getItem(TRAVEL_MODE_STORAGE_KEY);
+    return TRAVEL_MODES.includes(storedMode as TravelMode) ? storedMode as TravelMode : 'walking';
+  });
   const [weatherContext, setWeatherContext] = useState<WeatherContext>({ label: 'Forecast unavailable', rainMm: null, visibilityKm: null, available: false });
   const [isSosOpen, setIsSosOpen] = useState(false);
+  const {
+    requestLocation: requestSourceLocation,
+    clearLocationError,
+    error: sourceLocationError,
+    status: sourceLocationStatus,
+  } = useLiveLocation();
+  const { requestLocation: requestReporterLocation } = useLiveLocation();
 
   // Incident reporting state with localStorage persistence
   const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
@@ -66,6 +90,10 @@ export function App() {
   // Backend Health check
   const [backendHealth, setBackendHealth] = useState<{ status: string; loadTime?: number; nodes?: number } | null>(null);
   const [datasets, setDatasets] = useState<DatasetCard[]>(OFFLINE_DATASETS);
+
+  useEffect(() => {
+    localStorage.setItem(TRAVEL_MODE_STORAGE_KEY, travelMode);
+  }, [travelMode]);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/datasets`, { signal: AbortSignal.timeout(5000) })
@@ -99,7 +127,7 @@ export function App() {
 
   // Universal Route Calculator supporting ANY Pune origin & destination
   const calculateCorridorRoutes = useCallback(
-    async (origText: string, destText: string) => {
+    async (origText: string, destText: string, exactEndpoints?: Partial<EndpointOverrides>) => {
       if (!origText.trim() || !destText.trim()) return;
 
       const sequence = ++requestSequence.current;
@@ -108,10 +136,26 @@ export function App() {
       setRouteNotice(null);
 
       try {
-        // 1. Geocode origin and destination concurrently
+        const exactOrigin = exactEndpoints?.origin !== undefined
+          ? exactEndpoints.origin
+          : endpointOverrides.current.origin;
+        const exactDestination = exactEndpoints?.destination !== undefined
+          ? exactEndpoints.destination
+          : endpointOverrides.current.destination;
+
+        const fromExactCoordinates = (endpoint: ExactEndpoint): GeocodeResult => ({
+          ...endpoint,
+          source: 'browser_geolocation',
+          offlineFallback: false,
+          isInsideBBox: validateBBox(endpoint.lat, endpoint.lon).isValid,
+          found: true,
+        });
+
+        // Geocode manual entries concurrently. Browser coordinates bypass text
+        // geocoding so the exact GPS fix is what reaches the routing backend.
         const [origGeo, destGeo] = await Promise.all([
-          geocodeLocation(origText, API_BASE_URL),
-          geocodeLocation(destText, API_BASE_URL),
+          exactOrigin ? Promise.resolve(fromExactCoordinates(exactOrigin)) : geocodeLocation(origText, API_BASE_URL),
+          exactDestination ? Promise.resolve(fromExactCoordinates(exactDestination)) : geocodeLocation(destText, API_BASE_URL),
         ]);
 
         if (sequence !== requestSequence.current) return;
@@ -146,24 +190,28 @@ export function App() {
         let backendSuccess = false;
         let backendMessage = 'Road routing is unavailable. Retry when the backend is ready; no safety route has been calculated.';
         try {
+          const routeRequest: RouteRequest = {
+            origin: { lat: origGeo.lat, lon: origGeo.lon, name: origDisplayName },
+            destination: { lat: destGeo.lat, lon: destGeo.lon, name: destDisplayName },
+            departure_time: departureTime,
+            departure_date: departureDate,
+            profile,
+            travel_mode: travelMode,
+          };
           const res = await fetch(`${API_BASE_URL}/api/routes`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              origin: { lat: origGeo.lat, lon: origGeo.lon, name: origDisplayName },
-              destination: { lat: destGeo.lat, lon: destGeo.lon, name: destDisplayName },
-              departure_time: departureTime,
-              departure_date: departureDate,
-              profile
-            }),
+            body: JSON.stringify(routeRequest),
             signal: AbortSignal.timeout(60000),
           });
 
           if (!res.ok) { const error = await res.json(); backendMessage = error.message || backendMessage; }
           if (res.ok) {
-            const data = await res.json();
+            const data = await res.json() as RoutesResponse;
             if (sequence !== requestSequence.current) return;
-            if (data && Array.isArray(data.routes) && data.routes.length > 0) {
+            if (data.travel_mode !== travelMode) {
+              backendMessage = 'The routing server returned a different travel mode. Please retry after the backend is updated.';
+            } else if (data && Array.isArray(data.routes) && data.routes.length > 0) {
               const styledRoutes = data.routes.map((r: RouteData) => ({
                 ...r,
                 color: r.type === 'safest' ? '#059669' : r.type === 'balanced' ? '#d97706' : '#1a73e8'
@@ -171,9 +219,10 @@ export function App() {
               setRawRoutes(styledRoutes);
               const recommended = styledRoutes.find((r: RouteData) => r.profile_recommended) || styledRoutes.find((r: RouteData) => r.type === 'safest');
               setSelectedRouteId(recommended ? recommended.id : styledRoutes[0].id);
-              const srcLabel = `${origGeo.source === 'nominatim_online' ? '🌐' : origGeo.source === 'backend_geocoder' ? '🔍' : '📍'} ${origDisplayName.split(',')[0]}`;
-              const dstLabel = `${destGeo.source === 'nominatim_online' ? '🌐' : destGeo.source === 'backend_geocoder' ? '🔍' : '📍'} ${destDisplayName.split(',')[0]}`;
-              setRouteNotice(`Road routes calculated: ${srcLabel} → ${dstLabel}. Scores are research estimates; traffic is simulated. Access to the snapped road: ${data.snap_distances_meters?.origin || 0} m at origin, ${data.snap_distances_meters?.destination || 0} m at destination.`);
+              const srcLabel = `${origGeo.source === 'nominatim_online' ? '🌐' : origGeo.source === 'backend_geocoder' ? '🔍' : origGeo.source === 'browser_geolocation' ? '📡' : '📍'} ${origDisplayName.split(',')[0]}`;
+              const dstLabel = `${destGeo.source === 'nominatim_online' ? '🌐' : destGeo.source === 'backend_geocoder' ? '🔍' : destGeo.source === 'browser_geolocation' ? '📡' : '📍'} ${destDisplayName.split(',')[0]}`;
+              const modeLabel = travelMode === 'two_wheeler' ? 'Two-Wheeler' : travelMode === 'car' ? 'Car' : 'Walking';
+              setRouteNotice(`${modeLabel} routes calculated: ${srcLabel} → ${dstLabel}. Scores are research estimates; traffic is simulated. Access to the snapped road: ${data.snap_distances_meters?.origin || 0} m at origin, ${data.snap_distances_meters?.destination || 0} m at destination.`);
               backendSuccess = true;
 
               // Snap marker coordinates to the exact road-network endpoints of the polyline
@@ -202,12 +251,12 @@ export function App() {
         if (sequence === requestSequence.current) setIsLoadingRoutes(false);
       }
     },
-    [departureTime, departureDate, profile]
+    [departureTime, departureDate, profile, travelMode]
   );
 
   useEffect(() => {
     if (backendHealth?.status === 'ready') calculateCorridorRoutes(origin, destination);
-  }, [backendHealth?.status, departureTime, departureDate, profile]);
+  }, [backendHealth?.status, departureTime, departureDate, profile, travelMode]);
 
   const routes = rawRoutes;
 
@@ -241,6 +290,8 @@ export function App() {
   }, [departureTime, isWeekend]);
 
   const handleSwapLocations = () => {
+    sourceLocationRequestSequence.current += 1;
+    clearLocationError();
     const tempName = origin;
     const tempCoords = originCoords;
     setOrigin(destination);
@@ -248,15 +299,57 @@ export function App() {
     setOriginCoords(destCoords);
     setDestCoords(tempCoords);
 
+    const previousOverrides = endpointOverrides.current;
+    endpointOverrides.current = {
+      origin: previousOverrides.destination,
+      destination: previousOverrides.origin,
+    };
+
     calculateCorridorRoutes(destination, origin);
   };
 
+  const handleOriginChange = useCallback((value: string) => {
+    sourceLocationRequestSequence.current += 1;
+    endpointOverrides.current.origin = null;
+    clearLocationError();
+    setOrigin(value);
+  }, [clearLocationError]);
+
+  const handleDestinationChange = useCallback((value: string) => {
+    endpointOverrides.current.destination = null;
+    setDestination(value);
+  }, []);
+
+  const handleUseMyLocation = useCallback(async () => {
+    const sequence = ++sourceLocationRequestSequence.current;
+    try {
+      const position = await requestSourceLocation();
+      if (sequence !== sourceLocationRequestSequence.current) return;
+      const exactOrigin: ExactEndpoint = {
+        lat: position.latitude,
+        lon: position.longitude,
+        name: 'Current Location',
+      };
+      endpointOverrides.current.origin = exactOrigin;
+      setOrigin('Current Location');
+      setOriginCoords([position.longitude, position.latitude]);
+      await calculateCorridorRoutes('Current Location', destination, { origin: exactOrigin });
+    } catch {
+      // useLiveLocation exposes a normalized, friendly error beside the source.
+      // The existing source value is intentionally left untouched.
+    }
+  }, [calculateCorridorRoutes, destination, requestSourceLocation]);
+
   const handleSelectLandmark = (landmark: Landmark, target: 'origin' | 'destination') => {
     if (target === 'origin') {
+      sourceLocationRequestSequence.current += 1;
+      endpointOverrides.current.origin = null;
+      clearLocationError();
       setOrigin(landmark.name);
       setOriginCoords([landmark.lon, landmark.lat]);
       calculateCorridorRoutes(landmark.name, destination);
     } else {
+      endpointOverrides.current.destination = null;
       setDestination(landmark.name);
       setDestCoords([landmark.lon, landmark.lat]);
       calculateCorridorRoutes(origin, landmark.name);
@@ -264,10 +357,7 @@ export function App() {
   };
 
   const handleAddIncident = async (newReport: IncidentReport) => {
-    const position = newReport.demo_mode ? null : await new Promise<GeolocationPosition>((resolve, reject) => {
-      if (!navigator.geolocation) return reject(new Error('Location access is unavailable in this browser.'));
-      navigator.geolocation.getCurrentPosition(resolve, () => reject(new Error('Allow precise location access to report a hazard within 150 m.')), { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
-    });
+    const position = newReport.demo_mode ? null : await requestReporterLocation();
     let sessionId = localStorage.getItem('saferoute_session');
     if (!sessionId) {
       sessionId = crypto.randomUUID();
@@ -278,7 +368,7 @@ export function App() {
       body: JSON.stringify({ latitude: newReport.lat, longitude: newReport.lon,
         incident_type: newReport.category, severity: newReport.severity,
         description: newReport.description, user_id_hash: sessionId,
-        reporter_lat: position?.coords.latitude, reporter_lon: position?.coords.longitude,
+        reporter_lat: position?.latitude, reporter_lon: position?.longitude,
         demo_mode: newReport.demo_mode === true }),
       signal: AbortSignal.timeout(15000),
     });
@@ -307,9 +397,9 @@ export function App() {
   const handleWeatherContext = useCallback((value: WeatherContext) => setWeatherContext(value), []);
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-100 text-slate-900 font-sans">
+    <div className="flex h-[100dvh] min-h-[100dvh] w-full max-w-full flex-col overflow-x-hidden bg-slate-100 font-sans text-slate-900">
       {/* Top Google Maps Style Header */}
-      <header className="h-14 border-b border-slate-200/90 bg-white/95 backdrop-blur-md px-4 lg:px-6 flex items-center justify-between z-30 flex-shrink-0 shadow-sm">
+      <header className="z-40 flex min-h-14 flex-shrink-0 items-center justify-between border-b border-slate-200/90 bg-white/95 px-3 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-md sm:px-4 lg:px-6">
         <div className="flex items-center space-x-3">
           <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shadow-sm">
             <Shield className="w-5 h-5 text-emerald-600" />
@@ -319,7 +409,7 @@ export function App() {
               <h1 className="text-base font-extrabold tracking-tight text-slate-900">
                 SafeRoute AI
               </h1>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-700 min-[360px]:inline-flex">
                 Pune Metropole
               </span>
             </div>
@@ -353,21 +443,23 @@ export function App() {
           <button
             type="button"
             onClick={() => setIsSosOpen(true)}
-            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-sm"
+            aria-label="Share Safe Trip"
+            className="flex min-h-11 min-w-11 items-center justify-center space-x-1.5 rounded-xl bg-slate-900 px-3 text-sm font-bold text-white shadow-sm hover:bg-slate-800"
           ><Siren className="w-4 h-4"/><span className="hidden sm:inline">Share Safe Trip</span></button>
           <button
             type="button"
             onClick={() => setIsIncidentModalOpen(true)}
-            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-all active:scale-95"
+            aria-label="Report Hazard"
+            className="flex min-h-11 items-center space-x-1.5 rounded-xl bg-rose-600 px-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-rose-700 active:scale-95"
           >
             <AlertTriangle className="w-4 h-4" />
-            <span>Report Hazard</span>
+            <span className="hidden min-[390px]:inline">Report Hazard</span>
           </button>
         </div>
       </header>
 
       {/* Main Full-Bleed Map with Floating Google Maps Panels */}
-      <div className="flex-1 relative w-full h-full overflow-hidden">
+      <div className="relative min-h-0 w-full flex-1 overflow-hidden">
         {/* Full Viewport Map Background */}
         <div className="absolute inset-0 w-full h-full z-0">
           <Map
@@ -384,104 +476,48 @@ export function App() {
             destCoords={destCoords}
             originName={origin}
             destName={destination}
+            mobileSheetState={mobileSheetState}
           />
         </div>
 
-        {/* Floating Google Maps Left Navigation Drawer */}
-        <aside
-          className={`absolute top-4 left-4 bottom-4 z-20 w-[calc(100%-2rem)] sm:w-[440px] md:w-[460px] flex flex-col bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden transition-all duration-300 ${
-            isPanelCollapsed ? '-translate-x-[calc(100%+24px)] pointer-events-none' : 'translate-x-0 pointer-events-auto'
-          }`}
-        >
-          {/* Drawer Top Header with Collapse Button */}
-          <div className="px-4 py-2.5 bg-slate-50/90 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
-            <div className="flex items-center space-x-2 text-slate-800 text-xs font-bold">
-              <Navigation className="w-3.5 h-3.5 text-blue-600" />
-              <span>Pune Safe Navigation</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsPanelCollapsed(true)}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors"
-              title="Hide panel to view full map"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Scrollable Drawer Content */}
-          <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5">
-            {/* 1. Universal Origin / Destination Route Planner */}
-            <RoutePlanner
-              origin={origin}
-              destination={destination}
-              onOriginChange={setOrigin}
-              onDestinationChange={setDestination}
-              onSwap={handleSwapLocations}
-              onSelectLandmark={handleSelectLandmark}
-              onCalculateRoute={calculateCorridorRoutes}
-              isLoading={isLoadingRoutes}
-              originCoords={originCoords}
-              destCoords={destCoords}
-            />
-
-            {routeNotice && (
-              <div className="text-[11px] bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-2 rounded-xl flex items-center gap-2 animate-in fade-in duration-200">
-                <Compass className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                <span>{routeNotice}</span>
-              </div>
-            )}
-
-            {/* 2. Departure Time & Weekend Modifiers */}
-            <DeparturePicker
-              departureTime={departureTime}
-              isWeekend={isWeekend}
-              onTimeChange={setDepartureTime}
-              departureDate={departureDate}
-              onDateChange={setDepartureDate}
-            />
-
-            <ProfileSelector value={profile} onChange={setProfile} />
-
-            {datasets.length > 0 && <DataReadiness datasets={datasets} />}
-            <TripConditions date={departureDate} time={departureTime} onConditionChange={handleWeatherContext} />
-
-            {/* 3. Radial Safety Gauge for Selected Route */}
-            {selectedRoute && <RadialGauge
-              score={selectedRoute.rss}
-              label={`${selectedRoute.name.split(':')[0]} Safety Score`}
-              riskLevel={selectedRoute.risk_level}
-              subscores={selectedRoute.subscores}
-              timeModifier={temporalMod.timeModifier}
-              weekendModifier={temporalMod.weekendModifier}
-            />}
-            {selectedRoute?.score_status === 'lower_bound' && <p className="text-sm text-amber-900 bg-amber-50 rounded-lg p-3">Estimated RSS range: {selectedRoute.rss}–{selectedRoute.rss_upper}. Accident data is unknown for {selectedRoute.unknown_accident_percentage}% of this route. The gauge shows the conservative lower bound.</p>}
-            {!selectedRoute && <p role="status" className="p-4 text-sm text-slate-700">{isLoadingRoutes ? 'Calculating routes on the Pune road network…' : 'Choose two Pune locations to calculate road routes.'}</p>}
-
-            {/* 4. Comparison Cards for 3 Routes */}
-            <RouteCards
-              routes={routes}
-              selectedRouteId={selectedRouteId}
-              onSelectRoute={setSelectedRouteId}
-              departureTime={departureTime}
-              isWeekend={isWeekend}
-              weather={weatherContext}
-            />
-          </div>
-        </aside>
-
-        {/* Floating Expand Button when drawer is collapsed */}
-        {isPanelCollapsed && (
-          <button
-            type="button"
-            onClick={() => setIsPanelCollapsed(false)}
-            className="absolute top-4 left-4 z-20 bg-white/95 border border-slate-200/90 shadow-xl px-4 py-2.5 rounded-2xl text-xs font-bold text-slate-800 flex items-center gap-2 hover:bg-slate-50 active:scale-95 transition-all"
-          >
-            <Navigation className="w-4 h-4 text-blue-600" />
-            <span>Open Navigation Panel</span>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-          </button>
-        )}
+        <NavigationPanel
+          origin={origin}
+          destination={destination}
+          originCoords={originCoords}
+          destCoords={destCoords}
+          departureTime={departureTime}
+          departureDate={departureDate}
+          isWeekend={isWeekend}
+          profile={profile}
+          travelMode={travelMode}
+          datasets={datasets}
+          incidents={incidents}
+          routes={routes}
+          selectedRoute={selectedRoute}
+          selectedRouteId={selectedRouteId}
+          routeNotice={routeNotice}
+          isLoadingRoutes={isLoadingRoutes}
+          desktopCollapsed={isPanelCollapsed}
+          mobileState={mobileSheetState}
+          temporalModifier={temporalMod}
+          weather={weatherContext}
+          onOriginChange={handleOriginChange}
+          onDestinationChange={handleDestinationChange}
+          onSwapLocations={handleSwapLocations}
+          onSelectLandmark={handleSelectLandmark}
+          onCalculateRoute={calculateCorridorRoutes}
+          onUseMyLocation={handleUseMyLocation}
+          isLocatingOrigin={sourceLocationStatus === 'requesting'}
+          locationError={sourceLocationError?.message ?? null}
+          onDepartureTimeChange={setDepartureTime}
+          onDepartureDateChange={setDepartureDate}
+          onProfileChange={setProfile}
+          onTravelModeChange={setTravelMode}
+          onWeatherChange={handleWeatherContext}
+          onSelectRoute={setSelectedRouteId}
+          onDesktopCollapsedChange={setIsPanelCollapsed}
+          onMobileStateChange={setMobileSheetState}
+        />
 
         {/* Floating Top-Right Layer Controls & Legend */}
         <div className="absolute top-4 right-4 z-20">

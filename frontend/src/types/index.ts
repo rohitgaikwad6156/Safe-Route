@@ -1,5 +1,15 @@
 export type RouteType = 'fastest' | 'safest' | 'balanced';
 export type SafetyProfileId = 'student' | 'woman_alone' | 'elderly' | 'night_commuter' | 'disability' | 'emergency_helper';
+export type TravelMode = 'walking' | 'two_wheeler' | 'car';
+
+export interface RouteRequest {
+  origin: { lat: number; lon: number; name: string };
+  destination: { lat: number; lon: number; name: string };
+  departure_time: string;
+  departure_date: string;
+  profile: SafetyProfileId;
+  travel_mode: TravelMode;
+}
 
 export interface RouteSubscores {
   accident: number | null;
@@ -84,6 +94,8 @@ export interface RouteData {
   color: string;
   distance_meters: number;
   duration_seconds: number;
+  duration_label?: string;
+  reference_speed_kmh?: number;
   raw_rss: number;
   score_status?: string;
   rss_upper?: number;
@@ -134,6 +146,8 @@ export interface RoutesResponse {
   };
   departure_time: string;
   is_weekend: boolean;
+  travel_mode: TravelMode;
+  snap_distances_meters?: { origin: number; destination: number };
   routes: RouteData[];
 }
 

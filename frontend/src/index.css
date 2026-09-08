@@ -12,6 +12,39 @@ body {
   background-color: #f8fafc;
   color: #0f172a;
   overflow: hidden;
+  min-width: 0;
+  min-height: 100dvh;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100dvh;
+  overscroll-behavior: none;
+}
+
+@media (max-width: 767px) {
+  #root button {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  .maplibregl-ctrl-group button {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .maplibregl-ctrl-bottom-right {
+    bottom: calc(8.5rem + env(safe-area-inset-bottom));
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
 /* Accessible focus rings */

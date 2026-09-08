@@ -33,7 +33,7 @@ export interface GeocodeResult {
   name: string;
   lat: number;
   lon: number;
-  source: 'offline_landmark_registry' | 'nominatim_online' | 'backend_geocoder' | 'not_found';
+  source: 'offline_landmark_registry' | 'nominatim_online' | 'backend_geocoder' | 'browser_geolocation' | 'not_found';
   offlineFallback: boolean;
   isInsideBBox: boolean;
   found: boolean; // false when geocoding failed to resolve the query to any real location

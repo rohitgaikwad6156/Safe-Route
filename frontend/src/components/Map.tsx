@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import { RouteData, IncidentReport } from '../types';
 import { AmenityFilters } from './LayerControls';
+import type { BottomSheetState } from './MobileBottomSheet';
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!));
@@ -22,6 +23,7 @@ interface MapProps {
   destCoords?: [number, number];
   originName?: string;
   destName?: string;
+  mobileSheetState?: BottomSheetState;
 }
 
 export const Map: React.FC<MapProps> = ({
@@ -38,6 +40,7 @@ export const Map: React.FC<MapProps> = ({
   destCoords = [73.8553, 18.4529],
   originName = 'Shivajinagar Station',
   destName = 'Katraj Chowk',
+  mobileSheetState = 'collapsed',
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<maplibregl.Map | null>(null);
@@ -425,8 +428,13 @@ export const Map: React.FC<MapProps> = ({
 
     if (hasCoords && !bounds.isEmpty()) {
       const isMobile = window.innerWidth < 768;
+      const mobileBottomPadding = mobileSheetState === 'collapsed'
+        ? 155
+        : mobileSheetState === 'half'
+          ? Math.min(window.innerHeight * 0.58, 560)
+          : 90;
       map.fitBounds(bounds, {
-        padding: { top: 75, bottom: 65, left: isMobile ? 30 : 470, right: 60 },
+        padding: { top: 75, bottom: isMobile ? mobileBottomPadding : 65, left: isMobile ? 30 : 470, right: 60 },
         maxZoom: 14,
         duration: 800,
       });
@@ -500,7 +508,7 @@ export const Map: React.FC<MapProps> = ({
     const map = mapInstance.current;
     if (!map || !map.isStyleLoaded()) return;
     syncRoutesOnMap(map, routes, selectedRouteId);
-  }, [routes, selectedRouteId, mapReady]);
+  }, [routes, selectedRouteId, mapReady, mobileSheetState]);
 
   // Update Heatmap visibility
   useEffect(() => {
@@ -600,7 +608,7 @@ export const Map: React.FC<MapProps> = ({
       />
       {/* Floating Interactive Route Selector Pill Bar on Map */}
       {routes && routes.length > 1 && (
-        <div className="absolute top-4 left-4 md:left-[450px] z-20 flex items-center gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/90 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute top-4 left-4 md:left-[450px] z-20 hidden md:flex items-center gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/90 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="text-[11px] uppercase font-bold text-slate-500 px-2 tracking-wider flex items-center gap-1 border-r border-slate-200 mr-0.5">
             <span>Routes</span>
             <span className="text-emerald-600 font-mono">({routes.length})</span>
@@ -639,7 +647,7 @@ export const Map: React.FC<MapProps> = ({
       )}
 
       {isOfflineMode && (
-        <div className="absolute bottom-6 left-6 z-20 bg-white/95 border border-amber-300 px-3 py-1.5 rounded-xl shadow-xl backdrop-blur-md flex items-center gap-2 text-xs text-slate-800 animate-in fade-in duration-300">
+        <div className="absolute bottom-[calc(9rem+env(safe-area-inset-bottom))] left-3 z-20 flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded-xl border border-amber-300 bg-white/95 px-3 py-2 text-sm text-slate-800 shadow-xl backdrop-blur-md md:bottom-6 md:left-6">
           <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
           <span>Offline Vector Canvas Active (Tile Server Offline — Routes & Safety Markers Visible)</span>
         </div>

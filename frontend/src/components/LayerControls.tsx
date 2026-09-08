@@ -1,7 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Flame, Hospital, RotateCcw, AlertTriangle, Layers } from 'lucide-react';
 
 export type AmenityFilters = Record<'hospitals' | 'police' | 'fire' | 'streetlights' | 'crossings' | 'signals' | 'safe_places', boolean>;
+
+const AMENITY_OPTIONS: ReadonlyArray<[keyof AmenityFilters, string]> = [
+  ['hospitals', 'Hospitals / clinics'],
+  ['police', 'Police stations'],
+  ['fire', 'Fire stations'],
+  ['streetlights', 'Streetlights'],
+  ['crossings', 'Crossings'],
+  ['signals', 'Traffic signals'],
+  ['safe_places', 'Safe places / help'],
+];
 
 interface LayerControlsProps {
   showHeatmap: boolean;
@@ -26,6 +36,8 @@ export const LayerControls: React.FC<LayerControlsProps> = ({
   isPinningMode,
   onCancelPinning,
 }) => {
+  const [amenitiesOpen, setAmenitiesOpen] = useState(false);
+
   return (
     <div className="flex flex-col gap-2 z-20 pointer-events-auto">
       {/* Active Pinning Banner if user clicked Pin on Map */}
@@ -62,14 +74,16 @@ export const LayerControls: React.FC<LayerControlsProps> = ({
           <span>Risk Heatmap</span>
         </button>
 
-        <details className="relative">
-          <summary className="list-none cursor-pointer px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-slate-600 hover:bg-slate-100"><Hospital className="w-4 h-4"/>Safety amenities</summary>
-          <div className="absolute right-0 mt-2 w-60 bg-white border border-slate-200 shadow-xl rounded-xl p-3 grid grid-cols-1 gap-2">
-            {Object.entries({hospitals:'Hospitals / clinics',police:'Police stations',fire:'Fire stations',streetlights:'Streetlights',crossings:'Crossings',signals:'Traffic signals',safe_places:'Safe places / help'}).map(([key,label]) => <label key={key} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={amenityFilters[key as keyof AmenityFilters]} onChange={() => onToggleAmenity(key as keyof AmenityFilters)}/>{label}</label>)}
-            <label className="flex items-center gap-2 text-xs pt-2 border-t"><input type="checkbox" checked={showCommunity} onChange={onToggleCommunity}/>Community reports</label>
-            <p className="text-[9px] text-slate-400">Layers are opt-in and capped for performance.</p>
-          </div>
-        </details>
+        <button
+          type="button"
+          aria-expanded={amenitiesOpen}
+          aria-controls="safety-amenity-filters"
+          onClick={() => setAmenitiesOpen((open) => !open)}
+          className="flex min-h-11 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+        >
+          <Hospital className="h-4 w-4" />
+          <span>Safety amenities</span>
+        </button>
 
         <div className="w-[1px] h-5 bg-slate-200 mx-1" />
 
@@ -84,8 +98,27 @@ export const LayerControls: React.FC<LayerControlsProps> = ({
         </button>
       </div>
 
+      {amenitiesOpen ? (
+        <div
+          id="safety-amenity-filters"
+          className="grid w-60 max-w-[calc(100vw-2rem)] self-end rounded-xl border border-slate-200 bg-white p-3 shadow-xl"
+        >
+          {AMENITY_OPTIONS.map(([key, label]) => (
+            <label key={key} className="flex min-h-9 items-center gap-2 text-sm">
+              <input type="checkbox" checked={amenityFilters[key]} onChange={() => onToggleAmenity(key)} />
+              {label}
+            </label>
+          ))}
+          <label className="flex min-h-10 items-center gap-2 border-t pt-2 text-sm">
+            <input type="checkbox" checked={showCommunity} onChange={onToggleCommunity} />
+            Community reports
+          </label>
+          <p className="mt-1 text-[11px] text-slate-500">Layers are opt-in and capped for performance.</p>
+        </div>
+      ) : null}
+
       {/* Legend Badge */}
-      <div className="bg-white/95 border border-slate-200/90 rounded-xl p-3 shadow-xl backdrop-blur-md text-[11px] space-y-1.5 max-w-[220px]">
+      <div className="hidden max-w-[220px] space-y-1.5 rounded-xl border border-slate-200/90 bg-white/95 p-3 text-[11px] shadow-xl backdrop-blur-md sm:block">
         <div className="font-bold text-slate-800 uppercase tracking-wider text-[10px] flex items-center gap-1">
           <Layers className="w-3 h-3 text-slate-500" />
           <span>Route Map Legend</span>
