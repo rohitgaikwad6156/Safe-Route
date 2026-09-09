@@ -16,17 +16,17 @@ const DEFAULT_OPTIONS: PositionOptions = {
 export function normalizeGeolocationError(error: GeolocationPositionError | Error): Error {
   if ('code' in error) {
     if (error.code === error.PERMISSION_DENIED) {
-      return new Error('Location permission was denied. You can still enter your source manually.');
+      return new Error('Location permission was denied. Enable location access in your browser to use GPS.');
     }
     if (error.code === error.POSITION_UNAVAILABLE) {
-      return new Error('Your location could not be determined. Check GPS or network access, then try again or enter your source manually.');
+      return new Error('Your location could not be determined. Check GPS or network access, then try again.');
     }
     if (error.code === error.TIMEOUT) {
-      return new Error('Location lookup timed out. Try again where GPS reception is clearer, or enter your source manually.');
+      return new Error('Location lookup timed out. Try again where GPS reception is clearer.');
     }
   }
 
-  return error instanceof Error ? error : new Error('Location access failed. You can still enter your source manually.');
+  return error instanceof Error ? error : new Error('Location access failed. Please try again.');
 }
 
 function toLiveCoordinates(position: GeolocationPosition): LiveCoordinates {
@@ -42,7 +42,7 @@ function toLiveCoordinates(position: GeolocationPosition): LiveCoordinates {
 
 function requireGeolocation(): Geolocation {
   if (typeof navigator === 'undefined' || !navigator.geolocation) {
-    throw new Error('This browser does not support location access. Enter your source manually instead.');
+    throw new Error('This browser does not support location access.');
   }
   return navigator.geolocation;
 }
@@ -77,5 +77,10 @@ export function watchLocation(
     options,
   );
 
-  return () => geolocation.clearWatch(watchId);
+  let active = true;
+  return () => {
+    if (!active) return;
+    active = false;
+    geolocation.clearWatch(watchId);
+  };
 }

@@ -3,11 +3,43 @@ import maplibregl from 'maplibre-gl';
 import { RouteData, IncidentReport } from '../types';
 import { AmenityFilters } from './LayerControls';
 import type { BottomSheetState } from './MobileBottomSheet';
+import type { LiveCoordinates } from '../lib/geolocation';
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!));
 }
 
+const LIVE_ACCURACY_SOURCE_ID = 'live-location-accuracy-source';
+const LIVE_ACCURACY_LAYER_ID = 'live-location-accuracy-layer';
+const EARTH_RADIUS_METERS = 6_371_000;
+
+function buildAccuracyCircle(location: LiveCoordinates) {
+  if (!Number.isFinite(location.accuracy) || location.accuracy <= 0) {
+    return { type: 'FeatureCollection' as const, features: [] };
+  }
+
+  const latitudeRadians = location.latitude * Math.PI / 180;
+  const angularRadius = location.accuracy / EARTH_RADIUS_METERS;
+  const coordinates: [number, number][] = [];
+  for (let index = 0; index <= 48; index += 1) {
+    const angle = index / 48 * Math.PI * 2;
+    const latitude = location.latitude + angularRadius * Math.cos(angle) * 180 / Math.PI;
+    const longitude = location.longitude
+      + angularRadius * Math.sin(angle) * 180 / Math.PI / Math.max(0.01, Math.cos(latitudeRadians));
+    coordinates.push([longitude, latitude]);
+  }
+
+  return {
+    type: 'FeatureCollection' as const,
+    features: [{
+      type: 'Feature' as const,
+      properties: { accuracy: location.accuracy },
+      geometry: { type: 'Polygon' as const, coordinates: [coordinates] },
+    }],
+  };
+}
+
+const EMPTY_ACCURACY_DATA = { type: 'FeatureCollection' as const, features: [] };
 
 interface MapProps {
   routes: RouteData[];
@@ -24,6 +56,8 @@ interface MapProps {
   originName?: string;
   destName?: string;
   mobileSheetState?: BottomSheetState;
+  navigationMode?: boolean;
+  currentPosition?: LiveCoordinates | null;
 }
 
 export const Map: React.FC<MapProps> = ({
@@ -41,11 +75,14 @@ export const Map: React.FC<MapProps> = ({
   originName = 'Shivajinagar Station',
   destName = 'Katraj Chowk',
   mobileSheetState = 'collapsed',
+  navigationMode = false,
+  currentPosition = null,
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<maplibregl.Map | null>(null);
   const originMarkerRef = useRef<maplibregl.Marker | null>(null);
   const destMarkerRef = useRef<maplibregl.Marker | null>(null);
+  const currentPositionMarkerRef = useRef<maplibregl.Marker | null>(null);
   const incidentMarkersRef = useRef<maplibregl.Marker[]>([]);
   const amenityMarkersRef = useRef<maplibregl.Marker[]>([]);
   const animationFrameRef = useRef<number | null>(null);
@@ -253,6 +290,21 @@ export const Map: React.FC<MapProps> = ({
       },
     });
 
+    map.addSource(LIVE_ACCURACY_SOURCE_ID, {
+      type: 'geojson',
+      data: EMPTY_ACCURACY_DATA,
+    });
+    map.addLayer({
+      id: LIVE_ACCURACY_LAYER_ID,
+      type: 'fill',
+      source: LIVE_ACCURACY_SOURCE_ID,
+      paint: {
+        'fill-color': '#2563eb',
+        'fill-opacity': 0.12,
+        'fill-outline-color': '#60a5fa',
+      },
+    });
+
     // Initial route sync and markers
     syncRoutesOnMap(map, routes, selectedRouteId);
     syncMarkers(map);
@@ -280,12 +332,13 @@ export const Map: React.FC<MapProps> = ({
       currentLayerIds.add(lineId);
 
       const isSelected = route.id === currentSelId;
+      const isVisible = !navigationMode || isSelected;
       const isSafest = route.type === 'safest';
       const isBalanced = route.type === 'balanced';
       const isFastest = route.type === 'fastest';
 
       const baseWidth = isSafest ? 5.5 : isBalanced ? 5.0 : 4.5;
-      const selWidth = isSafest ? 8.0 : isBalanced ? 7.0 : 6.5;
+      const selWidth = navigationMode ? 9.5 : isSafest ? 8.0 : isBalanced ? 7.0 : 6.5;
       const currentWidth = isSelected ? selWidth : baseWidth;
       const casingWidth = currentWidth + (isSelected ? 5.0 : 2.5);
 
@@ -317,6 +370,7 @@ export const Map: React.FC<MapProps> = ({
           layout: {
             'line-join': 'round',
             'line-cap': 'round',
+            visibility: isVisible ? 'visible' : 'none',
           },
           paint: {
             'line-color': '#ffffff',
@@ -342,6 +396,7 @@ export const Map: React.FC<MapProps> = ({
           layout: {
             'line-join': 'round',
             'line-cap': 'round',
+            visibility: isVisible ? 'visible' : 'none',
           },
           paint: linePaint,
         });
@@ -360,11 +415,13 @@ export const Map: React.FC<MapProps> = ({
 
       // Update line styles
       if (map.getLayer(casingId)) {
+        map.setLayoutProperty(casingId, 'visibility', isVisible ? 'visible' : 'none');
         map.setPaintProperty(casingId, 'line-color', '#ffffff');
         map.setPaintProperty(casingId, 'line-width', casingWidth);
         map.setPaintProperty(casingId, 'line-opacity', isSelected ? 1.0 : 0.70);
       }
       if (map.getLayer(lineId)) {
+        map.setLayoutProperty(lineId, 'visibility', isVisible ? 'visible' : 'none');
         const primaryColor =
           isSafest ? '#059669' : isFastest ? '#1a73e8' : isBalanced ? '#d97706' : route.color;
         map.setPaintProperty(lineId, 'line-color', primaryColor);
@@ -492,6 +549,10 @@ export const Map: React.FC<MapProps> = ({
         destMarkerRef.current.remove();
         destMarkerRef.current = null;
       }
+      if (currentPositionMarkerRef.current) {
+        currentPositionMarkerRef.current.remove();
+        currentPositionMarkerRef.current = null;
+      }
       map.remove();
       mapInstance.current = null;
     };
@@ -507,8 +568,57 @@ export const Map: React.FC<MapProps> = ({
   useEffect(() => {
     const map = mapInstance.current;
     if (!map || !map.isStyleLoaded()) return;
-    syncRoutesOnMap(map, routes, selectedRouteId);
-  }, [routes, selectedRouteId, mapReady, mobileSheetState]);
+    try {
+      syncRoutesOnMap(map, routes, selectedRouteId);
+    } catch (error) {
+      console.error('Map route-layer update failed without interrupting navigation.', error);
+    }
+  }, [routes, selectedRouteId, mapReady, mobileSheetState, navigationMode]);
+
+  // MapLibre keeps the same WebGL map throughout navigation. Resize its canvas
+  // when the viewport, browser chrome, or bottom-sheet state changes instead of
+  // remounting the map (which can produce a blank/black canvas on mobile GPUs).
+  useEffect(() => {
+    const map = mapInstance.current;
+    const container = mapContainer.current;
+    if (!map || !container || !mapReady) return;
+
+    let animationFrame: number | null = null;
+    const resizeMap = () => {
+      if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(() => {
+        try {
+          if (mapInstance.current === map && container.isConnected) map.resize();
+        } catch (error) {
+          console.warn('Map resize was skipped because the canvas was unavailable.', error);
+        }
+        animationFrame = null;
+      });
+    };
+    const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resizeMap);
+    resizeObserver?.observe(container);
+    window.addEventListener('orientationchange', resizeMap);
+    resizeMap();
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener('orientationchange', resizeMap);
+      if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+    };
+  }, [mapReady]);
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map || !mapReady) return;
+    const animationFrame = requestAnimationFrame(() => {
+      try {
+        if (mapInstance.current === map && mapContainer.current?.isConnected) map.resize();
+      } catch (error) {
+        console.warn('Navigation map resize was skipped.', error);
+      }
+    });
+    return () => cancelAnimationFrame(animationFrame);
+  }, [navigationMode, mobileSheetState, mapReady]);
 
   // Update Heatmap visibility
   useEffect(() => {
@@ -516,9 +626,9 @@ export const Map: React.FC<MapProps> = ({
     if (!map || !map.isStyleLoaded()) return;
 
     if (map.getLayer('risk-heatmap-layer')) {
-      map.setLayoutProperty('risk-heatmap-layer', 'visibility', showHeatmap ? 'visible' : 'none');
+      map.setLayoutProperty('risk-heatmap-layer', 'visibility', showHeatmap && !navigationMode ? 'visible' : 'none');
     }
-  }, [showHeatmap, mapReady]);
+  }, [showHeatmap, navigationMode, mapReady]);
 
   // Reactive marker synchronization whenever coordinates, names, or routes change
   useEffect(() => {
@@ -526,6 +636,50 @@ export const Map: React.FC<MapProps> = ({
     if (!map) return;
     syncMarkers(map);
   }, [originCoords, destCoords, originName, destName, routes, selectedRouteId]);
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    const accuracySource = map?.getSource(LIVE_ACCURACY_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    if (!map || !navigationMode || !currentPosition) {
+      currentPositionMarkerRef.current?.remove();
+      currentPositionMarkerRef.current = null;
+      accuracySource?.setData(EMPTY_ACCURACY_DATA);
+      return;
+    }
+
+    if (!currentPositionMarkerRef.current) {
+      const element = document.createElement('div');
+      element.className = 'navigation-position-marker';
+      element.innerHTML = `
+        <div class="relative flex h-11 w-11 items-center justify-center" aria-label="Current position">
+          <span data-heading-indicator class="absolute left-1/2 top-0 h-0 w-0 -translate-x-1/2 border-x-[6px] border-b-[13px] border-x-transparent border-b-blue-700 drop-shadow"></span>
+          <span class="absolute h-9 w-9 animate-ping rounded-full bg-blue-500/25"></span>
+          <span class="relative h-5 w-5 rounded-full border-[3px] border-white bg-blue-600 shadow-lg"></span>
+        </div>
+      `;
+      currentPositionMarkerRef.current = new maplibregl.Marker({
+        element,
+        anchor: 'center',
+        rotationAlignment: 'map',
+        pitchAlignment: 'map',
+      })
+        .setPopup(new maplibregl.Popup({ offset: 16 }).setText('Your current position'))
+        .addTo(map);
+    }
+
+    const marker = currentPositionMarkerRef.current;
+    const headingIndicator = marker.getElement().querySelector<HTMLElement>('[data-heading-indicator]');
+    const hasHeading = currentPosition.heading !== null && Number.isFinite(currentPosition.heading);
+    if (headingIndicator) headingIndicator.style.display = hasHeading ? 'block' : 'none';
+    try {
+      marker
+        .setLngLat([currentPosition.longitude, currentPosition.latitude])
+        .setRotation(hasHeading ? currentPosition.heading! : 0);
+      accuracySource?.setData(buildAccuracyCircle(currentPosition));
+    } catch (error) {
+      console.error('Live location marker update failed without stopping navigation.', error);
+    }
+  }, [currentPosition, navigationMode, mapReady]);
 
   // Update Safety Amenities Markers
   useEffect(() => {
@@ -541,7 +695,7 @@ export const Map: React.FC<MapProps> = ({
       traffic_signals: amenityFilters.signals, ecb: amenityFilters.safe_places,
       emergency_access_point: amenityFilters.safe_places, defibrillator: amenityFilters.safe_places, ambulance_station: amenityFilters.safe_places,
     };
-    const visibleAmenities = keyAmenities.filter(item => visibleTypes[item.type]).slice(0, 350);
+    const visibleAmenities = navigationMode ? [] : keyAmenities.filter(item => visibleTypes[item.type]).slice(0, 350);
     if (visibleAmenities.length) {
       visibleAmenities.forEach((item) => {
         const el = document.createElement('div');
@@ -564,7 +718,7 @@ export const Map: React.FC<MapProps> = ({
         amenityMarkersRef.current.push(marker);
       });
     }
-  }, [amenityFilters, mapData, mapReady]);
+  }, [amenityFilters, mapData, mapReady, navigationMode]);
 
   // Update Incident markers
   useEffect(() => {
@@ -574,7 +728,7 @@ export const Map: React.FC<MapProps> = ({
     incidentMarkersRef.current.forEach((m) => m.remove());
     incidentMarkersRef.current = [];
 
-    if (!showCommunity) return;
+    if (!showCommunity || navigationMode) return;
     incidents.forEach((inc) => {
       const el = document.createElement('div');
       el.className = 'incident-marker';
@@ -595,7 +749,7 @@ export const Map: React.FC<MapProps> = ({
 
       incidentMarkersRef.current.push(marker);
     });
-  }, [incidents, showCommunity, mapReady]);
+  }, [incidents, showCommunity, mapReady, navigationMode]);
 
   return (
     <div className="relative w-full h-full overflow-hidden">
@@ -607,7 +761,7 @@ export const Map: React.FC<MapProps> = ({
         }}
       />
       {/* Floating Interactive Route Selector Pill Bar on Map */}
-      {routes && routes.length > 1 && (
+      {!navigationMode && routes && routes.length > 1 && (
         <div className="absolute top-4 left-4 md:left-[450px] z-20 hidden md:flex items-center gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/90 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="text-[11px] uppercase font-bold text-slate-500 px-2 tracking-wider flex items-center gap-1 border-r border-slate-200 mr-0.5">
             <span>Routes</span>

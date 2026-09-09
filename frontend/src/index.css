@@ -26,6 +26,24 @@ body,
 }
 
 @media (max-width: 767px) {
+  /* `vh` is the fallback for older mobile WebViews. Browsers with dynamic
+     viewport units use `dvh`, preventing a blank sheet after browser chrome
+     or the virtual keyboard changes the viewport. */
+  .mobile-sheet--collapsed {
+    height: calc(8.25rem + env(safe-area-inset-bottom));
+  }
+
+  .mobile-sheet--half {
+    height: 58vh;
+    height: min(58dvh, 35rem);
+  }
+
+  .mobile-sheet--full {
+    height: 84vh;
+    height: min(84dvh, 46rem);
+    max-height: calc(100% - 1rem);
+  }
+
   #root button {
     min-height: 44px;
     touch-action: manipulation;

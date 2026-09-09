@@ -13,6 +13,7 @@ import { RouteData, IncidentReport, Landmark, RouteRequest, RoutesResponse, Safe
 import { computeTemporalModifier } from './lib/temporal';
 import { GeocodeResult, geocodeLocation, validateBBox } from './lib/geocoding';
 import { useLiveLocation } from './hooks/useLiveLocation';
+import { useNavigationProgress } from './hooks/useNavigationProgress';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? '' : 'http://127.0.0.1:8000')).replace(/\/$/, '');
 const TRAVEL_MODE_STORAGE_KEY = 'saferoute_travel_mode';
@@ -81,6 +82,7 @@ export function App() {
     status: sourceLocationStatus,
   } = useLiveLocation();
   const { requestLocation: requestReporterLocation } = useLiveLocation();
+  const navigation = useNavigationProgress();
 
   // Incident reporting state with localStorage persistence
   const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
@@ -259,6 +261,7 @@ export function App() {
   }, [backendHealth?.status, departureTime, departureDate, profile, travelMode]);
 
   const routes = rawRoutes;
+  const mapSelectedRouteId = navigation.activeRoute?.id ?? selectedRouteId;
 
   const refreshIncidents = useCallback(async () => {
     const response = await fetch(`${API_BASE_URL}/api/incidents`, { signal: AbortSignal.timeout(10000) });
@@ -464,7 +467,7 @@ export function App() {
         <div className="absolute inset-0 w-full h-full z-0">
           <Map
             routes={routes}
-            selectedRouteId={selectedRouteId}
+            selectedRouteId={mapSelectedRouteId}
             onSelectRoute={setSelectedRouteId}
             showHeatmap={showHeatmap}
             amenityFilters={amenityFilters}
@@ -477,6 +480,8 @@ export function App() {
             originName={origin}
             destName={destination}
             mobileSheetState={mobileSheetState}
+            navigationMode={navigation.isNavigating}
+            currentPosition={navigation.currentPosition}
           />
         </div>
 
@@ -501,6 +506,7 @@ export function App() {
           mobileState={mobileSheetState}
           temporalModifier={temporalMod}
           weather={weatherContext}
+          navigation={navigation}
           onOriginChange={handleOriginChange}
           onDestinationChange={handleDestinationChange}
           onSwapLocations={handleSwapLocations}
@@ -520,19 +526,21 @@ export function App() {
         />
 
         {/* Floating Top-Right Layer Controls & Legend */}
-        <div className="absolute top-4 right-4 z-20">
-          <LayerControls
-            showHeatmap={showHeatmap}
-            onToggleHeatmap={() => setShowHeatmap(!showHeatmap)}
-            amenityFilters={amenityFilters}
-            onToggleAmenity={(key) => setAmenityFilters(current => ({ ...current, [key]: !current[key] }))}
-            showCommunity={showCommunity}
-            onToggleCommunity={() => setShowCommunity(value => !value)}
-            onResetView={handleResetView}
-            isPinningMode={isPinningMode}
-            onCancelPinning={() => setIsPinningMode(false)}
-          />
-        </div>
+        {!navigation.isNavigating ? (
+          <div className="absolute top-4 right-4 z-20">
+            <LayerControls
+              showHeatmap={showHeatmap}
+              onToggleHeatmap={() => setShowHeatmap(!showHeatmap)}
+              amenityFilters={amenityFilters}
+              onToggleAmenity={(key) => setAmenityFilters(current => ({ ...current, [key]: !current[key] }))}
+              showCommunity={showCommunity}
+              onToggleCommunity={() => setShowCommunity(value => !value)}
+              onResetView={handleResetView}
+              isPinningMode={isPinningMode}
+              onCancelPinning={() => setIsPinningMode(false)}
+            />
+          </div>
+        ) : null}
       </div>
 
       {/* Incident Reporting Modal */}

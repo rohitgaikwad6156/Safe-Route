@@ -1,9 +1,11 @@
-import { AlertTriangle, Clock, Compass, MapPin, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Clock, Compass, MapPin, Navigation, ShieldCheck } from 'lucide-react';
+import type { useNavigationProgress } from '../hooks/useNavigationProgress';
 import { formatDistance, formatDuration } from '../lib/utils';
 import { IncidentReport, Landmark, RouteData, SafetyProfileId, TravelMode } from '../types';
 import { DataReadiness, DatasetCard } from './DataReadiness';
 import { DeparturePicker } from './DeparturePicker';
 import { BottomSheetState, MobileBottomSheet } from './MobileBottomSheet';
+import { NavigationProgress } from './NavigationProgress';
 import { ProfileSelector } from './ProfileSelector';
 import { RadialGauge } from './RadialGauge';
 import { RouteCards } from './RouteCards';
@@ -33,6 +35,7 @@ interface NavigationPanelProps {
   mobileState: BottomSheetState;
   temporalModifier: { timeModifier: number; weekendModifier: number };
   weather: WeatherContext;
+  navigation: ReturnType<typeof useNavigationProgress>;
   onOriginChange: (value: string) => void;
   onDestinationChange: (value: string) => void;
   onSwapLocations: () => void;
@@ -51,7 +54,19 @@ interface NavigationPanelProps {
   onMobileStateChange: (state: BottomSheetState) => void;
 }
 
-function RouteSummary({ route, isLoading }: { route?: RouteData; isLoading: boolean }) {
+function StartNavigationButton({ route, onStart, compact = false }: { route: RouteData; onStart: (route: RouteData) => void; compact?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onStart(route)}
+      className={`flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 font-bold text-white shadow-sm hover:bg-emerald-700 ${compact ? 'px-3 text-sm' : 'w-full px-4 text-sm'}`}
+    >
+      <Navigation className="h-4 w-4" /> Start Navigation
+    </button>
+  );
+}
+
+function RouteSummary({ route, isLoading, onStart }: { route?: RouteData; isLoading: boolean; onStart: (route: RouteData) => void }) {
   if (!route) {
     return (
       <div className="flex h-full items-center justify-between gap-3 px-5">
@@ -73,9 +88,12 @@ function RouteSummary({ route, isLoading }: { route?: RouteData; isLoading: bool
           <span>{formatDistance(route.distance_meters)}</span>
         </div>
       </div>
-      <div className="rounded-xl bg-emerald-50 px-3 py-2 text-center text-emerald-800">
-        <p className="text-lg font-extrabold leading-none">{Math.round(route.rss)}</p>
-        <p className="mt-1 text-xs font-semibold">Safety</p>
+      <div className="flex items-center gap-2">
+        <div className="hidden rounded-xl bg-emerald-50 px-3 py-2 text-center text-emerald-800 min-[390px]:block">
+          <p className="text-lg font-extrabold leading-none">{Math.round(route.rss)}</p>
+          <p className="mt-1 text-xs font-semibold">Safety</p>
+        </div>
+        <StartNavigationButton route={route} onStart={onStart} compact />
       </div>
     </div>
   );
@@ -138,12 +156,60 @@ function CommunityReports({ incidents }: { incidents: IncidentReport[] }) {
 export function NavigationPanel(props: NavigationPanelProps) {
   const {
     origin, destination, originCoords, destCoords, departureTime, departureDate, isWeekend, profile, travelMode,
-    datasets, incidents, routes, selectedRoute, selectedRouteId, routeNotice, isLoadingRoutes,
+    datasets, incidents, routes, selectedRoute, selectedRouteId, routeNotice, isLoadingRoutes, navigation,
     desktopCollapsed, mobileState, temporalModifier, weather, onOriginChange, onDestinationChange,
     onSwapLocations, onSelectLandmark, onCalculateRoute, onDepartureTimeChange, onDepartureDateChange,
     onProfileChange, onTravelModeChange, onWeatherChange, onSelectRoute, onDesktopCollapsedChange, onMobileStateChange,
     onUseMyLocation, isLocatingOrigin, locationError,
   } = props;
+
+  const startNavigation = (route: RouteData) => {
+    navigation.startNavigation(route);
+    onDesktopCollapsedChange(false);
+    onMobileStateChange('half');
+  };
+
+  if (navigation.activeRoute && navigation.progress) {
+    const fullNavigation = (
+      <NavigationProgress
+        route={navigation.activeRoute}
+        destination={destination}
+        currentPosition={navigation.currentPosition}
+        locationStatus={navigation.locationStatus}
+        locationError={navigation.locationError}
+        progress={navigation.progress}
+        onEnd={navigation.endNavigation}
+      />
+    );
+    const compactNavigation = (
+      <NavigationProgress
+        route={navigation.activeRoute}
+        destination={destination}
+        currentPosition={navigation.currentPosition}
+        locationStatus={navigation.locationStatus}
+        locationError={navigation.locationError}
+        progress={navigation.progress}
+        onEnd={navigation.endNavigation}
+        compact
+      />
+    );
+
+    return (
+      <MobileBottomSheet
+        desktopCollapsed={desktopCollapsed}
+        onDesktopCollapsedChange={onDesktopCollapsedChange}
+        mobileState={mobileState}
+        onMobileStateChange={onMobileStateChange}
+        title="Live Navigation"
+        mobileLabel="Navigation"
+        mobileCollapsedContent={compactNavigation}
+        mobileHalfContent={<div className="p-4">{fullNavigation}</div>}
+        mobileFullContent={<div className="p-4">{fullNavigation}</div>}
+      >
+        <div className="flex-1 overflow-y-auto p-4">{fullNavigation}</div>
+      </MobileBottomSheet>
+    );
+  }
 
   const planner = (
     <>
@@ -194,6 +260,7 @@ export function NavigationPanel(props: NavigationPanelProps) {
     <>
       {selectedRoute ? (
         <>
+          <StartNavigationButton route={selectedRoute} onStart={startNavigation} />
           <RadialGauge
             score={selectedRoute.rss}
             label={`${selectedRoute.name.split(':')[0]} Safety Score`}
@@ -227,12 +294,13 @@ export function NavigationPanel(props: NavigationPanelProps) {
       mobileState={mobileState}
       onMobileStateChange={onMobileStateChange}
       title="Pune Safe Navigation"
-      mobileCollapsedContent={<RouteSummary route={selectedRoute} isLoading={isLoadingRoutes} />}
+      mobileCollapsedContent={<RouteSummary route={selectedRoute} isLoading={isLoadingRoutes} onStart={startNavigation} />}
       mobileHalfContent={(
         <div className="space-y-4 px-4 py-4 text-[15px]">
           {compactPlanner}
           <TravelModeSelector value={travelMode} onChange={onTravelModeChange} />
           <CompactRouteChoices routes={routes} selectedRouteId={selectedRouteId} onSelectRoute={onSelectRoute} />
+          {selectedRoute ? <StartNavigationButton route={selectedRoute} onStart={startNavigation} /> : null}
         </div>
       )}
       mobileFullContent={(
@@ -248,6 +316,17 @@ export function NavigationPanel(props: NavigationPanelProps) {
           {datasets.length > 0 ? <DataReadiness datasets={datasets} /> : null}
         </div>
       )}
+      desktopFooter={selectedRoute ? (
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-slate-900">{selectedRoute.name}</p>
+            <p className="mt-0.5 text-sm text-slate-600">
+              {formatDistance(selectedRoute.distance_meters)} · Estimated {formatDuration(selectedRoute.duration_seconds)}
+            </p>
+          </div>
+          <StartNavigationButton route={selectedRoute} onStart={startNavigation} compact />
+        </div>
+      ) : null}
     >
       <div className="flex-1 space-y-3.5 overflow-y-auto p-3.5">
         {planner}

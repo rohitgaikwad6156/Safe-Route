@@ -45,11 +45,16 @@ export function useLiveLocation() {
 
   const startTracking = useCallback(() => {
     stopWatchingRef.current?.();
+    stopWatchingRef.current = null;
     setError(null);
     setStatus('tracking');
     try {
       stopWatchingRef.current = watchLocation(
-        setLocation,
+        (nextLocation) => {
+          setLocation(nextLocation);
+          setError(null);
+          setStatus('tracking');
+        },
         (nextError) => {
           setError(nextError);
           setStatus('error');

@@ -13,7 +13,9 @@ interface MobileBottomSheetProps {
   mobileCollapsedContent: ReactNode;
   mobileHalfContent: ReactNode;
   mobileFullContent: ReactNode;
+  desktopFooter?: ReactNode;
   title: string;
+  mobileLabel?: string;
 }
 
 export function MobileBottomSheet({
@@ -25,7 +27,9 @@ export function MobileBottomSheet({
   mobileCollapsedContent,
   mobileHalfContent,
   mobileFullContent,
+  desktopFooter,
   title,
+  mobileLabel,
 }: MobileBottomSheetProps) {
   const isMobile = useMediaQuery('(max-width: 767px)');
 
@@ -56,6 +60,11 @@ export function MobileBottomSheet({
             </button>
           </div>
           {children}
+          {desktopFooter ? (
+            <div className="flex-shrink-0 border-t border-slate-200 bg-white p-3 shadow-[0_-8px_20px_rgba(15,23,42,0.06)]">
+              {desktopFooter}
+            </div>
+          ) : null}
         </aside>
 
         {desktopCollapsed ? (
@@ -75,10 +84,10 @@ export function MobileBottomSheet({
 
   const heightClass =
     mobileState === 'collapsed'
-      ? 'h-[calc(8.25rem+env(safe-area-inset-bottom))]'
+      ? 'mobile-sheet--collapsed'
       : mobileState === 'half'
-        ? 'h-[min(58dvh,35rem)]'
-        : 'h-[calc(100%-4.5rem)]';
+        ? 'mobile-sheet--half'
+        : 'mobile-sheet--full';
 
   const content =
     mobileState === 'collapsed'
@@ -112,7 +121,7 @@ export function MobileBottomSheet({
         >
           <span className="h-1.5 w-12 rounded-full bg-slate-300" />
           <span className="flex items-center gap-1">
-            {mobileState === 'collapsed' ? 'Trip overview' : mobileState === 'half' ? 'Plan route' : 'Safety details'}
+            {mobileLabel ?? (mobileState === 'collapsed' ? 'Trip overview' : mobileState === 'half' ? 'Plan route' : 'Safety details')}
             {mobileState === 'full' ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </span>
         </button>

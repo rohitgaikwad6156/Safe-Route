@@ -255,7 +255,7 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
 
             {locationError ? (
               <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm leading-5 text-amber-900">
-                {locationError}
+                {locationError} You can still enter your source manually.
               </p>
             ) : null}
 
