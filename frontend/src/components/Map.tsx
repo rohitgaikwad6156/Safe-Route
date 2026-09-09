@@ -663,6 +663,9 @@ export const Map: React.FC<MapProps> = ({
         rotationAlignment: 'map',
         pitchAlignment: 'map',
       })
+        // MapLibre requires coordinates before addTo(); otherwise its first
+        // marker update dereferences an undefined internal LngLat.
+        .setLngLat([currentPosition.longitude, currentPosition.latitude])
         .setPopup(new maplibregl.Popup({ offset: 16 }).setText('Your current position'))
         .addTo(map);
     }
