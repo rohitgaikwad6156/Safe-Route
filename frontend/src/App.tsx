@@ -211,8 +211,10 @@ export function App() {
           if (res.ok) {
             const data = await res.json() as RoutesResponse;
             if (sequence !== requestSequence.current) return;
-            if (data.travel_mode !== travelMode) {
+            if (data.travel_mode !== undefined && data.travel_mode !== travelMode) {
               backendMessage = 'The routing server returned a different travel mode. Please retry after the backend is updated.';
+            } else if (data.travel_mode === undefined && travelMode !== 'walking') {
+              backendMessage = 'The deployed routing server currently supports walking routes only. Select Walking to calculate a route.';
             } else if (data && Array.isArray(data.routes) && data.routes.length > 0) {
               const styledRoutes = data.routes.map((r: RouteData) => ({
                 ...r,
