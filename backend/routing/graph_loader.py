@@ -15,6 +15,7 @@ import numpy as np
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 GRAPHML_PATH = DATA_DIR / "pune_graph.graphml"
 PKL_PATH = DATA_DIR / "pune_graph.pkl"
+LITE_PKL_PATH = DATA_DIR / "pune_graph_lite.pkl"
 
 
 class PuneGraphManager:
@@ -32,6 +33,7 @@ class PuneGraphManager:
         self.kd_tree: Optional[cKDTree] = None
         self.node_ids: List[str] = []
         self.node_coords: Dict[str, Tuple[float, float]] = {}
+        self.graph_source_path: Optional[Path] = None
 
     def load(self, force_graphml: bool = False) -> Dict[str, Any]:
         """
@@ -41,14 +43,19 @@ class PuneGraphManager:
         """
         t0 = time.perf_counter()
         
-        if not force_graphml and PKL_PATH.exists():
-            with open(PKL_PATH, "rb") as f:
+        use_lite_graph = os.environ.get("SAFEROUTE_LITE_GRAPH", "0") == "1"
+        selected_pkl = LITE_PKL_PATH if use_lite_graph and LITE_PKL_PATH.exists() else PKL_PATH
+
+        if not force_graphml and selected_pkl.exists():
+            with open(selected_pkl, "rb") as f:
                 self.graph = pickle.load(f)
-            source_type = "binary_cache_pkl"
+            self.graph_source_path = selected_pkl
+            source_type = "binary_cache_pkl_lite" if selected_pkl == LITE_PKL_PATH else "binary_cache_pkl"
         else:
             if not GRAPHML_PATH.exists():
                 raise FileNotFoundError(f"GraphML file not found at {GRAPHML_PATH}")
             self.graph = nx.read_graphml(GRAPHML_PATH)
+            self.graph_source_path = GRAPHML_PATH
             source_type = "raw_graphml_cold_start"
             # Cache for warm restarts
             try:
@@ -104,7 +111,8 @@ class PuneGraphManager:
             "total_edges": self.total_edges,
             "components_count": self.components_count,
             "largest_component_nodes": self.largest_component_nodes,
-            "coverage_percentage": round((self.largest_component_nodes / max(1, self.total_nodes)) * 100, 2)
+            "coverage_percentage": round((self.largest_component_nodes / max(1, self.total_nodes)) * 100, 2),
+            "graph_mode": "lite" if self.graph_source_path == LITE_PKL_PATH else "full"
         }
 
     def snap_to_node(self, lat: float, lon: float) -> Tuple[str, float, float]:

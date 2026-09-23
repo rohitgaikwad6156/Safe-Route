@@ -145,15 +145,27 @@ class RoutingEngine:
         # Build edge weight cache and adjacency representation on largest component
         self._build_edge_cache()
 
+        # Production memory optimization: after adjacency is cached, routing no longer
+        # needs the heavy NetworkX edge dictionaries. Keep nodes/KDTree for snapping.
+        if os.environ.get("SAFEROUTE_RELEASE_GRAPH_EDGES", "1") == "1":
+            self.manager.largest_component_graph.clear_edges()
+            if self.manager.graph is not self.manager.largest_component_graph:
+                self.manager.graph.clear_edges()
+            import gc
+            gc.collect()
+
     def _build_edge_cache(self) -> None:
         """Precomputes SSS, subscores, severity, and hazard buffer status across all edges or loads from disk."""
         cache_path = DATA_DIR / "precomputed_sss.pkl"
         digest = hashlib.sha256()
+        graph_source_path = Path(getattr(self.manager, 'graph_source_path', None) or (DATA_DIR / 'pune_graph.pkl'))
         for file in [Path(__file__), *sorted((DATA_DIR.parent / 'scoring').glob('*.py')),
-                     DATA_DIR / 'pune_graph.pkl', DATA_DIR / 'risk_grid.json',
+                     graph_source_path, DATA_DIR / 'risk_grid.json',
                      DATA_DIR / 'amenities.json', DATA_DIR / 'ward_lighting.json', DATA_DIR / 'landmarks.json']:
             if file.exists():
-                digest.update(file.read_bytes())
+                with open(file, 'rb') as source_file:
+                    for chunk in iter(lambda: source_file.read(1024 * 1024), b''):
+                        digest.update(chunk)
         fingerprint = digest.hexdigest()
         if self.use_disk_cache and cache_path.exists():
             try:
