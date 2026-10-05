@@ -25,7 +25,7 @@ from collections import OrderedDict
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
-from typing import Dict, List, Tuple, Any, Optional
+from typing import Dict, List, Tuple, Any, Optional, Mapping, Iterator
 import networkx as nx
 import numpy as np
 from scipy.spatial import cKDTree
@@ -58,14 +58,79 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DEFAULT_D_NORM = 100.0  # Characteristic street normalization denominator (meters)
 WALK_SPEED_MPS = 1.3    # Standard pedestrian walking speed (m/s)
 DRIVE_SPEED_KMH = 30.0  # Urban Pune reference speed (km/h)
-EDGE_CACHE_SCHEMA_VERSION = 3
+EDGE_CACHE_SCHEMA_VERSION = 4
 
 
 # Reuse canonical Haversine helper from validator.py (no duplication)
 from backend.routing.validator import haversine_distance_meters
 
 
-@dataclass(frozen=True)
+class CompactSubscores(Mapping[str, Any]):
+    """Tuple-backed read-only mapping used per edge to keep Render memory bounded."""
+    __slots__ = ("_values",)
+    _KEYS = ("accident", "emergency", "lighting", "pedestrian", "traffic")
+    _INDEX = {key: index for index, key in enumerate(_KEYS)}
+
+    def __init__(self, values):
+        self._values = tuple(values)
+
+    def __getitem__(self, key):
+        try:
+            return self._values[self._INDEX[key]]
+        except KeyError:
+            raise KeyError(key) from None
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._KEYS)
+
+    def __len__(self) -> int:
+        return len(self._KEYS)
+
+    def __reduce__(self):
+        return (type(self), (self._values,))
+
+
+class CompactEdgePayload(Mapping[str, Any]):
+    """Tuple-backed edge metadata.
+
+    A normal Python dict for every road edge uses hundreds of MB on Render.
+    This preserves the Mapping interface used by travel_modes.py while storing
+    only fields that routing and explanation generation actually read.
+    """
+    __slots__ = ("_values",)
+    _KEYS = (
+        "id", "wsi", "subscores", "name", "highway", "lit", "sidewalk",
+        "cell_key", "ward_source", "geometry", "access", "foot", "motorroad",
+        "motor_vehicle", "motorcycle", "motorcar", "surface", "smoothness",
+        "maxspeed", "junction_degree", "crossing", "node_highway",
+        "traffic_calming",
+    )
+    _INDEX = {key: index for index, key in enumerate(_KEYS)}
+
+    def __init__(self, values):
+        self._values = tuple(values)
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]):
+        return cls(tuple(data.get(key) for key in cls._KEYS))
+
+    def __getitem__(self, key):
+        try:
+            return self._values[self._INDEX[key]]
+        except KeyError:
+            raise KeyError(key) from None
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._KEYS)
+
+    def __len__(self) -> int:
+        return len(self._KEYS)
+
+    def __reduce__(self):
+        return (type(self), (self._values,))
+
+
+@dataclass(frozen=True, slots=True)
 class CachedEdge:
     target: str
     length_meters: float
@@ -75,7 +140,7 @@ class CachedEdge:
     in_hazard_buffer: bool
     mid_lat: float
     mid_lon: float
-    payload: Dict[str, Any]
+    payload: Mapping[str, Any]
 
 
 class RoutePath(list):
@@ -97,7 +162,10 @@ class RoutingEngine:
         amenities: Optional[Dict[str, Any]] = None,
         ward_lighting: Optional[Dict[str, Any]] = None
     ):
-        self.use_disk_cache = manager is None and risk_grid is None and amenities is None and ward_lighting is None
+        self.use_disk_cache = (
+            manager is None and risk_grid is None and amenities is None and ward_lighting is None
+            and os.environ.get("SAFEROUTE_DISK_CACHE", "1") == "1"
+        )
         self.manager = manager or get_graph_manager()
         if not self.manager.is_ready:
             self.manager.load()
@@ -180,10 +248,11 @@ class RoutingEngine:
                     or cached.get('schema_version') != EDGE_CACHE_SCHEMA_VERSION
                     or cached.get('node_count') != graph_node_count
                     or cached.get('edge_count') != graph_edge_count
-                    or not cached.get('adj_best')
+                    or not cached.get('adj')
                 ):
                     raise ValueError('Graph/data/scoring changed; rebuild cache')
-                self.adj, self.adj_best = cached['adj'], cached['adj_best']
+                self.adj = cached['adj']
+                self.adj_best = {}  # compatibility only; routing uses self.adj
                 logger.info(f"Loaded precomputed SSS edge cache in {time.time() - t0:.3f}s from {cache_path.name}")
                 return
             except Exception as e:
@@ -195,7 +264,9 @@ class RoutingEngine:
         self.adj: Dict[str, List[CachedEdge]] = {
             n: [] for n in graph.nodes
         }
-        self.adj_best: Dict[Tuple[str, str], Tuple[float, float, float, Dict[str, Any]]] = {}
+        # Kept as an empty compatibility attribute. The previous duplicate
+        # (u, v) cache was never read by route search and wasted significant RAM.
+        self.adj_best = {}
 
         # Network distance toward help, respecting road direction (PDF p40).
         help_nodes = {self.manager.snap_to_node(float(a['lat']), float(a['lon']))[0]
@@ -268,15 +339,9 @@ class RoutingEngine:
                 if dist_to_severe_m <= 500.0:
                     in_hazard_buffer = True
 
-            subscores = {
-                "accident": s_acc,
-                "emergency": s_em,
-                "lighting": s_light,
-                "pedestrian": s_ped,
-                "traffic": s_traf
-            }
+            subscores = CompactSubscores((s_acc, s_em, s_light, s_ped, s_traf))
 
-            edge_payload = {
+            edge_payload = CompactEdgePayload.from_mapping({
                 "id": f"{u_str}_{v_str}_{k}",
                 "key": str(k),
                 "accident_known": wsi is not None,
@@ -311,7 +376,7 @@ class RoutingEngine:
                 "motorcar": d.get("motorcar") or "",
                 "subscores": subscores,
                 "geometry": d.get("geometry")
-            }
+            })
 
             cached_edge = CachedEdge(
                 target=v_str,
@@ -326,11 +391,6 @@ class RoutingEngine:
             )
             self.adj[u_str].append(cached_edge)
 
-            # Store best (shortest) in adj_best
-            pair_key = (u_str, v_str)
-            if pair_key not in self.adj_best or length_m < self.adj_best[pair_key][0]:
-                self.adj_best[pair_key] = (length_m, full_sss, full_risk, edge_payload)
-
         # Persist precomputed edge scores to disk for instant O(1) restarts
         try:
             if self.use_disk_cache:
@@ -342,10 +402,9 @@ class RoutingEngine:
                         node_count=len(graph.nodes),
                         edge_count=graph.number_of_edges(),
                         adj=self.adj,
-                        adj_best=self.adj_best,
                     ), f, protocol=pickle.HIGHEST_PROTOCOL)
                 temp_path.replace(cache_path)
-            logger.info(f"Persisted precomputed SSS edge cache ({len(self.adj_best)} edges) to {cache_path.name}")
+            logger.info(f"Prepared compact SSS edge cache ({sum(len(edges) for edges in self.adj.values())} edges)")
         except Exception as e:
             logger.warning(f"Could not persist precomputed edge cache to {cache_path}: {e}")
 
