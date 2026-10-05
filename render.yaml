@@ -8,4 +8,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
+      - key: SAFEROUTE_LITE_GRAPH
+        value: "1"
+      - key: SAFEROUTE_RELEASE_GRAPH_EDGES
+        value: "1"
     healthCheckPath: /health
