@@ -17,7 +17,7 @@ import { useNavigationProgress } from './hooks/useNavigationProgress';
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL?.trim()
-  || (import.meta.env.DEV ? '' : 'https://saferoute-ai-backend-d5dc.onrender.com')
+  || (import.meta.env.DEV ? '' : 'https://saferoute-ai-backend-v2.onrender.com')
 ).replace(/\/$/, '');
 const TRAVEL_MODE_STORAGE_KEY = 'saferoute_travel_mode';
 const TRAVEL_MODES: TravelMode[] = ['walking', 'two_wheeler', 'car'];
