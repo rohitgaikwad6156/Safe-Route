@@ -66,7 +66,7 @@ export function App() {
   const [showHeatmap, setShowHeatmap] = useState<boolean>(true);
   // The complete OSM snapshot contains thousands of features. Keep it opt-in so
   // route interaction stays responsive on hackathon/demo laptops.
-  const [amenityFilters, setAmenityFilters] = useState<AmenityFilters>({ hospitals: false, police: false, fire: false, streetlights: false, crossings: false, signals: false, safe_places: false });
+  const [amenityFilters, setAmenityFilters] = useState<AmenityFilters>({ hospitals: true, police: true, fire: true, streetlights: false, crossings: false, signals: false, safe_places: true });
   const [showCommunity, setShowCommunity] = useState(true);
   const [profile, setProfile] = useState<SafetyProfileId>('student');
   const [travelMode, setTravelMode] = useState<TravelMode>(() => {
