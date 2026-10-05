@@ -698,7 +698,20 @@ export const Map: React.FC<MapProps> = ({
       traffic_signals: amenityFilters.signals, ecb: amenityFilters.safe_places,
       emergency_access_point: amenityFilters.safe_places, defibrillator: amenityFilters.safe_places, ambulance_station: amenityFilters.safe_places,
     };
-    const visibleAmenities = navigationMode ? [] : keyAmenities.filter(item => visibleTypes[item.type]).slice(0, 350);
+    // Keep the global marker cap, but reserve space for every enabled amenity type.
+    // Previously, Object.values(...).flat().slice(0, 350) could fill the cap with
+    // hospitals first and silently hide police/fire/safe-place markers.
+    const perTypeLimit = 50;
+    const countsByType: Record<string, number> = {};
+    const visibleAmenities = navigationMode ? [] : keyAmenities
+      .filter((item) => {
+        if (!visibleTypes[item.type]) return false;
+        const currentCount = countsByType[item.type] || 0;
+        if (currentCount >= perTypeLimit) return false;
+        countsByType[item.type] = currentCount + 1;
+        return true;
+      })
+      .slice(0, 350);
     if (visibleAmenities.length) {
       visibleAmenities.forEach((item) => {
         const el = document.createElement('div');
