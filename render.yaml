@@ -12,4 +12,6 @@ services:
         value: "1"
       - key: SAFEROUTE_RELEASE_GRAPH_EDGES
         value: "1"
+      - key: SAFEROUTE_DISK_CACHE
+        value: "0"
     healthCheckPath: /health
