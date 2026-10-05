@@ -33,10 +33,44 @@ from backend.api.geocoder import geocode_location
 
 app = Flask(__name__)
 
-# Preload graph into module-level memory at startup (per AGENTS.md Rule 2)
+# Start the heavy routing warm-up asynchronously so Gunicorn can bind its port
+# immediately on small Render instances. Map data and health stay available while
+# the graph/edge cache is preparing.
 _graph_mgr = get_graph_manager()
-_graph_mgr.load()
-_routing_engine = get_routing_engine()
+_ROUTING_READY = threading.Event()
+_ROUTING_START_LOCK = threading.Lock()
+_ROUTING_START_STARTED = False
+_ROUTING_START_ERROR = None
+
+
+def _warm_routing_backend():
+    global _ROUTING_START_ERROR
+    try:
+        if not _graph_mgr.is_ready:
+            _graph_mgr.load()
+        get_routing_engine()
+        _ROUTING_READY.set()
+    except Exception as exc:
+        _ROUTING_START_ERROR = f"{type(exc).__name__}: {exc}"
+        app.logger.exception("SafeRoute routing warm-up failed")
+
+
+def _ensure_routing_warmup_started():
+    global _ROUTING_START_STARTED
+    if _ROUTING_START_STARTED:
+        return
+    with _ROUTING_START_LOCK:
+        if _ROUTING_START_STARTED:
+            return
+        _ROUTING_START_STARTED = True
+        threading.Thread(
+            target=_warm_routing_backend,
+            name="saferoute-routing-warmup",
+            daemon=True,
+        ).start()
+
+
+_ensure_routing_warmup_started()
 
 # Global rate limiter state: { ip: list_of_timestamps }
 _RATE_LIMITS: Dict[str, List[float]] = {}
@@ -125,8 +159,16 @@ def health_check():
     """
     manager = get_graph_manager()
     meta = manager.get_metadata()
-    status_code = 200 if meta["is_ready"] else 503
-    return jsonify(meta), status_code
+    meta["routing_ready"] = _ROUTING_READY.is_set()
+    meta["routing_warming_up"] = _ROUTING_START_STARTED and not _ROUTING_READY.is_set() and _ROUTING_START_ERROR is None
+    if _ROUTING_START_ERROR:
+        meta["routing_error"] = _ROUTING_START_ERROR
+        meta["status"] = "degraded"
+    elif not _ROUTING_READY.is_set():
+        meta["status"] = "warming"
+    # Process health stays HTTP 200 so Render can keep the service alive while
+    # the memory-bounded routing cache finishes warming.
+    return jsonify(meta), 200
 
 
 @app.route("/api/geocode", methods=["GET"])
@@ -203,7 +245,23 @@ def get_routes_endpoint():
     dep_dt = datetime.strptime(f'{dep_date} {dep_time_str}', '%Y-%m-%d %H:%M').replace(tzinfo=PUNE_TZ)
     profile = normalize_profile(str(data.get('profile') or 'student'))
 
-    # 4. Execute multi-objective A* search via RoutingEngine
+    # 4. Execute multi-objective A* search via RoutingEngine.
+    # A cold Render instance warms the routing graph in a daemon thread. Give it
+    # a bounded window so the first user request can still succeed without
+    # leaving the browser hanging indefinitely.
+    _ensure_routing_warmup_started()
+    if not _ROUTING_READY.wait(timeout=45):
+        if _ROUTING_START_ERROR:
+            return jsonify({
+                "error": "routing_unavailable",
+                "message": "The safety-routing engine could not start.",
+                "detail": _ROUTING_START_ERROR,
+            }), 503
+        return jsonify({
+            "error": "routing_warming_up",
+            "message": "The safety-routing engine is warming up. Please retry this route shortly.",
+        }), 503
+
     routing_engine = get_routing_engine()
     routes_payload = routing_engine.calculate_routes(
         orig_lat=orig_lat,
