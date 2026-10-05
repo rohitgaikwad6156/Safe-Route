@@ -69,15 +69,24 @@ class PuneGraphManager:
         self.total_nodes = len(self.graph.nodes)
         self.total_edges = len(self.graph.edges)
 
-        # A pickle can contain either a raw graph or an already pruned graph.
-        # Inspect it in both cases so route reachability and health metadata remain accurate.
-        components = list(nx.strongly_connected_components(self.graph))
-        self.components_count = len(components)
-        largest_comp_nodes = max(components, key=len)
-        self.largest_component_nodes = len(largest_comp_nodes)
-        disconnected = set(self.graph.nodes) - largest_comp_nodes
-        if disconnected:
-            self.graph.remove_nodes_from(disconnected)
+        # The committed lite graph is already pruned to its production routing
+        # component. Re-running SCC analysis allocates large temporary node sets and
+        # can push a 512 MiB Render instance over its memory limit.
+        if selected_pkl == LITE_PKL_PATH:
+            self.components_count = 1
+            self.largest_component_nodes = len(self.graph.nodes)
+        else:
+            # Stream SCCs instead of materializing every component at once.
+            self.components_count = 0
+            largest_comp_nodes = set()
+            for component in nx.strongly_connected_components(self.graph):
+                self.components_count += 1
+                if len(component) > len(largest_comp_nodes):
+                    largest_comp_nodes = component
+            self.largest_component_nodes = len(largest_comp_nodes)
+            disconnected = set(self.graph.nodes) - largest_comp_nodes
+            if disconnected:
+                self.graph.remove_nodes_from(disconnected)
 
         self.largest_component_graph = self.graph
 
