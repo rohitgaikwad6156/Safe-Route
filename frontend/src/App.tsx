@@ -15,7 +15,10 @@ import { GeocodeResult, geocodeLocation, validateBBox } from './lib/geocoding';
 import { useLiveLocation } from './hooks/useLiveLocation';
 import { useNavigationProgress } from './hooks/useNavigationProgress';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? '' : 'http://127.0.0.1:8000')).replace(/\/$/, '');
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL?.trim()
+  || (import.meta.env.DEV ? '' : 'https://saferoute-ai-backend-d5dc.onrender.com')
+).replace(/\/$/, '');
 const TRAVEL_MODE_STORAGE_KEY = 'saferoute_travel_mode';
 const TRAVEL_MODES: TravelMode[] = ['walking', 'two_wheeler', 'car'];
 
